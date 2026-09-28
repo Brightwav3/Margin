@@ -293,7 +293,7 @@ public actor NoteIndex {
 
     static func isMarkdown(_ path: String) -> Bool { path.lowercased().hasSuffix(".md") }
 
-    static func hash(_ text: String) -> String { ContentHash.fnv1a(Data(text.utf8)) }
+    static func hash(_ text: String) -> String { ContentHash(of: text).hex }
 
     static func name(ofPath path: String) -> String {
         let last = path.split(separator: "/").last.map(String.init) ?? path

@@ -175,7 +175,7 @@ private func makeIndex() async -> NoteIndex {
 
 // MARK: - Performance budgets
 
-private struct SplitMix64 {
+private struct IndexRNG {
     var state: UInt64
     mutating func next() -> UInt64 {
         state &+= 0x9E37_79B9_7F4A_7C15
@@ -188,7 +188,7 @@ private struct SplitMix64 {
 }
 
 private func syntheticVault(count: Int, seed: UInt64 = 42) -> [(path: String, content: String)] {
-    var rng = SplitMix64(state: seed)
+    var rng = IndexRNG(state: seed)
     let words = ["cell", "membrane", "protein", "energy", "atom", "bond", "the", "of", "and", "reaction",
                  "theory", "lecture", "exam", "model", "study", "graph", "proof", "vector", "signal", "noise"]
     var out: [(String, String)] = []
