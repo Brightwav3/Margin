@@ -1,0 +1,67 @@
+/* Fidelio — Color tokens */
+:root {
+  /* Neutral ramp — the spine of the system */
+  --gray-0:   #FFFFFF;
+  --gray-50:  #FAFAFA;
+  --gray-100: #F4F4F4;
+  --gray-200: #EBEBEB;
+  --gray-300: #E0E0E0;
+  --gray-400: #C7C7C7;
+  --gray-500: #9E9E9E; /* tertiary text */
+  --gray-600: #5D5D5D; /* secondary text */
+  --gray-900: #292929; /* primary text + primary CTA */
+
+  /* Accent — interactive blue (links, active nav, focus) */
+  --blue-50:  #EEF3FE;
+  --blue-100: #D7E4FD;
+  --blue-500: #2C6EF5;
+  --blue-600: #1F5AD8;
+  --blue-700: #1A4CB8;
+
+  /* Semantic hues */
+  --green-50:  #E9F6EE;
+  --green-500: #2E9E5B;
+  --green-600: #248049;
+  --amber-50:  #FBF2E1;
+  --amber-500: #C9820A;
+  --amber-600: #A66A07;
+  --red-50:    #FCECEC;
+  --red-500:   #DC3B3B;
+  --red-600:   #BE2E2E;
+
+  /* ---- Semantic aliases ---- */
+  --text-primary:   var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-tertiary:  var(--gray-500);
+  --text-inverse:   var(--gray-0);
+  --text-accent:    var(--blue-600);
+  --text-disabled:  var(--gray-400);
+
+  --surface-page:   var(--gray-0);
+  --surface-card:   var(--gray-0);
+  --surface-sunken: var(--gray-100);
+  --surface-hover:  var(--gray-100);
+  --surface-active: var(--gray-200);
+  --surface-inverse: var(--gray-900);
+
+  --border-subtle:  var(--gray-200);
+  --border-default: var(--gray-300);
+  --border-strong:  var(--gray-400);
+  --border-focus:   var(--blue-500);
+
+  --accent:         var(--blue-500);
+  --accent-hover:   var(--blue-600);
+  --accent-active:  var(--blue-700);
+  --accent-soft:    var(--blue-50);
+
+  --success:      var(--green-500);
+  --success-soft: var(--green-50);
+  --warning:      var(--amber-500);
+  --warning-soft: var(--amber-50);
+  --danger:       var(--red-500);
+  --danger-hover: var(--red-600);
+  --danger-soft:  var(--red-50);
+
+  /* Focus ring */
+  --ring: 0 0 0 3px var(--blue-100);
+}

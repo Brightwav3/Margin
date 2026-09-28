@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+</helmet>
+<div ref="{{ rootRef }}" style="height:100%;display:flex;position:relative">
+<sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:0;right:30px;top:-44px;height:44px;z-index:3;display:flex;align-items:center;gap:2px;padding:0 4px">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+      <div onClick="{{ t.go }}" title="{{ t.label }}" style="cursor:pointer;width:32px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:{{ t.bg }}" style-hover="background:{{ t.hover }}">
+        <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ t.icon }}" size="{{ 18 }}" weight="{{ 300 }}" fill="{{ t.on }}" color="{{ t.color }}" hint-size="18px,18px"></x-import>
+      </div>
+    </sc-for>
+  </div>
+<aside style="width:300px;height:100%;flex:none;border-left:1px solid #E9EAEE;background:#FCFCFD;display:flex;flex-direction:column;font-family:var(--font-sans);letter-spacing:-0.2px;color:#1C1E26;box-sizing:border-box;border-radius:0 12px 12px 0;overflow:hidden">
+  <div style="padding:16px 18px 6px;font-size:13px;font-weight:600;color:#686C78">{{ title }}</div>
+
+  <sc-if value="{{ isAgent }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <div style="flex:1;min-height:0;overflow:hidden;padding:4px 16px;display:flex;flex-direction:column;gap:14px">
+        <div style="align-self:flex-start;display:flex;align-items:center;gap:6px;font-size:12px;color:#686C78;background:#F0F1F4;border-radius:6px;padding:3px 8px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ ctxIcon }}" size="{{ 14 }}" weight="{{ 300 }}" hint-size="14px,14px"></x-import>{{ ctx }}</div>
+        <sc-for list="{{ chat }}" as="m" hint-placeholder-count="2">
+          <div style="align-self:{{ m.align }};max-width:{{ m.max }};background:{{ m.bg }};border-radius:12px;padding:{{ m.pad }};font-size:14px;line-height:1.5;text-wrap:pretty">{{ m.text }}</div>
+        </sc-for>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:8px;min-height:34px;padding:0 10px;border:1px solid #E4E5E9;border-radius:8px;font-size:13px;color:#1C1E26;background:#fff" style-hover="border-color:#C4C7CF"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ s.icon }}" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import>{{ s.text }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="padding:12px;flex:none">
+        <div style="border:1px solid #DFE1E6;border-radius:12px;background:#fff;padding:10px 12px;display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:14px;color:#9A9DA6">{{ placeholder }}</span>
+          <div style="display:flex;align-items:center;gap:10px;color:#686C78">
+            <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="alternate_email" size="{{ 18 }}" weight="{{ 300 }}" hint-size="18px,18px"></x-import>
+            <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="attach_file" size="{{ 18 }}" weight="{{ 300 }}" hint-size="18px,18px"></x-import>
+            <span style="flex:1"></span>
+            <span style="width:28px;height:28px;border-radius:50%;background:#2F6BEB;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="arrow_upward" size="{{ 16 }}" color="#fff" hint-size="16px,16px"></x-import></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isList }}">
+    <div style="flex:1;min-height:0;overflow:hidden;padding:0 10px;display:flex;flex-direction:column;gap:1px">
+      <sc-for list="{{ rows }}" as="r">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 8px 7px {{ r.indent }};border-radius:8px" style-hover="background:#F0F1F4">
+          <sc-if value="{{ r.hasIcon }}"><span style="padding-top:1px;display:flex"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ r.icon }}" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import></span></sc-if>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:14px;color:{{ r.color }};font-weight:{{ r.fw }}">{{ r.title }}</span>
+            <sc-if value="{{ r.hasMeta }}"><span style="font-size:12px;color:#9A9DA6;line-height:1.4;text-wrap:pretty">{{ r.meta }}</span></sc-if>
+          </div>
+          <span style="font-size:12px;color:#9A9DA6;padding-top:2px">{{ r.count }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+</aside>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:300,&quot;height&quot;:776},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;note&quot;,&quot;course&quot;],&quot;default&quot;:&quot;note&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;agent&quot;,&quot;outline&quot;,&quot;back&quot;,&quot;out&quot;,&quot;props&quot;,&quot;due&quot;,&quot;info&quot;,&quot;files&quot;],&quot;default&quot;:&quot;agent&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { tab: null, open: true };
+  rootRef = React.createRef();
+  onToggle = () => this.setState(s => ({ open: !s.open }));
+  componentDidMount() {
+    this.card = this.rootRef.current && this.rootRef.current.closest('.dv-card');
+    if (this.card) this.card.addEventListener('margin-toggle-right', this.onToggle);
+  }
+  componentWillUnmount() { if (this.card) this.card.removeEventListener('margin-toggle-right', this.onToggle); }
+  renderVals() {
+    const view = this.props.view ?? 'note';
+    const T = view === 'course'
+      ? [['agent', 'auto_awesome', 'Agent'], ['due', 'event', 'Coming up'], ['info', 'info', 'Course info'], ['files', 'folder', 'Files']]
+      : [['agent', 'auto_awesome', 'Agent'], ['outline', 'toc', 'Outline'], ['back', 'call_received', 'Backlinks'], ['out', 'call_made', 'Outgoing links'], ['props', 'tune', 'All properties']];
+    const tab = this.state.tab ?? this.props.tab ?? 'agent';
+    const tabs = T.map(([id, icon, label]) => { const on = id === tab; return { icon, label, on, bg: on ? '#E4E5E9' : 'transparent', hover: on ? '#E4E5E9' : '#ECEDF0', color: on ? '#1C1E26' : '#686C78', go: () => this.setState({ tab: id }) }; });
+    const r = (title, o = {}) => ({ title, meta: o.meta || '', hasMeta: !!o.meta, icon: o.icon || '', hasIcon: !!o.icon, count: o.count || '', indent: o.indent || '8px', color: o.link ? '#2457D6' : '#1C1E26', fw: o.bold ? 600 : 400 });
+    const L = {
+      outline: [r('Lecture 8 — Cell membrane', { bold: true }), r('Fluid mosaic model', { indent: '22px' }), r('To do', { indent: '22px' }), r('Related', { indent: '22px' })],
+      back: [r('Membrane transport summary', { icon: 'description', link: true, meta: '…builds on [[Lecture 8 — Cell membrane]] for the bilayer…' }), r('Midterm formula sheet', { icon: 'description', link: true, meta: '…see [[Lecture 8]] for cholesterol…' }), r('Lipids', { icon: 'description', link: true, meta: 'Organic Chemistry · linked in Related' })],
+      out: [r('Membrane transport', { icon: 'description', link: true, meta: 'Cell Biology' }), r('Lipids', { icon: 'description', link: true, meta: 'Organic Chemistry' }), r('Osmosis', { icon: 'add_circle', meta: 'Not created yet' })],
+      props: [r('date', { icon: 'calendar_today', count: '142' }), r('class', { icon: 'notes', count: '142' }), r('tags', { icon: 'sell', count: '98' }), r('type', { icon: 'category', count: '142' }), r('due', { icon: 'event', count: '36' }), r('weight', { icon: 'percent', count: '21' })],
+      due: [r('Midterm', { icon: 'quiz', meta: 'Thu 1 Oct · lectures 1–8', count: '3d' }), r('Problem set 3', { icon: 'assignment', meta: 'Fri 2 Oct · 10%', count: '4d' }), r('Lecture 9 — Membrane transport', { icon: 'event_upcoming', meta: 'Tue 29 Sep · 10:00 · Sci 204', count: '1d' })],
+      info: [r('Dr. Okafor', { icon: 'person', meta: 'okafor@uni.edu' }), r('Office hours', { icon: 'schedule', meta: 'Tue 14:00 · Sci 310' }), r('Sessions', { icon: 'location_on', meta: 'Tue, Thu 10:00 · Sci 204' }), r('Grade so far', { icon: 'bar_chart', meta: 'A− · 91%' })],
+      files: [r('Syllabus.pdf', { icon: 'picture_as_pdf' }), r('Lab manual.pdf', { icon: 'picture_as_pdf' }), r('Past papers', { icon: 'folder', count: '4' })]
+    };
+    const titles = { agent: 'Agent', outline: 'Outline', back: 'Backlinks · 3', out: 'Outgoing links · 3', props: 'All properties', due: 'Coming up', info: 'Course info', files: 'Files' };
+    const course = view === 'course';
+    const msg = (text, user) => ({ text, align: user ? 'flex-end' : 'flex-start', max: user ? '85%' : '100%', bg: user ? '#E6EDFD' : 'transparent', pad: user ? '8px 12px' : '0' });
+    const chat = course
+      ? [msg('What should I focus on before the midterm?', true), msg('Lectures 6–8 carry most of the marks. You have 2 open tasks in Lecture 8, and the membrane diagram came up in both past papers.')]
+      : [msg('Quiz me on this note', true), msg('Which molecule keeps the membrane fluid at low temperatures, and how does it do it?')];
+    const suggestions = course
+      ? [{ icon: 'quiz', text: 'Make a study plan until Thursday' }, { icon: 'style', text: 'Flashcards from lectures 1–8' }]
+      : [{ icon: 'summarize', text: 'Summarize this note' }, { icon: 'add_link', text: 'Suggest links to other notes' }, { icon: 'style', text: 'Turn into flashcards' }];
+    return {
+      rootRef: this.rootRef, open: this.state.open, tabs, title: titles[tab], isAgent: tab === 'agent', isList: tab !== 'agent', rows: L[tab] || [],
+      chat, suggestions, ctx: course ? 'Cell Biology · 16 notes' : 'Lecture 8 — Cell membrane', ctxIcon: course ? 'eco' : 'description',
+      placeholder: course ? 'Ask about this course…' : 'Ask about this note…'
+    };
+  }
+}
+</script>
+</body>
+</html>

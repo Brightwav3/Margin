@@ -1,0 +1,35 @@
+/* Margin — local overrides layered on the Fidelio tokens, matched to the reference screenshots */
+:root {
+  --gray-0: #FFFFFF;
+  --gray-50: #F6F6F8;   /* sidebar */
+  --gray-100: #F3F4F6;  /* sunken / previews */
+  --gray-200: #E9EAEE;  /* subtle border */
+  --gray-300: #DFE1E6;  /* default border */
+  --gray-400: #C4C7CF;
+  --gray-500: #9A9DA6;  /* tertiary */
+  --gray-600: #686C78;  /* secondary */
+  --gray-900: #1C1E26;  /* ink */
+
+  --blue-50: #E6EDFD;   /* active nav / selected chip */
+  --blue-100: #CFDDFB;
+  --blue-500: #2F6BEB;  /* primary action */
+  --blue-600: #2457D6;
+  --blue-700: #1D47B3;
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 17px;   /* editor body */
+  --text-lg: 20px;   /* card / section titles */
+  --text-2xl: 30px;  /* page titles */
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-tile: 12px;
+  --tracking: -0.2px;
+}

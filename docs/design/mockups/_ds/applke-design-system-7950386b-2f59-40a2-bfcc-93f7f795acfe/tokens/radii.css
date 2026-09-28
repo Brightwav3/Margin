@@ -1,0 +1,8 @@
+/* Fidelio — Corner radius tokens
+   Three intentional radii: nav (8), card (16), pill CTA (full). */
+:root {
+  --radius-xs:   4px;  /* chips, tags, tight inline elements */
+  --radius-nav:  8px;  /* nav items, inputs, menus, small controls */
+  --radius-card: 16px; /* cards, sheets, dialogs, larger surfaces */
+  --radius-pill: 9999px; /* CTA buttons, toggles, avatars */
+}

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+<style>body{margin:0;background:#E4E5E9;color:#1C1E26;font-family:var(--font-sans);letter-spacing:-0.2px}*{box-sizing:border-box}a{color:#2457D6;text-decoration:none}a:hover{color:#1D47B3}</style>
+</helmet>
+<section id="p3" style="padding:56px 56px 0">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p3" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">3</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Semester, sharing, schedule, agent</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 32px">More screens in <a href="Margin Screens.dc.html">Margin Screens</a>.</div>
+  <div style="display:grid;grid-template-columns:repeat(2,560px);gap:40px">
+    <div id="3a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#3a" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">3a</a>Archive semester</div>
+      <div style="height:560px;border:1px solid #D5D7DD;border-radius:14px;background:rgba(28,30,38,.28);display:flex;align-items:center;justify-content:center">
+<div style="width:460px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.25);display:flex;flex-direction:column"><div style="display:flex;align-items:center;padding:18px 20px 6px"><span style="flex:1;font-size:19px;font-weight:600;letter-spacing:-0.3px">Archive Fall 2026?</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+          <div style="padding:6px 20px 18px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:14px;line-height:1.5;color:#686C78">Last exam was on Fri 18 Dec. 6 courses and 204 notes become read-only; they stay searchable and linkable.</span>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:#F6F6F8;font-size:14px"><div style="display:flex;justify-content:space-between"><span>Open tasks</span><span style="font-weight:600">3</span></div><div style="display:flex;justify-content:space-between"><span>Missing grades</span><span style="font-weight:600;color:#D93F33">1 · Modern Europe essay</span></div></div>
+            <div style="display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid #2F6BEB;background:#F5F8FE;"><span style="width:18px;height:18px;border-radius:50%;flex:none;margin-top:1px;border:5px solid #2F6BEB;box-sizing:border-box"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Move open tasks to Inbox</span><span style="font-size:13px;color:#686C78">So nothing gets lost</span></div></div><div style="display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid #E4E5E9;"><span style="width:18px;height:18px;border-radius:50%;flex:none;margin-top:1px;border:1.5px solid #C4C7CF;box-sizing:border-box"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Close them</span><span style="font-size:13px;color:#686C78">Mark as won’t do</span></div></div>
+            <label style="display:flex;align-items:center;gap:10px;font-size:14px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import>Start Spring 2027 next</label>
+          </div><div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #EDEEF1"><span style="height:38px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;background:#fff;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap">Cancel</span><span style="height:38px;padding:0 16px;border-radius:8px;background:#2F6BEB;color:#fff;font-weight:500;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap">Archive semester</span></div></div>
+      </div>
+    </div>
+    <div id="3b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#3b" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">3b</a>Share or export a note</div>
+      <div style="height:560px;border:1px solid #D5D7DD;border-radius:14px;background:#F6F6F8;display:flex;align-items:flex-start;justify-content:center;padding-top:36px">
+
+        <div style="width:400px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 16px 40px rgba(28,30,38,.18);padding:16px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:4px;padding:3px;background:#F3F4F6;border-radius:8px;font-size:14px"><span style="flex:1;height:30px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center">Share</span><span style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;color:#686C78">Export</span></div>
+          <div style="display:flex;gap:8px"><div style="flex:1;height:38px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:14px;color:#9A9DA6">Add classmates by email</div><span style="height:38px;padding:0 16px;border-radius:8px;background:#2F6BEB;color:#fff;font-weight:500;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap">Invite</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:14px"><span style="width:30px;height:30px;border-radius:50%;background:#D6E2FA;color:#274FA8;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">You</span><span style="flex:1">You</span><span style="color:#9A9DA6">Owner</span></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:14px"><span style="width:30px;height:30px;border-radius:50%;background:#FBE8C4;color:#8F5D0E;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">MK</span><span style="flex:1">Mia Keller</span><span style="height:34px;padding:0 10px 0 12px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap">Can view<x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import></span></div>
+          </div>
+          <div style="height:1px;background:#EDEEF1"></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="link" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><div style="flex:1;display:flex;flex-direction:column"><span>Public link</span><span style="font-size:12px;color:#9A9DA6">Anyone with the link can read. Private links are hidden.</span></div><span style="width:36px;height:22px;border-radius:11px;background:#D5D7DD;position:relative;flex:none"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></div>
+          <span style="font-size:12px;font-weight:600;color:#9A9DA6;margin-top:4px">Export</span>
+          <div style="display:flex;gap:8px"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:10px;border:1px solid #2F6BEB;background:#F5F8FE;color:#2457D6;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="picture_as_pdf" size="{{ 22 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="22px,22px"></x-import>PDF</div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:10px;border:1px solid #E4E5E9;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="code" size="{{ 22 }}" weight="{{ 300 }}" color="#686C78" hint-size="22px,22px"></x-import>Markdown</div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:10px;border:1px solid #E4E5E9;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="style" size="{{ 22 }}" weight="{{ 300 }}" color="#686C78" hint-size="22px,22px"></x-import>Anki deck</div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:10px;border:1px solid #E4E5E9;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="description" size="{{ 22 }}" weight="{{ 300 }}" color="#686C78" hint-size="22px,22px"></x-import>Word</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="3c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#3c" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">3c</a>Reschedule or cancel a session</div>
+      <div style="height:560px;border:1px solid #D5D7DD;border-radius:14px;background:rgba(28,30,38,.28);display:flex;align-items:center;justify-content:center">
+<div style="width:440px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.25);display:flex;flex-direction:column"><div style="display:flex;align-items:center;padding:18px 20px 6px"><span style="flex:1;font-size:19px;font-weight:600;letter-spacing:-0.3px">Lecture 9 — Membrane transport</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+          <div style="padding:4px 20px 18px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:14px;color:#686C78">Cell Biology · usually Tue 10:00 · Sci 204</span>
+            <div style="display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid #2F6BEB;background:#F5F8FE;"><span style="width:18px;height:18px;border-radius:50%;flex:none;margin-top:1px;border:5px solid #2F6BEB;box-sizing:border-box"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Move this session</span><span style="font-size:13px;color:#686C78">Only Tue 29 Sep</span></div></div>
+            <div style="display:flex;gap:10px;padding-left:30px"><div style="display:flex;flex-direction:column;gap:6px;flex:1"><span style="font-size:13px;font-weight:600;color:#686C78">Date</span><div style="height:42px;border:1px solid #2F6BEB;box-shadow:0 0 0 3px #E6EDFD;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:15px;background:#fff"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="calendar_today" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Wed 30 Sep</div></div><div style="display:flex;flex-direction:column;gap:6px;flex:1"><span style="font-size:13px;font-weight:600;color:#686C78">Time</span><div style="height:42px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:15px;background:#fff"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="schedule" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>14:00</div></div></div>
+            <div style="padding-left:30px"><div style="display:flex;flex-direction:column;gap:6px;flex:1"><span style="font-size:13px;font-weight:600;color:#686C78">Room</span><div style="height:42px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:15px;background:#fff"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="location_on" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Sci 110</div></div></div>
+            <div style="display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid #E4E5E9;"><span style="width:18px;height:18px;border-radius:50%;flex:none;margin-top:1px;border:1.5px solid #C4C7CF;box-sizing:border-box"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Cancel this session</span><span style="font-size:13px;color:#686C78">The note is kept, marked as cancelled</span></div></div>
+            <div style="display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid #E4E5E9;"><span style="width:18px;height:18px;border-radius:50%;flex:none;margin-top:1px;border:1.5px solid #C4C7CF;box-sizing:border-box"></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">Change every Tuesday session</span><span style="font-size:13px;color:#686C78">From 29 Sep to the end of the semester</span></div></div>
+            <div style="display:flex;gap:10px;padding:10px 12px;border-radius:10px;background:#F6F6F8;font-size:13px;line-height:1.45;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="info" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import><span>2 tasks due “before next lecture” will move to Wed 14:00.</span></div>
+          </div><div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #EDEEF1"><span style="height:38px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;background:#fff;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap">Cancel</span><span style="height:38px;padding:0 16px;border-radius:8px;background:#2F6BEB;color:#fff;font-weight:500;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap">Save</span></div></div>
+      </div>
+    </div>
+    <div id="3d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#3d" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">3d</a>Agent suggests links while you write</div>
+      <div style="height:560px;border:1px solid #D5D7DD;border-radius:14px;background:#fff;overflow:hidden">
+
+        <div style="display:flex;gap:20px;height:100%">
+          <div style="flex:1;min-width:0;padding:32px 0 0 28px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:20px;font-weight:600">Active transport</span>
+            <p style="margin:0;font-size:16px;line-height:1.65">Needs ATP. The <span style="border-bottom:2px dotted #2F6BEB">sodium–potassium pump</span> moves 3 Na⁺ out and 2 K⁺ in, which keeps the <span style="border-bottom:2px dotted #2F6BEB">membrane potential</span> negative.</p>
+          </div>
+          <div style="width:260px;flex:none;border-left:1px solid #E9EAEE;background:#FCFCFD;padding:20px 14px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="auto_awesome" size="{{ 16 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="16px,16px"></x-import>Suggested links · 3</div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;border:1px solid #E4E5E9"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#6FBF7A;flex:none"></span><span style="flex:1;font-size:14px;color:#2457D6">Lecture 8 — Cell membrane</span><span style="height:26px;padding:0 10px;border-radius:6px;background:#E6EDFD;color:#2457D6;font-size:12px;font-weight:500;display:flex;align-items:center">Link</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 16 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="16px,16px"></x-import></div><span style="font-size:13px;line-height:1.45;color:#686C78">Defines the bilayer the pump sits in.</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;border:1px solid #E4E5E9"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7FA88A;flex:none"></span><span style="flex:1;font-size:14px;color:#2457D6">ATP and energy coupling</span><span style="height:26px;padding:0 10px;border-radius:6px;background:#E6EDFD;color:#2457D6;font-size:12px;font-weight:500;display:flex;align-items:center">Link</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 16 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="16px,16px"></x-import></div><span style="font-size:13px;line-height:1.45;color:#686C78">Organic Chemistry note from 21 Sep mentions ATP hydrolysis.</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;border:1px solid #E4E5E9"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#6FBF7A;flex:none"></span><span style="flex:1;font-size:14px;color:#2457D6">Membrane potential</span><span style="height:26px;padding:0 10px;border-radius:6px;background:#E6EDFD;color:#2457D6;font-size:12px;font-weight:500;display:flex;align-items:center">Link</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 16 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="16px,16px"></x-import></div><span style="font-size:13px;line-height:1.45;color:#686C78">No note yet. Create it from this paragraph?</span></div>
+            <span style="font-size:13px;color:#2457D6">Link all</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="p2" style="padding:56px 56px 0">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p2" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">2</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">More popups</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 32px">Writing, navigation, course setup and grades.</div>
+  <div style="display:grid;grid-template-columns:repeat(3,560px);gap:40px">
+    <div id="2a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2a" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2a</a>Slash commands after typing /</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:#fff;padding:40px 44px">
+
+        <div style="font-size:17px;line-height:1.6"><span style="color:#9A9DA6">/</span>ta<span style="display:inline-block;width:2px;height:20px;background:#2F6BEB;vertical-align:-4px"></span></div>
+        <div style="width:300px;margin-top:6px;background:#fff;border:1px solid #E4E5E9;border-radius:10px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:5px">
+          <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px">Blocks</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;background:#E6EDFD;color:#2457D6;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="check_box" size="{{ 18 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Task</span><span style="font-size:12px;color:#2457D6;white-space:nowrap">- [ ]</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="table" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Table</span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">|</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="timer" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Tag for revision</span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">#</span></div>
+          <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px">School</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="event" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Task due before next lecture</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="style" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Flashcard</span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">::</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="functions" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Formula</span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">$$</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="auto_awesome" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Ask agent to write…</span></div>
+        </div>
+      </div>
+    </div>
+    <div id="2b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2b" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2b</a>Link preview on hover</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:#fff;padding:60px 44px">
+
+        <p style="margin:0;font-size:17px;line-height:1.65;max-width:460px">Proteins float within the lipid layer. Some span it and form channels — see <span style="color:#2457D6;text-decoration:underline;background:#E6EDFD;border-radius:3px">Membrane transport</span>.</p>
+        <div style="width:380px;margin:10px 0 0 90px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 16px 40px rgba(28,30,38,.18);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #EDEEF1;font-size:12px;color:#686C78"><span style="width:7px;height:7px;border-radius:50%;background:#6FBF7A"></span>Cell Biology · Lecture 9<span style="flex:1"></span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="open_in_new" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import></div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:18px;font-weight:700;letter-spacing:-0.3px">Membrane transport</span>
+            <span style="font-size:14px;line-height:1.55;color:#1C1E26;text-wrap:pretty">Passive transport moves substances down the concentration gradient without energy: diffusion, facilitated diffusion, osmosis.</span>
+            <span style="font-size:15px;font-weight:600;margin-top:4px">Active transport</span>
+            <span style="font-size:14px;line-height:1.55;color:#686C78">Needs ATP. The sodium–potassium pump moves 3 Na⁺ out…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="2c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2c" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2c</a>Move note to…</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:#F6F6F8;display:flex;align-items:flex-start;justify-content:center;padding-top:36px">
+
+        <div style="width:420px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 20px 48px rgba(28,30,38,.18);overflow:hidden">
+          <div style="height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #EDEEF1"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="drive_file_move" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import><span style="flex:1;font-size:16px;color:#9A9DA6">Move “Lecture 8” to…</span></div>
+          <div style="padding:5px">
+            <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px">Fall 2026</div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><span style="flex:1;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:10px"><span style="width:7px;height:7px;border-radius:50%;background:#6FBF7A"></span>Cell Biology</span></span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">current</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;background:#E6EDFD;color:#2457D6;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="subdirectory_arrow_right" size="{{ 18 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Cell Biology / Lectures</span><span style="font-size:12px;color:#2457D6;white-space:nowrap">↵</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="subdirectory_arrow_right" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Cell Biology / Study notes</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><span style="flex:1;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:10px"><span style="width:7px;height:7px;border-radius:50%;background:#7FA88A"></span>Organic Chemistry</span></span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><span style="flex:1;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:10px"><span style="width:7px;height:7px;border-radius:50%;background:#6E97EC"></span>Linear Algebra</span></span></div>
+            <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px">Other</div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="inbox" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Inbox</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="inventory_2" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Spring 2026 (archived)</span></div>
+          </div>
+          <div style="padding:8px 14px;border-top:1px solid #EDEEF1;font-size:12px;color:#9A9DA6">Links to this note update automatically</div>
+        </div>
+      </div>
+    </div>
+    <div id="2d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2d" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2d</a>Import from syllabus</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:rgba(28,30,38,.28);display:flex;align-items:center;justify-content:center">
+
+        <div style="width:460px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.25);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;padding:18px 20px 4px"><span style="flex:1;font-size:18px;font-weight:600">Import Syllabus.pdf</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+          <span style="padding:0 20px 12px;font-size:14px;color:#686C78">Found 16 sessions, 4 assignments and 2 exams for Cell Biology.</span>
+          <div style="margin:0 20px;border:1px solid #E4E5E9;border-radius:10px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import><span style="width:70px;color:#686C78">Lecture 1</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Introduction to cells</span><span style="font-size:12px;color:#9A9DA6">Tue 15 Sep</span></div><div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;font-size:14px;border-top:1px solid #F0F1F4;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import><span style="width:70px;color:#686C78">Lecture 2</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Water and pH</span><span style="font-size:12px;color:#9A9DA6">Thu 17 Sep</span></div><div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;font-size:14px;border-top:1px solid #F0F1F4;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import><span style="width:70px;color:#686C78">Lab 1</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Microscope basics</span><span style="font-size:12px;color:#9A9DA6">Mon 21 Sep</span></div><div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;font-size:14px;border-top:1px solid #F0F1F4;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import><span style="width:70px;color:#686C78">Midterm</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Lectures 1–8</span><span style="font-size:12px;color:#9A9DA6">Thu 1 Oct</span></div>
+            <div style="height:34px;display:flex;align-items:center;padding:0 12px;font-size:13px;color:#2457D6;border-top:1px solid #F0F1F4">Show all 22</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:14px 20px 0"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import>Add exams and deadlines to Upcoming</label>
+          <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 20px"><span style="height:36px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:14px;display:flex;align-items:center;white-space:nowrap">Cancel</span><span style="height:36px;padding:0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-weight:500;font-size:14px;display:flex;align-items:center;white-space:nowrap">Import 22 items</span></div>
+        </div>
+      </div>
+    </div>
+    <div id="2e" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2e" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2e</a>Enter a grade</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:#fff;padding:40px 44px;display:flex;flex-direction:column">
+
+        <div style="display:flex;align-items:center;gap:14px;font-size:15px;padding:10px 4px;border-bottom:1px solid #F0F1F4"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import><span style="flex:1">Problem set 2</span><span style="font-size:13px;color:#2457D6;background:#E6EDFD;border-radius:6px;padding:2px 8px">Add grade</span><span style="font-size:13px;color:#9A9DA6">10%</span></div>
+        <div style="width:300px;align-self:flex-end;margin-top:8px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:14px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:13px;font-weight:600;color:#686C78">Problem set 2</span>
+          <div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:44px;border:1px solid #2F6BEB;box-shadow:0 0 0 3px #E6EDFD;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:20px;font-weight:600">18<span style="display:inline-block;width:2px;height:20px;background:#2F6BEB;vertical-align:-4px"></span></div><span style="font-size:20px;color:#9A9DA6">/</span><div style="width:80px;height:44px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:20px">20</div></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:#686C78"><span>90% · counts 10%</span><span>Course <b style="color:#1C1E26">91% → 91.4%</b></span></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px"><span style="height:36px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:14px;display:flex;align-items:center;white-space:nowrap">Cancel</span><span style="height:36px;padding:0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-weight:500;font-size:14px;display:flex;align-items:center;white-space:nowrap">Save</span></div>
+        </div>
+      </div>
+    </div>
+    <div id="2f" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2f" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2f</a>Course menu on right-click</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:#F6F6F8;padding:32px 24px">
+
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:56px;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:4px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#D8EFD9;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #F6F6F8,0 0 0 4px #2F7D3E"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="eco" size="{{ 20 }}" weight="{{ 300 }}" color="#2F7D3E" hint-size="20px,20px"></x-import></div>
+            <div style="width:36px;height:36px;border-radius:50%;background:#D9E7DC;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="science" size="{{ 20 }}" weight="{{ 300 }}" color="#2F5D3A" hint-size="20px,20px"></x-import></div>
+            <div style="width:36px;height:36px;border-radius:50%;background:#D6E2FA;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="change_history" size="{{ 20 }}" weight="{{ 300 }}" color="#274FA8" hint-size="20px,20px"></x-import></div>
+          </div>
+          <div style="width:240px;background:#fff;border:1px solid #E4E5E9;border-radius:10px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:5px">
+            <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px">Cell Biology</div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="edit_square" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">New lecture note</span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">⌘N</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="open_in_new" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Open in new tab</span></div>
+            <div style="height:1px;background:#EDEEF1;margin:4px 8px"></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="edit" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Rename…</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="palette" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Change colour and icon</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="event_repeat" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Edit sessions…</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="upload_file" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Import syllabus…</span></div>
+            <div style="height:1px;background:#EDEEF1;margin:4px 8px"></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="push_pin" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Pin to top</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="inventory_2" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Archive course</span></div>
+            <div style="height:1px;background:#EDEEF1;margin:4px 8px"></div>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;color:#D93F33;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="delete" size="{{ 18 }}" weight="{{ 300 }}" color="#D93F33" hint-size="18px,18px"></x-import><span style="flex:1;white-space:nowrap">Delete course…</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="2g" style="display:flex;flex-direction:column;gap:12px;grid-column:span 2">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#2g" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">2g</a>Settings › Editor · where readable line length is turned off</div>
+      <div style="height:500px;border:1px solid #D5D7DD;border-radius:14px;background:rgba(28,30,38,.28);display:flex;align-items:center;justify-content:center">
+        <div style="width:820px;height:430px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.25);display:flex;overflow:hidden">
+          <div style="width:200px;flex:none;background:#F6F6F8;border-right:1px solid #E9EAEE;padding:16px 10px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:12px;font-weight:600;color:#9A9DA6;padding:4px 10px 6px">Options</span>
+            <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="settings" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>General</div><div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;background:#E4E5E9;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="edit_note" size="{{ 18 }}" weight="{{ 300 }}" color="#1C1E26" hint-size="18px,18px"></x-import>Editor</div><div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="folder" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Files and links</div><div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="palette" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Appearance</div><div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="school" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Semesters</div><div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="auto_awesome" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Agent</div><div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="keyboard" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Hotkeys</div>
+          </div>
+          <div style="flex:1;min-width:0;padding:20px 28px;overflow:hidden">
+            <div style="display:flex;align-items:center;margin-bottom:4px"><span style="flex:1;font-size:20px;font-weight:600;letter-spacing:-0.3px">Editor</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+            <span style="font-size:12px;font-weight:600;color:#9A9DA6">Display</span>
+            <div style="display:flex;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid #F0F1F4"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px">Readable line length</span><span style="font-size:13px;color:#686C78;line-height:1.45;text-wrap:pretty">Limit the width of notes and pages so lines stay easy to read. Turn off to use the full window width.</span></div><span style="width:36px;height:22px;border-radius:11px;background:#2F6BEB;position:relative;flex:none"><span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></div>
+            <div style="display:flex;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid #F0F1F4"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px">Default view for new tabs</span><span style="font-size:13px;color:#686C78;line-height:1.45;text-wrap:pretty">Editing shows formatting except on the line you are on.</span></div><span style="height:32px;padding:0 10px;border:1px solid #DFE1E6;border-radius:7px;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap">Editing view<x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import></span></div>
+            <div style="display:flex;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid #F0F1F4"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px">Show properties</span><span style="font-size:13px;color:#686C78;line-height:1.45;text-wrap:pretty">Show note properties above the title.</span></div><span style="width:36px;height:22px;border-radius:11px;background:#2F6BEB;position:relative;flex:none"><span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></div>
+            <div style="display:flex;align-items:center;gap:20px;padding:14px 0;border-bottom:1px solid #F0F1F4"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px">Show line numbers</span><span style="font-size:13px;color:#686C78;line-height:1.45;text-wrap:pretty">Only in source mode.</span></div><span style="width:36px;height:22px;border-radius:11px;background:#D5D7DD;position:relative;flex:none"><span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="p1" style="padding:56px">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p1" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">1</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Popups</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 32px">Menus, dialogs and notifications that appear over the app.</div>
+  <div style="display:grid;grid-template-columns:repeat(3,560px);gap:40px">
+
+    <div id="1a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1a" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1a</a>Command palette · ⌘K</div>
+      <div style="height:460px;background:#F6F6F8;border:1px solid #D5D7DD;border-radius:14px;display:flex;align-items:flex-start;justify-content:center;padding-top:40px">
+        <div style="width:480px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 20px 48px rgba(28,30,38,.18);overflow:hidden">
+          <div style="height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #EDEEF1">
+            <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="search" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>
+            <span style="flex:1;font-size:17px">membr<span style="display:inline-block;width:2px;height:20px;background:#2F6BEB;vertical-align:-4px"></span></span>
+            <span style="font-size:12px;color:#9A9DA6;border:1px solid #E4E5E9;border-radius:4px;padding:1px 6px">esc</span>
+          </div>
+          <div style="padding:6px">
+            <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:8px 10px 4px">Notes</div>
+            <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:8px;background:#E6EDFD"><span style="width:7px;height:7px;border-radius:50%;background:#6FBF7A"></span><span style="flex:1;font-size:15px;color:#2457D6">Lecture 8 — Cell <b>membr</b>ane</span><span style="font-size:12px;color:#686C78">Cell Biology</span><span style="font-size:12px;color:#686C78">↵</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:8px"><span style="width:7px;height:7px;border-radius:50%;background:#6FBF7A"></span><span style="flex:1;font-size:15px"><b>Membr</b>ane transport summary</span><span style="font-size:12px;color:#9A9DA6">Cell Biology</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:8px"><span style="width:7px;height:7px;border-radius:50%;background:#7FA88A"></span><span style="flex:1;font-size:15px">Lipids</span><span style="font-size:12px;color:#9A9DA6;white-space:nowrap">Organic Chem · “cell <b>membr</b>anes”</span></div>
+            <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:10px 10px 4px">Commands</div>
+            <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:8px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="edit_square" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;font-size:15px">Create note “membr”</span><span style="font-size:12px;color:#9A9DA6">⌘↵</span></div>
+            <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:8px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="auto_awesome" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;font-size:15px">Ask agent about “membr”</span><span style="font-size:12px;color:#9A9DA6">⇥</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1b" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1b</a>Quick capture · ⌘⇧Space, from anywhere</div>
+      <div style="height:460px;background:#F6F6F8;border:1px solid #D5D7DD;border-radius:14px;display:flex;align-items:center;justify-content:center">
+        <div style="width:480px;background:#fff;border:1px solid #E4E5E9;border-radius:14px;box-shadow:0 20px 48px rgba(28,30,38,.18);padding:16px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="bolt" size="{{ 16 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="16px,16px"></x-import>Quick capture<span style="flex:1"></span>Saves to Inbox</div>
+          <div style="font-size:18px;line-height:1.5">Finish <span style="background:#E6EDFD;color:#2457D6;border-radius:4px;padding:0 3px">problem set 4</span> for <span style="background:#D6E2FA;color:#274FA8;border-radius:4px;padding:0 3px">linear algebra</span> by <span style="background:#FBE8C4;color:#8F5D0E;border-radius:4px;padding:0 3px">friday 5pm</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;background:#F3F4F6;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="check_box_outline_blank" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>Task</span>
+            <span style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;background:#F3F4F6;font-size:13px"><span style="width:7px;height:7px;border-radius:50%;background:#6E97EC"></span>Linear Algebra</span>
+            <span style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;background:#F3F4F6;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="event" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>Fri 2 Oct · 17:00</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;border-top:1px solid #EDEEF1;padding-top:12px;font-size:13px;color:#686C78">
+            <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="image" size="{{ 18 }}" weight="{{ 300 }}" hint-size="18px,18px"></x-import>
+            <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="mic" size="{{ 18 }}" weight="{{ 300 }}" hint-size="18px,18px"></x-import>
+            <span style="flex:1"></span>
+            <span style="height:32px;padding:0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:14px;font-weight:500;display:flex;align-items:center">Save ↵</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1c" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1c</a>Link autocomplete after typing [[</div>
+      <div style="height:460px;background:#fff;border:1px solid #D5D7DD;border-radius:14px;padding:40px 44px;display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:17px;line-height:1.6">Channel proteins are covered in <span style="color:#9A9DA6">[[</span>trans<span style="display:inline-block;width:2px;height:20px;background:#2F6BEB;vertical-align:-4px"></span></div>
+        <div style="width:340px;margin-left:120px;background:#fff;border:1px solid #E4E5E9;border-radius:10px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:5px">
+          <div style="display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:7px;background:#E6EDFD"><span style="font-size:15px;color:#2457D6">Membrane <b>trans</b>port</span><span style="font-size:12px;color:#686C78">Cell Biology · Lecture 9</span></div>
+          <div style="display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:7px"><span style="font-size:15px"><b>Trans</b>port summary</span><span style="font-size:12px;color:#9A9DA6">Cell Biology · Study notes</span></div>
+          <div style="display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:7px"><span style="font-size:15px">Linear <b>trans</b>formations</span><span style="font-size:12px;color:#9A9DA6">Linear Algebra · Lecture 6</span></div>
+          <div style="height:1px;background:#EDEEF1;margin:4px 8px"></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:14px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>Create “trans” in Cell Biology</div>
+          <div style="display:flex;gap:12px;padding:6px 10px 4px;font-size:11px;color:#9A9DA6"><span>↑↓ navigate</span><span>↵ link</span><span># heading</span><span>| alias</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1d" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1d</a>Selection toolbar with agent actions</div>
+      <div style="height:460px;background:#fff;border:1px solid #D5D7DD;border-radius:14px;padding:110px 44px 0;display:flex;flex-direction:column;align-items:flex-start;gap:10px;position:relative">
+        <div style="position:absolute;left:92px;top:52px;display:flex;align-items:center;gap:2px;background:#1C1E26;border-radius:10px;padding:4px;box-shadow:0 10px 28px rgba(28,30,38,.25)">
+          <span style="display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:7px;color:#fff;font-size:13px;background:#33363F"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="auto_awesome" size="{{ 16 }}" weight="{{ 300 }}" color="#fff" hint-size="16px,16px"></x-import>Explain</span>
+          <span style="display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;color:#fff;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="style" size="{{ 16 }}" weight="{{ 300 }}" color="#fff" hint-size="16px,16px"></x-import>Flashcard</span>
+          <span style="display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;color:#fff;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add_link" size="{{ 16 }}" weight="{{ 300 }}" color="#fff" hint-size="16px,16px"></x-import>Link</span>
+          <span style="width:1px;height:18px;background:#4A4D57;margin:0 4px"></span>
+          <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">B</span>
+          <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#fff;font-style:italic;font-size:14px">I</span>
+          <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="ink_highlighter" size="{{ 16 }}" weight="{{ 300 }}" color="#fff" hint-size="16px,16px"></x-import></span>
+        </div>
+        <p style="margin:0;font-size:17px;line-height:1.65;max-width:470px">Proteins float within the lipid layer. <span style="background:#D6E2FA">Cholesterol keeps the membrane fluid at low temperatures</span> and stiffens it at high ones.</p>
+        <div style="width:380px;margin-top:10px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 12px 32px rgba(28,30,38,.14);padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="auto_awesome" size="{{ 14 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="14px,14px"></x-import>Explain</div>
+          <span style="font-size:14px;line-height:1.5;text-wrap:pretty">Cholesterol sits between phospholipids. In the cold it stops their tails packing tightly; in the heat it limits how much they move.</span>
+          <div style="display:flex;gap:8px;font-size:13px"><span style="height:28px;padding:0 10px;border-radius:7px;background:#F3F4F6;display:flex;align-items:center">Insert below</span><span style="height:28px;padding:0 10px;border-radius:7px;background:#F3F4F6;display:flex;align-items:center">Continue in sidebar</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1e" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1e" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1e</a>Add property · type picker</div>
+      <div style="height:460px;background:#fff;border:1px solid #D5D7DD;border-radius:14px;padding:40px 44px;display:flex;flex-direction:column;gap:4px;font-size:15px">
+        <div style="display:grid;grid-template-columns:150px 1fr;align-items:center;min-height:32px"><span style="display:flex;align-items:center;gap:10px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="calendar_today" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>date</span><span>24.09.2026</span></div>
+        <div style="display:grid;grid-template-columns:150px 1fr;align-items:center;min-height:32px"><span style="display:flex;align-items:center;gap:10px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="notes" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>class</span><span style="color:#2F6BEB;text-decoration:underline">+Cell Biology</span></div>
+        <div style="display:flex;align-items:center;gap:10px;min-height:34px;margin-top:4px;padding:0 8px;border:1px solid #2F6BEB;border-radius:8px;width:230px;box-shadow:0 0 0 3px #E6EDFD">
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="help" size="{{ 18 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="18px,18px"></x-import><span>week<span style="display:inline-block;width:2px;height:18px;background:#2F6BEB;vertical-align:-3px"></span></span>
+        </div>
+        <div style="width:250px;margin-top:6px;background:#fff;border:1px solid #E4E5E9;border-radius:10px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:5px">
+          <div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px">Property type</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="notes" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Text</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;background:#E6EDFD;color:#2457D6"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="tag" size="{{ 18 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="18px,18px"></x-import>Number<span style="flex:1"></span>✓</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="list" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>List</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="check_box" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Checkbox</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="calendar_today" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Date</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="schedule" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Date &amp; time</div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="school" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Course</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1f" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1f" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1f</a>Due date picker on a task</div>
+      <div style="height:460px;background:#fff;border:1px solid #D5D7DD;border-radius:14px;padding:40px 44px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px;font-size:17px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ false }}" hint-size="16px,16px"></x-import><span>Redraw the bilayer diagram from memory</span><span style="font-size:13px;color:#2457D6;background:#E6EDFD;border-radius:6px;padding:2px 8px">Due…</span></div>
+        <div style="width:300px;margin-left:190px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:8px;display:flex;flex-direction:column;gap:2px">
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="light_mode" size="{{ 18 }}" weight="{{ 300 }}" color="#E8A93A" hint-size="18px,18px"></x-import>Today<span style="flex:1"></span><span style="color:#9A9DA6;font-size:12px">Mon</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="school" size="{{ 18 }}" weight="{{ 300 }}" color="#6FBF7A" hint-size="18px,18px"></x-import>Before next lecture<span style="flex:1"></span><span style="color:#9A9DA6;font-size:12px">Tue 10:00</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;background:#E6EDFD;color:#2457D6"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="quiz" size="{{ 18 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="18px,18px"></x-import>Before midterm<span style="flex:1"></span><span style="font-size:12px">Thu 1 Oct</span></div>
+          <div style="height:1px;background:#EDEEF1;margin:6px 4px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 8px 6px;font-size:14px;font-weight:600">October 2026<span style="display:flex;gap:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_left" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_right" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import></span></div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:13px;text-align:center">
+            <sc-for list="{{ calHead }}" as="d"><span style="color:#9A9DA6;font-size:11px;height:22px;line-height:22px">{{ d }}</span></sc-for>
+            <sc-for list="{{ cal }}" as="d" hint-placeholder-count="35"><span style="height:32px;line-height:32px;border-radius:50%;background:{{ d.bg }};color:{{ d.color }};font-weight:{{ d.fw }};position:relative">{{ d.n }}<sc-if value="{{ d.dot }}"><span style="position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:{{ d.dotColor }}"></span></sc-if></span></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1g" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1g" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1g</a>New course dialog</div>
+      <div style="height:640px;background:rgba(28,30,38,.28);border:1px solid #D5D7DD;border-radius:14px;display:flex;align-items:center;justify-content:center">
+        <div style="width:440px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.25);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;padding:18px 20px 6px"><span style="flex:1;font-size:20px;font-weight:600;letter-spacing:-0.3px">New course</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+          <div style="padding:10px 20px 18px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:12px;align-items:center">
+              <div style="width:52px;height:52px;border-radius:12px;background:#FADAD6;display:flex;align-items:center;justify-content:center;flex:none"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="psychology" size="{{ 26 }}" weight="{{ 300 }}" color="#B3372B" hint-size="26px,26px"></x-import></div>
+              <div style="flex:1;height:44px;border:1px solid #2F6BEB;box-shadow:0 0 0 3px #E6EDFD;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:16px">Philosophy of Mind</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#686C78">Colour</span>
+              <div style="display:flex;gap:8px">
+                <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="6"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.c }};box-shadow:{{ s.ring }}"></span></sc-for>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#686C78">Code</span><div style="height:40px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:15px">PHIL 214</div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#686C78">Lecturer</span><div style="height:40px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:15px;color:#9A9DA6">Optional</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#686C78">Semester</span><div style="height:40px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 10px 0 12px;font-size:15px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="school" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Fall 2026<span style="font-size:12px;color:#9A9DA6">· 14 Sep – 18 Dec</span><span style="flex:1"></span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#686C78">Sessions</span>
+              <div style="display:flex;align-items:center;gap:8px;height:40px;border:1px solid #DFE1E6;border-radius:8px;padding:0 12px;font-size:15px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="event_repeat" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Wed 12:00 · Hum 110<span style="flex:1"></span><span style="font-size:12px;color:#9A9DA6">weekly</span></div>
+              <span style="font-size:13px;color:#2457D6;display:flex;align-items:center;gap:4px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 16 }}" weight="{{ 300 }}" color="#2457D6" hint-size="16px,16px"></x-import>Add session</span>
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;font-size:14px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import>Create a lecture note before each session</label>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid #EDEEF1">
+            <span style="height:38px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center">Cancel</span>
+            <span style="height:38px;padding:0 16px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center">Create course</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1h" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1h" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1h</a>Delete confirmation</div>
+      <div style="height:640px;background:rgba(28,30,38,.28);border:1px solid #D5D7DD;border-radius:14px;display:flex;align-items:center;justify-content:center">
+        <div style="width:460px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.25);padding:22px;display:flex;flex-direction:column;gap:12px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#FCECEC;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="delete" size="{{ 22 }}" weight="{{ 300 }}" color="#D93F33" hint-size="22px,22px"></x-import></div>
+          <span style="font-size:18px;font-weight:600">Delete “Lecture 8 — Cell membrane”?</span>
+          <span style="font-size:14px;line-height:1.5;color:#686C78;text-wrap:pretty">3 notes link here and 2 open tasks will be removed from Today. Keep links to leave them in those notes as unresolved links, so you can recreate the note later. You can restore it from Trash for 30 days.</span>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <span style="height:38px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center">Cancel</span>
+            <span style="flex:1"></span>
+            <span style="height:38px;padding:0 14px;border-radius:8px;border:1px solid #F3C4C0;color:#D93F33;font-size:15px;font-weight:500;display:flex;align-items:center;white-space:nowrap">Delete, keep links</span>
+            <span style="height:38px;padding:0 14px;border-radius:8px;background:#D93F33;color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center;white-space:nowrap">Delete note</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1i" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#686C78"><a href="#1i" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">1i</a>Toasts and lecture reminder</div>
+      <div style="height:640px;background:#F6F6F8;border:1px solid #D5D7DD;border-radius:14px;padding:24px;display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+        <div style="width:360px;background:#fff;border:1px solid #E4E5E9;border-radius:14px;box-shadow:0 12px 32px rgba(28,30,38,.14);padding:14px;display:flex;gap:12px">
+          <div style="width:40px;height:40px;border-radius:10px;background:#D8EFD9;display:flex;align-items:center;justify-content:center;flex:none"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="eco" size="{{ 22 }}" weight="{{ 300 }}" color="#2F7D3E" hint-size="22px,22px"></x-import></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;font-size:13px;color:#686C78"><span style="flex:1">Cell Biology · in 10 min</span><span>Sci 204</span></div>
+            <span style="font-size:15px;font-weight:600">Lecture 9 — Membrane transport</span>
+            <span style="font-size:13px;color:#686C78">Note is ready. Readings: ch. 6</span>
+            <div style="display:flex;gap:8px;margin-top:8px"><span style="height:30px;padding:0 12px;border-radius:7px;background:#2F6BEB;color:#fff;font-size:13px;font-weight:500;display:flex;align-items:center">Open note</span><span style="height:30px;padding:0 12px;border-radius:7px;background:#F3F4F6;font-size:13px;display:flex;align-items:center">Snooze</span></div>
+          </div>
+        </div>
+        <span style="flex:1"></span>
+        <div style="align-self:center;display:flex;align-items:center;gap:12px;height:44px;padding:0 8px 0 16px;background:#1C1E26;color:#fff;border-radius:10px;font-size:14px;box-shadow:0 10px 28px rgba(28,30,38,.25)"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="task_alt" size="{{ 18 }}" weight="{{ 300 }}" color="#8FD19A" hint-size="18px,18px"></x-import>2 tasks moved to Today<span style="height:30px;padding:0 10px;border-radius:7px;display:flex;align-items:center;color:#9DBBF7;font-weight:500">Undo</span></div>
+        <div style="align-self:center;display:flex;align-items:center;gap:12px;height:44px;padding:0 8px 0 16px;background:#1C1E26;color:#fff;border-radius:10px;font-size:14px;box-shadow:0 10px 28px rgba(28,30,38,.25)"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="cloud_off" size="{{ 18 }}" weight="{{ 300 }}" color="#F2B366" hint-size="18px,18px"></x-import>Offline. Changes are saved on this device<span style="height:30px;padding:0 10px;border-radius:7px;display:flex;align-items:center;color:#9DBBF7;font-weight:500">Retry</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const calHead = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const cal = [];
+    for (let i = 0; i < 35; i++) {
+      const n = i - 2; const valid = n >= 1 && n <= 31;
+      const sel = n === 1, today = false, mark = { 2: '#6E97EC', 6: '#6FBF7A', 8: '#6FBF7A' }[n];
+      cal.push({ n: valid ? n : '', bg: sel ? '#2F6BEB' : 'transparent', color: sel ? '#fff' : (today ? '#2F6BEB' : '#1C1E26'), fw: sel ? 600 : 400, dot: !!mark && !sel, dotColor: mark || 'transparent' });
+    }
+    const swatches = ['#EC8A80', '#E8B85C', '#6FBF7A', '#7FA88A', '#6E97EC', '#9A86DE'].map((c, i) => ({ c, ring: i === 0 ? '0 0 0 2px #fff, 0 0 0 4px ' + c : 'none' }));
+    return { calHead, cal, swatches };
+  }
+}
+</script>
+</body>
+</html>

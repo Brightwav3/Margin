@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+</helmet>
+<div style="position:relative;height:100%;display:flex;flex:none;font-family:var(--font-sans);letter-spacing:-0.2px">
+  <div style="position:absolute;left:0;top:0;height:44px;width:1238px;display:flex;align-items:center;gap:18px;padding-left:16px;z-index:2">
+    <div style="display:flex;gap:8px">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="arrow_back" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>
+      <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="arrow_forward" size="{{ 18 }}" weight="{{ 300 }}" color="#C4C7CF" hint-size="18px,18px"></x-import>
+      <div onClick="{{ toggle }}" style="cursor:pointer;display:flex;padding:3px;border-radius:6px" style-hover="background:#E9EAEE">
+        <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="side_navigation" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;align-self:flex-end;display:flex;align-items:flex-end;gap:2px;height:36px;padding-left:10px;margin-right:{{ stripGap }}">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <div style="position:relative;display:flex;align-items:center;gap:8px;height:{{ t.h }};width:188px;min-width:0;padding:0 8px 0 12px;border-radius:9px 9px 0 0;background:{{ t.bg }};border:{{ t.border }};border-bottom:none;margin-bottom:{{ t.mb }};font-size:13px;color:{{ t.color }}" style-hover="background:{{ t.hover }}">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ t.dot }};flex:none"></span>
+          <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</span>
+          <sc-if value="{{ t.active }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="close" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import></sc-if>
+          <sc-if value="{{ t.sep }}"><span style="position:absolute;right:-2px;top:9px;width:1px;height:14px;background:#DFE1E6"></span></sc-if>
+        </div>
+      </sc-for>
+      <div style="height:30px;width:30px;display:flex;align-items:center;justify-content:center;margin-bottom:4px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import></div>
+    </div>
+    <div onClick="{{ toggleRight }}" style="margin-right:12px;padding:3px;border-radius:6px;cursor:pointer;display:flex" style-hover="background:#E9EAEE"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="dock_to_left" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import></div>
+  </div>
+  <div style="width:56px;flex:none;padding:52px 0 14px;display:flex;flex-direction:column;align-items:center;gap:6px">
+    <sc-for list="{{ rail }}" as="r" hint-placeholder-count="5">
+      <div style="position:relative;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:{{ r.bg }}">
+        <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ r.icon }}" size="{{ 22 }}" weight="{{ r.w }}" fill="{{ r.fill }}" color="{{ r.color }}" hint-size="22px,22px"></x-import>
+        <sc-if value="{{ r.hasCount }}"><span style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#2F6BEB;border:1.5px solid #F6F6F8"></span></sc-if>
+      </div>
+    </sc-for>
+    <div style="width:24px;height:1px;background:#DFE1E6;margin:6px 0"></div>
+    <sc-for list="{{ circles }}" as="c" hint-placeholder-count="6">
+      <div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center">
+        <sc-if value="{{ c.active }}"><span style="position:absolute;left:-8px;top:10px;width:4px;height:20px;border-radius:0 3px 3px 0;background:#1C1E26"></span></sc-if>
+        <div style="width:36px;height:36px;border-radius:50%;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;box-shadow:{{ c.ring }}">
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ c.icon }}" size="{{ 20 }}" weight="{{ 300 }}" color="{{ c.fg }}" hint-size="20px,20px"></x-import>
+        </div>
+      </div>
+    </sc-for>
+    <div style="margin-top:auto;width:40px;height:40px;display:flex;align-items:center;justify-content:center">
+      <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="help" size="{{ 22 }}" weight="{{ 300 }}" color="#686C78" hint-size="22px,22px"></x-import>
+    </div>
+    <div style="width:30px;height:30px;border-radius:50%;background:#1C1E26;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">AK</div>
+  </div>
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+    <aside onWheel="{{ onWheel }}" style="width:{{ asideW }};flex:none;margin:44px 0 8px;border-right:1px solid #E9EAEE;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden">
+     <div style="flex:1;min-height:0;overflow:hidden">
+     <div style="display:flex;height:100%;width:{{ trackW }};transform:translateX({{ trackX }});transition:transform 420ms cubic-bezier(.2,.8,.2,1)">
+     <div style="flex:1 1 0;min-width:0;padding:14px 10px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 8px">
+        <sc-if value="{{ panel.hasDot }}"><span style="width:10px;height:10px;border-radius:50%;background:{{ panel.dot }}"></span></sc-if>
+        <span style="font-size:17px;font-weight:600;color:#1C1E26;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ panel.title }}</span>
+        <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>
+        <span style="flex:1"></span>
+        <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="search" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:10px;background:#F0F1F4;font-size:15px;color:#1C1E26">
+        <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ panel.btnIcon }}" size="{{ 20 }}" weight="{{ 300 }}" color="#1C1E26" hint-size="20px,20px"></x-import>
+        <span style="flex:1;white-space:nowrap">{{ panel.btn }}</span>
+        <span style="font-size:12px;color:#9A9DA6">{{ panel.key }}</span>
+      </div>
+      <sc-for list="{{ panel.sections }}" as="sec" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div style="font-size:15px;color:#9A9DA6;padding:16px 10px 6px">{{ sec.label }}</div>
+          <sc-for list="{{ sec.items }}" as="it">
+            <div style="display:flex;align-items:center;gap:10px;min-height:34px;padding:5px 10px;border-radius:8px;background:{{ it.bg }};color:{{ it.color }}">
+              <sc-if value="{{ it.hasIcon }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ it.icon }}" size="{{ 18 }}" weight="{{ 300 }}" color="{{ it.ic }}" hint-size="18px,18px"></x-import></sc-if>
+              <sc-if value="{{ it.hasDot }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ it.dot }};flex:none;margin:0 5px"></span></sc-if>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.title }}</span>
+                <sc-if value="{{ it.hasMeta }}"><span style="font-size:12px;color:#9A9DA6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.meta }}</span></sc-if>
+              </div>
+              <span style="font-size:13px;color:#9A9DA6">{{ it.count }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+     </div>
+     <sc-if value="{{ spaces }}">
+      <div style="flex:1 1 0;min-width:0;padding:14px 10px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow:hidden">
+        <sc-if value="{{ notesOnly }}">
+          <a href="{{ backHref }}" style="display:flex;align-items:center;gap:6px;height:30px;padding:0 6px;border-radius:8px;color:#686C78;font-size:14px;text-decoration:none;align-self:flex-start" style-hover="background:#F0F1F4;color:#1C1E26"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="arrow_back" size="{{ 18 }}" weight="{{ 300 }}" color="currentColor" hint-size="18px,18px"></x-import><span style="width:7px;height:7px;border-radius:50%;background:#6FBF7A"></span>Cell Biology</a>
+        </sc-if>
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 8px 0">
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="description" size="{{ 18 }}" weight="{{ 300 }}" color="#1C1E26" hint-size="18px,18px"></x-import>
+          <span style="font-size:17px;font-weight:600;color:#1C1E26">Notes</span>
+          <span style="flex:1"></span>
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>
+        </div>
+        <div style="height:36px;border:1px solid #DFE1E6;border-radius:8px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 10px;color:#9A9DA6;font-size:15px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="search" size="{{ 18 }}" weight="{{ 300 }}" hint-size="18px,18px"></x-import><span style="flex:1">Search notes…</span><span style="font-size:12px">⌘K</span></div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="height:30px;padding:0 10px;border-radius:8px;background:#E6EDFD;color:#2457D6;font-size:14px;display:flex;align-items:center">All</span>
+          <span style="height:30px;padding:0 10px;font-size:14px;display:flex;align-items:center;color:#1C1E26">Lectures</span>
+          <span style="height:30px;padding:0 10px;font-size:14px;display:flex;align-items:center;color:#1C1E26">Tasks</span>
+        </div>
+        <sc-for list="{{ noteList }}" as="g" hint-placeholder-count="2">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13px;font-weight:600;color:#686C78;padding:4px 6px 6px">{{ g.group }}</span>
+            <sc-for list="{{ g.items }}" as="n">
+              <div style="border-radius:8px;padding:9px 10px;background:{{ n.bg }};display:flex;flex-direction:column;gap:3px">
+                <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:15px;font-weight:600;color:#1C1E26;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ n.title }}</span><span style="font-size:12px;color:#9A9DA6">{{ n.time }}</span></div>
+                <span style="font-size:13px;color:#686C78;line-height:1.4">{{ n.snip }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+     </sc-if>
+     </div>
+     </div>
+     <sc-if value="{{ showSwitch }}">
+      <div style="flex:none;height:48px;display:flex;align-items:center;justify-content:center;gap:10px;border-top:1px solid #F0F1F4">
+        <sc-for list="{{ spaceDots }}" as="s" hint-placeholder-count="2">
+          <div onClick="{{ s.go }}" title="{{ s.name }}" style="cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{ s.bg }};box-shadow:{{ s.ring }};transition:background 200ms" style-hover="background:{{ s.hover }}">
+            <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ s.icon }}" size="{{ 16 }}" weight="{{ 300 }}" color="{{ s.fg }}" hint-size="16px,16px"></x-import>
+          </div>
+        </sc-for>
+      </div>
+     </sc-if>
+    </aside>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:276,&quot;height&quot;:820},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;inbox&quot;,&quot;today&quot;,&quot;upcoming&quot;,&quot;home&quot;,&quot;graph&quot;,&quot;bio&quot;,&quot;chem&quot;,&quot;math&quot;,&quot;hist&quot;,&quot;econ&quot;,&quot;phil&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { collapsed: null, space: null };
+  lock = 0;
+  renderVals() {
+    const a = this.props.active ?? 'home';
+    const collapsed = this.state.collapsed ?? !!this.props.collapsed;
+    const on = id => a === id;
+    const items = [
+      { id: 'home', icon: 'home' }, { id: 'inbox', icon: 'inbox' }, { id: 'today', icon: 'light_mode' }, { id: 'upcoming', icon: 'calendar_today' }
+    ];
+    const CS = [
+      ['bio', 'Cell Biology', 'eco', '#D8EFD9', '#2F7D3E', '#6FBF7A'], ['chem', 'Organic Chemistry', 'science', '#D9E7DC', '#2F5D3A', '#7FA88A'],
+      ['math', 'Linear Algebra', 'change_history', '#D6E2FA', '#274FA8', '#6E97EC'], ['hist', 'Modern Europe', 'account_balance', '#FBE8C4', '#8F5D0E', '#E8B85C'],
+      ['econ', 'Macroeconomics', 'trending_up', '#E5DEF8', '#5B41B0', '#9A86DE'], ['phil', 'Philosophy of Mind', 'psychology', '#FADAD6', '#B3372B', '#EC8A80']
+    ];
+    const isCourse = CS.some(c => c[0] === a);
+    const rail = items.map(i => { const on2 = a === i.id; return { ...i, bg: on2 ? '#E9EAEE' : 'transparent', color: on2 ? '#1C1E26' : '#686C78', fill: on2, w: on2 ? 400 : 300, hasCount: i.id === 'inbox' }; });
+    const circles = CS.map(([id, name, icon, bg, fg]) => ({ icon, bg, fg, active: a === id, ring: a === id ? '0 0 0 2px #F6F6F8, 0 0 0 4px ' + fg : 'none' }));
+    const it = (title, o = {}) => ({ title, count: o.count || '', meta: o.meta || '', hasMeta: !!o.meta, icon: o.icon || '', hasIcon: !!o.icon, dot: o.dot || '', hasDot: !!o.dot, ic: o.on ? '#2F6BEB' : '#686C78', bg: o.on ? '#E6EDFD' : 'transparent', color: o.on ? '#2457D6' : '#1C1E26' });
+    let panel;
+    const v = this.props.view ?? '';
+    const cc = (id, o = {}) => { const c = CS.find(x => x[0] === id); return it(c[1], { dot: c[5], ...o }); };
+    const VIEWS = {
+      grid: { title: 'Courses', btn: 'New course', btnIcon: 'add', key: '', sections: [
+        { label: 'Groups', items: [it('All courses', { icon: 'grid_view', count: '6', on: true }), it('Sciences', { icon: 'science', count: '3' }), it('Maths', { icon: 'change_history', count: '1' }), it('Humanities', { icon: 'account_balance', count: '2' })] },
+        { label: 'Semesters', items: [it('Fall 2026', { icon: 'school', meta: 'Current · week 5 of 14' }), it('Spring 2026', { icon: 'inventory_2', meta: 'Archived · GPA 3.6' }), it('Fall 2025', { icon: 'inventory_2', meta: 'Archived · GPA 3.5' })] }
+      ] },
+      timetable: { title: 'Timetable', btn: 'Add session', btnIcon: 'add', key: '', sections: [
+        { label: 'Weeks', items: [it('Week 4', { meta: '21 – 25 Sep', icon: 'date_range' }), it('Week 5', { meta: '28 Sep – 2 Oct · now', icon: 'date_range', on: true }), it('Week 6', { meta: '5 – 9 Oct', icon: 'date_range' }), it('Week 7', { meta: 'Reading week', icon: 'date_range' })] },
+        { label: 'Show', items: [it('Lectures', { icon: 'check_box', count: '7' }), it('Labs and tutorials', { icon: 'check_box', count: '2' }), it('Seminars', { icon: 'check_box', count: '2' }), it('Deadlines', { icon: 'check_box', count: '6' }), it('Office hours', { icon: 'check_box_outline_blank' })] }
+      ] },
+      list: { title: 'Fall 2026', btn: 'New course', btnIcon: 'add', key: '', sections: [
+        { label: 'Filter', items: [it('All courses', { icon: 'list', count: '6', on: true }), it('Behind on tasks', { icon: 'error', count: '1' }), it('Exam this month', { icon: 'event', count: '3' })] },
+        { label: 'Semester', items: [it('Credits', { icon: 'school', count: '18' }), it('GPA', { icon: 'trending_up', count: '3.7' }), it('Tasks done', { icon: 'task_alt', count: '41/58' })] }
+      ] },
+      project: { title: 'Cell Biology', hasDot: true, dot: '#6FBF7A', btn: 'New to-do', btnIcon: 'add_task', key: '⌘N', sections: [
+        { label: 'Headings', items: [it('Assignments', { icon: 'assignment', count: '2' }), it('Exam prep', { icon: 'quiz', count: '3', on: true }), it('Lectures', { icon: 'school', count: '16' }), it('Reference', { icon: 'bookmark', count: '3' })] },
+        { label: 'Logbook', items: [it('Flashcards: organelles', { icon: 'task_alt', meta: 'Done Sat' }), it('Problem set 2', { icon: 'task_alt', meta: 'Done 18 Sep' })] }
+      ] },
+      dash: { title: 'Cell Biology', hasDot: true, dot: '#6FBF7A', btn: 'New note', btnIcon: 'edit_square', key: '⌘N', sections: [
+        { label: 'Course info', items: [it('Dr. Okafor', { icon: 'person', meta: 'okafor@uni.edu' }), it('Office hours', { icon: 'schedule', meta: 'Tue 14:00 · Sci 310' }), it('Sci 204', { icon: 'location_on', meta: 'Tue, Thu 10:00' })] },
+        { label: 'Files', items: [it('Syllabus.pdf', { icon: 'picture_as_pdf' }), it('Lab manual.pdf', { icon: 'picture_as_pdf' }), it('Past papers', { icon: 'folder', count: '4' })] }
+      ] },
+      lectureSeq: { title: 'Cell Biology', hasDot: true, dot: '#6FBF7A', btn: 'New lecture note', btnIcon: 'edit_square', key: '⌘N', sections: [
+        { label: 'Sessions', items: [it('Lecture 9 · Membrane transport', { icon: 'event_upcoming', meta: 'Tomorrow 10:00' }), it('Lecture 8 · Cell membrane', { icon: 'description', meta: 'Thu 24 Sep', on: true }), it('Lecture 7 · Organelles', { icon: 'description', meta: 'Tue 22 Sep' }), it('Lab 2 · Microscopy', { icon: 'description', meta: 'Mon 21 Sep' }), it('Lecture 6 · Prokaryotes', { icon: 'description', meta: 'Thu 17 Sep' })] },
+        { label: 'Study notes', items: [it('Membrane transport summary', { icon: 'article' }), it('Glossary', { icon: 'article' })] }
+      ] },
+      localGraph: { title: 'Connections', btn: 'Link a note', btnIcon: 'add_link', key: '⌘L', sections: [
+        { label: 'Linked courses', items: [cc('bio', { count: '4' }), cc('chem', { count: '1' })] },
+        { label: 'Suggested links', items: [it('Osmosis', { icon: 'auto_awesome', meta: 'Mentioned 3 times' }), it('Cholesterol', { icon: 'auto_awesome', meta: 'In Lipids' })] }
+      ] }
+    };
+    if (VIEWS[v]) { panel = VIEWS[v]; }
+    else if (isCourse) {
+      const c = CS.find(x => x[0] === a);
+      panel = { title: c[1], hasDot: true, dot: c[5], btn: 'New lecture note', btnIcon: 'edit_square', key: '⌘N', sections: [
+        { label: 'Views', items: [it('Gallery', { icon: 'grid_view', on: true }), it('Tasks', { icon: 'check_box', count: '5' }), it('Grades', { icon: 'bar_chart', count: 'A−' }), it('Graph', { icon: 'share' })] },
+        { label: 'Weeks', items: [it('Week 5', { dot: c[5], meta: 'Lecture 9 tomorrow', count: '1' }), it('Week 4', { dot: '#C4C7CF', meta: 'Cell membrane, Organelles', count: '3' }), it('Week 3', { dot: '#C4C7CF', count: '3' }), it('Week 2', { dot: '#C4C7CF', count: '2' })] },
+        { label: 'Pinned', items: [it('Midterm formula sheet', { icon: 'push_pin' }), it('Glossary', { icon: 'push_pin' })] }
+      ] };
+    } else if (a === 'inbox') {
+      panel = { title: 'Inbox', btn: 'Quick capture', btnIcon: 'bolt', key: '⌘⇧␣', sections: [
+        { label: 'Show', items: [it('Everything', { icon: 'inbox', count: '5', on: true }), it('Tasks', { icon: 'check_box_outline_blank', count: '2' }), it('Notes', { icon: 'description', count: '1' }), it('Links', { icon: 'link', count: '1' }), it('Images', { icon: 'image', count: '1' })] },
+        { label: 'Captured from', items: [it('Quick entry', { icon: 'keyboard', count: '2' }), it('Phone', { icon: 'smartphone', count: '2' }), it('Web clipper', { icon: 'language', count: '1' })] }
+      ] };
+    } else if (a === 'graph') {
+      panel = { title: 'Graph map', btn: 'New saved view', btnIcon: 'add', key: '', sections: [
+        { label: 'Saved views', items: [it('Whole semester', { icon: 'share', on: true }), it('Midterm prep', { icon: 'bookmark' }), it('Sciences only', { icon: 'bookmark' })] },
+        { label: 'Orphans', items: [it('Lab safety notes', { meta: 'No links yet' }), it('Reading week plan', { meta: 'No links yet' })] }
+      ] };
+    } else {
+      const recent = [['Cell membrane', 'Cell Biology · Today', '#6FBF7A'], ['Stereochemistry', 'Organic Chem · Yesterday', '#7FA88A'], ['Determinants', 'Linear Algebra · Sat', '#6E97EC'], ['The 1848 revolutions', 'Modern Europe · Fri', '#E8B85C'], ['IS–LM model', 'Macroeconomics · Thu', '#9A86DE']];
+      panel = { title: 'Fall 2026', btn: 'New note', btnIcon: 'edit_square', key: '⌘N', sections: [
+        { label: 'Pinned', items: [it('Midterm formula sheet', { icon: 'push_pin' }), it('Semester plan', { icon: 'push_pin' })] },
+        { label: 'Recent', items: recent.map(([t, m, d]) => it(t, { dot: d, meta: m })) }
+      ] };
+    }
+    const defTab = { home: 'Courses', bio: 'Cell Biology', graph: 'Graph map', inbox: 'Inbox', today: 'Today', upcoming: 'Upcoming' };
+    const dots = { 'Courses': '#9A9DA6', 'Cell Biology': '#6FBF7A', 'Cell membrane': '#6FBF7A', 'Graph map': '#9A9DA6', 'Inbox': '#9A9DA6', 'Problem set 4': '#6E97EC', 'The 1848 revolutions': '#E8B85C' };
+    const cur = this.props.tab ?? defTab[a] ?? 'Courses';
+    const pool = ['Cell membrane', 'Problem set 4', 'The 1848 revolutions', 'Courses'].filter(t => t !== cur);
+    const titles = [pool[0], cur, pool[1], pool[2]];
+    const tabs = titles.map((title, i) => {
+      const active = title === cur;
+      const nextActive = titles[i + 1] === cur;
+      return { title, active, dot: dots[title] || '#9A9DA6', sep: !active && !nextActive && i < titles.length - 1, bg: active ? '#fff' : 'transparent', hover: active ? '#fff' : '#EDEEF1', border: active ? '1px solid #E9EAEE' : '1px solid transparent', h: active ? '37px' : '32px', mb: active ? '-1px' : '4px', color: active ? '#1C1E26' : '#686C78' };
+    });
+    const notesOnly = this.props.mode === 'notes';
+    const spaces = !!this.props.spaces || notesOnly;
+    const space = notesOnly ? 1 : spaces ? (this.state.space ?? (this.props.space === 'notes' ? 1 : 0)) : 0;
+    const setSpace = i => this.setState({ space: Math.max(0, Math.min(1, i)) });
+    const onWheel = e => {
+      if (!spaces || notesOnly || Math.abs(e.deltaX) < 12 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+      const now = Date.now(); if (now - this.lock < 600) return; this.lock = now;
+      setSpace(space + (e.deltaX > 0 ? 1 : -1));
+    };
+    const cdef = CS.find(x => x[0] === a);
+    const spaceDefs = [{ name: panel.title, icon: cdef ? cdef[2] : 'grid_view', abg: cdef ? cdef[3] : '#E9EAEE', afg: cdef ? cdef[4] : '#1C1E26', ring: cdef ? cdef[4] : '#1C1E26' }, { name: 'Notes', icon: 'description', abg: '#E6EDFD', afg: '#2457D6', ring: '#2F6BEB' }];
+    const spaceDots = spaceDefs.map((d, i) => { const on = i === space; return { name: d.name, icon: d.icon, bg: on ? d.abg : 'transparent', fg: on ? d.afg : '#9A9DA6', ring: on ? '0 0 0 2px #fff, 0 0 0 3.5px ' + d.ring : 'inset 0 0 0 1px #DFE1E6', hover: on ? d.abg : '#F0F1F4', go: () => setSpace(i) }; });
+    const noteList = [
+      { group: 'This week', items: [
+        { title: 'Lecture 8 — Cell membrane', snip: 'Phospholipid bilayer and the fluid mosaic model.', time: 'Thu', sel: true },
+        { title: 'Membrane transport summary', snip: 'Passive vs active transport, with examples.', time: 'Wed' }
+      ] },
+      { group: 'Last week', items: [
+        { title: 'Lecture 7 — Organelles', snip: 'Structure and function of each organelle.', time: 'Tue' },
+        { title: 'Lecture 6 — Prokaryotes', snip: 'Key differences from eukaryotic cells.', time: 'Thu' },
+        { title: 'Glossary', snip: 'Terms to know for the midterm.', time: 'Mon' }
+      ] }
+    ].map(g => ({ ...g, items: g.items.map(i => ({ ...i, bg: i.sel ? '#E6EDFD' : 'transparent' })) }));
+    return { tabs, rail, circles, panel, open: !collapsed, toggle: () => this.setState({ collapsed: !collapsed }),
+      stripGap: this.props.rightPanel ? '290px' : '0px',
+      toggleRight: e => e.currentTarget.dispatchEvent(new CustomEvent('margin-toggle-right', { bubbles: true })),
+      spaces, showSwitch: spaces && !notesOnly, notesOnly, backHref: this.props.backHref ?? '#', spaceDots, noteList, onWheel, asideW: spaces ? '280px' : '220px', trackW: spaces ? '200%' : '100%', trackX: spaces ? (space * -50) + '%' : '0%' };
+  }
+}
+</script>
+</body>
+</html>

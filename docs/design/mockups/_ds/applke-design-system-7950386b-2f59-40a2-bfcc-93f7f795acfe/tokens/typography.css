@@ -1,0 +1,31 @@
+/* Fidelio — Typography tokens
+   Family: Inter (Google Fonts). Only two weights are used: Regular (400) and Medium (500).
+   Global tracking of -0.15px on all text. */
+:root {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, monospace;
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+
+  /* Restricted size ramp — only these four sizes exist */
+  --text-xs:   12px; /* meta, captions, labels */
+  --text-sm:   13px; /* secondary body, nav, controls */
+  --text-base: 14px; /* default body + UI text */
+  --text-2xl:  24px; /* the single display / heading size */
+
+  --leading-tight:  1.25;
+  --leading-snug:   1.35;
+  --leading-normal: 1.5;
+
+  --tracking: -0.15px; /* applied globally */
+}
+
+/* Baseline application of the family + tracking */
+html {
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

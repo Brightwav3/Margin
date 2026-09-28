@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/tokens/colors.css">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/tokens/typography.css">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/tokens/radii.css">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/tokens/shadows.css">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<style>body{margin:0;background:#E4E5E9;color:#1C1E26;font-family:var(--font-sans);letter-spacing:-0.2px}*{box-sizing:border-box}a{color:#2457D6;text-decoration:none}a:hover{color:#1D47B3}.dv-turn{padding:56px 56px 48px;scroll-margin-top:16px}.dv-thd{display:flex;align-items:center;gap:12px;margin:0 0 12px}.dv-tid{font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:700 30px/1.2 var(--font-sans);letter-spacing:-0.6px;color:#1C1E26}.dv-group{margin:56px 0 0}.dv-gname{font:600 20px var(--font-sans);color:#1C1E26;margin:0 0 4px}.dv-gsub{font:400 15px var(--font-sans);color:#686C78;margin:0 0 20px}.dv-opts{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px}.dv-oid{font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 15px/1.3 var(--font-sans);color:#686C78}.dv-card{background:#F6F6F8;border:1px solid #D5D7DD;border-radius:14px;box-shadow:0 12px 40px rgba(28,30,38,.10);overflow:hidden;width:1240px;height:820px;display:flex;position:relative;isolation:isolate}.dv-card::before{content:"";position:absolute;left:56px;top:44px;right:8px;bottom:8px;background:#fff;border:1px solid #E9EAEE;border-radius:12px;z-index:-1}.dv-card>:not(:first-child){margin-top:44px;margin-bottom:8px}.dv-card>:last-child{margin-right:8px;border-radius:0 12px 12px 0}.dv-opt:target .dv-oid{background:#2F6BEB;color:#fff}.dv-next{margin:48px 0 0;font:15px/1.5 var(--font-sans);color:#686C78}</style>
+</helmet>
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Margin</span></div>
+  <p style="margin:0;max-width:760px;font-size:15px;line-height:1.6;color:#686C78;text-wrap:pretty">Markdown notes like Obsidian, a calm task list like Things 3, organised around a university semester. Each course is a project. Lecture notes are daily notes tied to timetable sessions, and any checkbox written in a note rolls up into Today, Upcoming and the course's task list. Sample data: a second-year student, week 5, Monday 28 September 2026.</p>
+
+  <div class="dv-group">
+    <div class="dv-gname">System</div>
+    <div class="dv-gsub">Fidelio reworked toward the references: bolder type, a blue primary action, pastel course tiles, lighter line icons.</div>
+    <div style="display:grid;grid-template-columns:repeat(4,280px);gap:20px">
+      <div style="background:#fff;border:1px solid #E4E5E9;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px">
+        <span style="font-size:12px;color:#9A9DA6">Type · Inter</span>
+        <span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Page 30</span>
+        <span style="font-size:20px;font-weight:600">Title 20</span>
+        <span style="font-size:17px">Editor body 17</span>
+        <span style="font-size:15px">UI body 15</span>
+        <span style="font-size:13px;color:#686C78">Secondary 13</span>
+        <span style="font-size:12px;color:#9A9DA6">Meta 12</span>
+      </div>
+      <div style="background:#fff;border:1px solid #E4E5E9;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;color:#9A9DA6">Neutrals and accent</span>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#1C1E26"></div><span style="font-size:12px;color:#686C78">Ink</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#686C78"></div><span style="font-size:12px;color:#686C78">Grey</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#F6F6F8;border:1px solid #E4E5E9"></div><span style="font-size:12px;color:#686C78">Sidebar</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#F3F4F6"></div><span style="font-size:12px;color:#686C78">Sunken</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#2F6BEB"></div><span style="font-size:12px;color:#686C78">Blue</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#E6EDFD"></div><span style="font-size:12px;color:#686C78">Blue soft</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#DFE1E6"></div><span style="font-size:12px;color:#686C78">Border</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="height:40px;border-radius:8px;background:#D93F33"></div><span style="font-size:12px;color:#686C78">Due</span></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #E4E5E9;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:12px;color:#9A9DA6">Course tiles</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <sc-for list="{{ courses }}" as="c" hint-placeholder-count="6">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="width:56px;height:56px;border-radius:12px;background:{{ c.bg }};display:flex;align-items:center;justify-content:center">
+                <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ c.icon }}" size="{{ 28 }}" weight="{{ 300 }}" color="{{ c.fg }}" hint-size="28px,28px"></x-import>
+              </div>
+              <span style="font-size:12px;color:#686C78">{{ c.code }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #E4E5E9;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+        <span style="font-size:12px;color:#9A9DA6">Controls</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;white-space:nowrap"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import>New course</div>
+          <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px">Sort<x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <span style="height:34px;padding:0 14px;border-radius:8px;background:#E6EDFD;color:#2457D6;font-size:15px;display:flex;align-items:center;white-space:nowrap">All</span>
+          <span style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Sciences</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ false }}" hint-size="16px,16px"></x-import>
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import>
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Badge" tone="danger" hint-size="50px,20px">Exam</x-import>
+          <x-import component-from-global-scope="ApplkeDesignSystem_795038.Badge" tone="warning" hint-size="80px,20px">Due Fri</x-import>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dv-group">
+    <div class="dv-gname">Courses home</div>
+    <div class="dv-gsub">Where the semester starts. Three levels of density.</div>
+    <div class="dv-opts">
+      <div class="dv-opt" id="1a">
+        <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Card grid, closest to the reference</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" view="grid" active="home" hint-size="276px,100%"></dc-import>
+          <main style="flex:1;min-width:0;padding:28px 36px;overflow:auto;box-sizing:border-box">
+            <div style="width:100%;max-width:{{ pageMax }};margin:0 auto;display:flex;flex-direction:column;gap:18px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Your courses</span>
+                <span style="font-size:15px;color:#686C78">Fall 2026 · Week 5 of 14</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="display:flex;align-items:center;gap:6px;height:40px;padding:0 12px 0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;white-space:nowrap"><span style="color:#686C78">Group by:</span> Faculty<x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+                <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;white-space:nowrap"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="swap_vert" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>Sort</div>
+                <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 18px 0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;white-space:nowrap"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import>New course</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <span style="height:34px;padding:0 16px;border-radius:8px;background:#E6EDFD;color:#2457D6;font-size:15px;display:flex;align-items:center;white-space:nowrap">All courses</span>
+              <span style="height:34px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Sciences</span>
+              <span style="height:34px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Humanities</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+              <sc-for list="{{ courses }}" as="c" hint-placeholder-count="6">
+                <div style="background:#fff;border:{{ c.cardBorder }};border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+                  <div style="height:92px;background:{{ c.bg }};position:relative">
+                    <image-slot id="banner-{{ c.id }}" shape="rect" placeholder="{{ c.name }} banner"></image-slot>
+                  </div>
+                  <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;align-items:flex-start;gap:12px;margin-top:12px;position:relative">
+                    <div style="width:52px;height:52px;margin-top:-34px;border-radius:12px;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 3px #fff">
+                      <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ c.icon }}" size="{{ 26 }}" weight="{{ 300 }}" color="{{ c.fg }}" hint-size="30px,30px"></x-import>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                      <span style="font-size:17px;font-weight:600;letter-spacing:-0.3px;line-height:1.25">{{ c.name }}</span>
+                      <span style="font-size:15px;color:#686C78">{{ c.notes }} notes · {{ c.grade }}</span>
+                    </div>
+                    <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="more_horiz" size="{{ 20 }}" color="#686C78" hint-size="20px,20px" style="align-self:flex-start"></x-import>
+                  </div>
+                  
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#686C78">
+                    <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="schedule" size="{{ 16 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="16px,16px"></x-import>
+                    <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.next }} · {{ c.nextTitle }}</span>
+                  </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            
+          </div>
+          </main>
+        </div>
+      </div>
+
+      <div class="dv-opt" id="1b">
+        <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Timetable first</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" view="timetable" active="home" hint-size="276px,100%"></dc-import>
+          <main style="flex:1;min-width:0;display:flex;overflow:hidden">
+            <div style="flex:1;min-width:0;padding:40px 28px 28px 44px;display:flex;flex-direction:column;gap:24px">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Week 5</span>
+                  <span style="font-size:15px;color:#686C78">28 Sep – 2 Oct · 11 sessions</span>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <div style="width:40px;height:40px;border-radius:8px;border:1px solid #DFE1E6;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_left" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import></div>
+                  <div style="height:40px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;display:flex;align-items:center;font-size:15px;white-space:nowrap">This week</div>
+                  <div style="width:40px;height:40px;border-radius:8px;border:1px solid #DFE1E6;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_right" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import></div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:44px repeat(5,minmax(0,1fr));gap:0 8px">
+                <div></div>
+                <sc-for list="{{ days }}" as="d" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:baseline;gap:6px;padding:0 6px 12px;font-size:15px;color:{{ d.color }}"><span style="font-weight:600">{{ d.name }}</span><span style="font-size:13px">{{ d.date }}</span></div>
+                </sc-for>
+                <div style="position:relative;height:560px">
+                  <sc-for list="{{ hours }}" as="h" hint-placeholder-count="10">
+                    <span style="position:absolute;top:{{ h.top }};left:0;font-size:12px;color:#9A9DA6;transform:translateY(-50%)">{{ h.label }}</span>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ ttDays }}" as="d" hint-placeholder-count="5">
+                  <div style="position:relative;height:560px;border-top:1px solid #E9EAEE;background:{{ d.bg }};border-radius:0 0 8px 8px">
+                    <sc-for list="{{ d.sessions }}" as="s">
+                      <div style="position:absolute;left:3px;right:3px;top:{{ s.top }};height:{{ s.height }};background:{{ s.bg }};border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:2px;overflow:hidden">
+                        <span style="font-size:13px;font-weight:600;color:{{ s.fg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.code }}</span>
+                        <span style="font-size:12px;color:{{ s.fg }};opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.kind }} · {{ s.time }}</span>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ d.isToday }}"><div style="position:absolute;left:0;right:0;top:{{ nowTop }};height:2px;background:#D93F33"></div></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      
+    </div>
+  </div>
+  <div class="dv-group">
+    <div class="dv-gname">Course view</div>
+    <div class="dv-gsub">One course as a project: assignments, exam prep, lecture notes and grades.</div>
+    <div class="dv-opts">
+      <div class="dv-opt" id="2c">
+        <div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Course gallery: a tab per course, a card per session titled by theme and date</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" active="bio" spaces="{{ true }}" space="course" right-panel="{{ true }}" hint-size="336px,100%"></dc-import>
+          <main style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+            <div style="flex:1;min-height:0;overflow:auto;width:100%;max-width:{{ pageMax }};margin:0 auto;box-sizing:border-box;padding:28px 36px;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;align-items:flex-end;gap:16px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                  <span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Cell Biology</span>
+                  <span style="font-size:15px;color:#686C78">BIO 201 · Dr. Okafor · 16 sessions · A− 91%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;white-space:nowrap"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="swap_vert" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>Newest</div>
+                <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 18px 0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;white-space:nowrap"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import>New note</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <span style="height:34px;padding:0 16px;border-radius:8px;background:#E6EDFD;color:#2457D6;font-size:15px;display:flex;align-items:center;white-space:nowrap">All</span>
+                <span style="height:34px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Lectures</span>
+                <span style="height:34px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Labs</span>
+                <span style="height:34px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Study notes</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+                <sc-for list="{{ bioGallery }}" as="g" hint-placeholder-count="6">
+                  <div style="border:{{ g.border }};border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                      <span style="font-weight:600;color:{{ g.dateColor }};white-space:nowrap">{{ g.date }}</span>
+                      <span style="color:#9A9DA6;white-space:nowrap">· {{ g.kind }}</span>
+                      <span style="flex:1"></span>
+                      <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="more_horiz" size="{{ 20 }}" color="#9A9DA6" hint-size="20px,20px"></x-import>
+                    </div>
+                    <span style="font-size:20px;font-weight:600;letter-spacing:-0.3px">{{ g.theme }}</span>
+                    
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#9A9DA6">
+                      <span style="flex:1">{{ g.meta }}</span>
+                      <sc-if value="{{ g.hasTasks }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Badge" tone="{{ g.tone }}" hint-size="60px,20px">{{ g.tasks }}</x-import></sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </main>
+          <dc-import name="Inspector" view="course" hint-size="300px,100%"></dc-import>
+        </div>
+      </div>
+
+      
+
+      
+    </div>
+  </div>
+
+  <div class="dv-group">
+    <div class="dv-gname">Note editor</div>
+    <div class="dv-gsub">Markdown with visible syntax, note properties, and checkboxes that become tasks.</div>
+    <div class="dv-opts">
+      <div class="dv-opt" id="3a">
+        <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Three panes, closest to the reference</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" active="bio" tab="Cell membrane" spaces="{{ true }}" space="notes" right-panel="{{ true }}" hint-size="336px,100%"></dc-import>
+          <main style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative">
+            <div style="height:52px;flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:16px;padding:0 20px">
+              <span style="font-size:13px;color:#9A9DA6;white-space:nowrap">Edited 10:24</span>
+              <div style="display:flex;align-items:center;gap:6px;font-size:15px;color:#686C78;white-space:nowrap"><span style="width:7px;height:7px;border-radius:50%;background:#6FBF7A"></span><span>Cell Biology</span><span style="color:#C4C7CF">/</span><span style="color:#1C1E26">Lecture 8</span></div>
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:16px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="text_fields" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="link" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import><div onClick="{{ toggleNoteMode }}" title="{{ noteModeLabel }}" style="cursor:pointer;display:flex;padding:4px;margin:-4px;border-radius:6px" style-hover="background:#F0F1F4"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ noteModeIcon }}" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div><div style="position:relative;display:flex"><div onClick="{{ toggleNoteMenu }}" style="cursor:pointer;display:flex;padding:4px;margin:-4px;border-radius:6px;background:{{ menuBtnBg }}" style-hover="background:#F0F1F4"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="more_horiz" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import></div>
+                <sc-if value="{{ noteMenuOpen }}">
+                  <div style="position:absolute;top:30px;right:-8px;z-index:20;width:250px;background:#fff;border:1px solid #E4E5E9;border-radius:10px;box-shadow:0 12px 32px rgba(28,30,38,.16);padding:5px;display:flex;flex-direction:column">
+                    <sc-for list="{{ noteMenu }}" as="m">
+                      <sc-if value="{{ m.sep }}"><div style="height:1px;background:#EDEEF1;margin:4px 8px"></div></sc-if>
+                      <sc-if value="{{ m.item }}">
+                        <div onClick="{{ m.go }}" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:6px;font-size:14px;color:{{ m.color }};cursor:default" style-hover="background:#F0F1F4">
+                          <span style="width:16px;display:flex;flex:none">{{ m.check }}</span>
+                          <span style="flex:1;white-space:nowrap">{{ m.label }}</span>
+                          <sc-if value="{{ m.sub }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_right" size="{{ 16 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="16px,16px"></x-import></sc-if>
+                        </div>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div></div>
+            </div>
+            <div style="flex:1;min-height:0;overflow:auto;padding:18px 32px 24px">
+              <div style="max-width:{{ noteMax }};margin:0 auto">
+
+              <sc-if value="{{ isRendered }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:30px;font-weight:700;letter-spacing:-0.6px;margin:28px 0 14px">Lecture 8 — Cell membrane</div>
+              <div style="display:flex;flex-direction:column;gap:2px;padding:4px 0 16px;margin-bottom:18px;font-size:15px">
+                <div style="font-size:16px;font-weight:600;color:#1C1E26;margin-bottom:8px">Properties</div>
+                <div style="display:grid;grid-template-columns:160px 1fr;align-items:center;min-height:32px">
+                  <span style="display:flex;align-items:center;gap:10px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="calendar_today" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>date</span>
+                  <span style="display:flex;align-items:center;gap:8px;color:#1C1E26"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="calendar_today" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import><span style="font-variant-numeric:tabular-nums;letter-spacing:0.3px">24<span style="color:#C4C7CF">.</span>09<span style="color:#C4C7CF">.</span>2026</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="link" size="{{ 16 }}" weight="{{ 300 }}" color="#9A9DA6" hint-size="16px,16px"></x-import></span>
+                </div>
+                <div style="display:grid;grid-template-columns:160px 1fr;align-items:center;min-height:32px">
+                  <span style="display:flex;align-items:center;gap:10px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="notes" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>class</span>
+                  <a href="#3a" style="color:#2F6BEB;text-decoration:underline;text-underline-offset:2px">+Cell Biology</a>
+                </div>
+                <div style="display:grid;grid-template-columns:160px 1fr;align-items:center;min-height:32px">
+                  <span style="display:flex;align-items:center;gap:10px;color:#686C78"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="sell" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>tags</span>
+                  <span style="display:flex;gap:6px;font-size:13px"><span style="background:#E6EDFD;color:#2457D6;border-radius:12px;padding:2px 10px">membranes</span><span style="background:#E6EDFD;color:#2457D6;border-radius:12px;padding:2px 10px">midterm</span></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:#686C78;min-height:32px;margin-top:6px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>Add property</div>
+              </div>
+              <p style="margin:0 0 18px;font-size:17px;line-height:1.6;text-wrap:pretty">The membrane is a phospholipid bilayer that controls what enters and leaves the cell.</p>
+              <div style="font-size:20px;font-weight:600;margin:0 0 10px"><sc-if value="{{ isLive }}" hint-placeholder-val="{{ true }}"><span style="color:#C4C7CF;font-weight:500;margin-right:8px">##</span></sc-if>Fluid mosaic model<sc-if value="{{ isLive }}" hint-placeholder-val="{{ true }}"><span style="display:inline-block;width:2px;height:22px;background:#2F6BEB;vertical-align:-4px;margin-left:1px"></span></sc-if></div>
+              <div style="display:flex;flex-direction:column;gap:4px;font-size:17px;line-height:1.6;margin-bottom:18px">
+                <div style="display:flex;gap:12px"><span style="color:#9A9DA6;width:10px;flex:none;text-align:center">•</span><span>Proteins float within the lipid layer, like tiles in a mosaic</span></div>
+                <div style="display:flex;gap:12px"><span style="color:#9A9DA6;width:10px;flex:none;text-align:center">•</span><span>Cholesterol keeps the membrane fluid at low temperatures</span></div>
+              </div>
+              <div style="font-size:20px;font-weight:600;margin:0 0 10px">To do</div>
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:17px;margin-bottom:18px">
+                <div style="display:flex;align-items:center;gap:12px"><span style="color:#9A9DA6;width:10px;flex:none;text-align:center">•</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ false }}" hint-size="16px,16px"></x-import><span style="flex:1">Ask about the osmosis question in office hours</span><span style="font-size:13px;color:#686C78;background:#F3F4F6;border-radius:6px;padding:2px 8px">Tue</span></div>
+                <div style="display:flex;align-items:center;gap:12px"><span style="color:#9A9DA6;width:10px;flex:none;text-align:center">•</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ false }}" hint-size="16px,16px"></x-import><span style="flex:1">Redraw the bilayer diagram from memory</span><span style="font-size:13px;color:#D93F33;background:#FCECEC;border-radius:6px;padding:2px 8px">Before midterm</span></div>
+              </div>
+              <div style="font-size:20px;font-weight:600;margin:0 0 10px">Related</div>
+              <div style="display:flex;flex-direction:column;gap:4px;font-size:17px">
+                <div style="display:flex;gap:12px"><span style="color:#9A9DA6;width:10px;flex:none;text-align:center">•</span><span><a href="#3a" style="text-decoration:underline">Membrane transport</a></span></div>
+                <div style="display:flex;gap:12px"><span style="color:#9A9DA6;width:10px;flex:none;text-align:center">•</span><span><a href="#3a" style="text-decoration:underline">Lipids</a> in Organic Chemistry</span></div>
+              </div>
+              </sc-if>
+              <sc-if value="{{ isSource }}">
+              <div style="padding-top:28px;font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.75;color:#1C1E26">
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">---</span></div>
+                <div style="white-space:pre-wrap"><span style="color:#2457D6">date:</span> 2026-09-24</div>
+                <div style="white-space:pre-wrap"><span style="color:#2457D6">class:</span> "[[Cell Biology]]"</div>
+                <div style="white-space:pre-wrap"><span style="color:#2457D6">tags:</span></div>
+                <div style="white-space:pre-wrap">  <span style="color:#9A9DA6">-</span> membranes</div>
+                <div style="white-space:pre-wrap">  <span style="color:#9A9DA6">-</span> midterm</div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">---</span></div>
+                <div style="white-space:pre-wrap;min-height:1.75em"></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">#</span> <b>Lecture 8 — Cell membrane</b></div>
+                <div style="white-space:pre-wrap;min-height:1.75em"></div>
+                <div style="white-space:pre-wrap">The membrane is a phospholipid bilayer that controls what enters and leaves the cell.</div>
+                <div style="white-space:pre-wrap;min-height:1.75em"></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">##</span> <b>Fluid mosaic model</b></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">-</span> Proteins float within the lipid layer, like tiles in a mosaic</div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">-</span> Cholesterol keeps the membrane fluid at low temperatures</div>
+                <div style="white-space:pre-wrap;min-height:1.75em"></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">##</span> <b>To do</b></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">- [ ]</span> Ask about the osmosis question in office hours <span style="color:#9A9DA6">@</span> Tue</div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">- [ ]</span> Redraw the bilayer diagram from memory <span style="color:#9A9DA6">@</span>before-midterm</div>
+                <div style="white-space:pre-wrap;min-height:1.75em"></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">##</span> <b>Related</b></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">-</span> <span style="color:#9A9DA6">[[</span><span style="color:#2457D6">Membrane transport</span><span style="color:#9A9DA6">]]</span></div>
+                <div style="white-space:pre-wrap"><span style="color:#9A9DA6">-</span> <span style="color:#9A9DA6">[[</span><span style="color:#2457D6">Lipids</span><span style="color:#9A9DA6">]]</span> in Organic Chemistry</div>
+              </div>
+              </sc-if>
+              </div>
+            </div>
+            <div style="position:absolute;right:0;bottom:0;height:30px;display:flex;align-items:center;gap:14px;padding:0 14px;font-size:13px;color:#686C78;background:#FCFCFD;border:1px solid #E9EAEE;border-right:none;border-bottom:none;border-radius:10px 0 0 0;white-space:nowrap"><span>3 backlinks</span><span>3 properties</span><span>412 words</span><span>2 open tasks → Today</span></div>
+          </main>
+          <dc-import name="Inspector" view="note" hint-size="300px,100%"></dc-import>
+        </div>
+      </div>
+
+      
+    </div>
+  </div>
+  <div class="dv-group">
+    <div class="dv-gname">Graph map</div>
+    <div class="dv-gsub">How notes connect, across courses and around a single note.</div>
+    <div class="dv-opts">
+      <div class="dv-opt" id="4a">
+        <div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Whole semester, filters and preview floating</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" active="graph" collapsed="{{ true }}" hint-size="56px,100%"></dc-import>
+          <main style="flex:1;min-width:0;position:relative;background:#FAFAFB;overflow:hidden">
+            <svg width="1004" height="820" style="position:absolute;left:40px;top:-40px">
+              <sc-for list="{{ gEdges }}" as="e"><line x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}" stroke="{{ e.stroke }}" stroke-width="{{ e.sw }}"></line></sc-for>
+              <sc-for list="{{ gNodes }}" as="n"><g><circle cx="{{ n.x }}" cy="{{ n.y }}" r="{{ n.r }}" fill="{{ n.fill }}" stroke="{{ n.stroke }}" stroke-width="{{ n.ringW }}"></circle><text x="{{ n.x }}" y="{{ n.ly }}" text-anchor="middle" font-size="{{ n.fs }}" font-weight="{{ n.fw }}" fill="{{ n.lc }}" font-family="Inter, sans-serif">{{ n.label }}</text></g></sc-for>
+            </svg>
+            <div style="position:absolute;left:32px;top:32px;display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Graph map</span>
+              <span style="font-size:15px;color:#686C78">71 notes · 118 links</span>
+            </div>
+            <div style="position:absolute;left:32px;top:120px;width:220px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 16px rgba(28,30,38,.06)">
+              <span style="font-size:13px;font-weight:600;color:#686C78">Courses</span>
+              <sc-for list="{{ courses }}" as="c" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:10px;font-size:15px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ true }}" hint-size="16px,16px"></x-import><span style="width:8px;height:8px;border-radius:50%;background:{{ c.dot }}"></span><span style="flex:1">{{ c.name }}</span></div>
+              </sc-for>
+              <div style="height:1px;background:#E9EAEE;margin:4px 0"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:15px"><span>Show tasks</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Switch" checked="{{ false }}" hint-size="36px,20px"></x-import></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:15px"><span>Orphan notes</span><x-import component-from-global-scope="ApplkeDesignSystem_795038.Switch" checked="{{ true }}" hint-size="36px,20px"></x-import></div>
+            </div>
+            <div style="position:absolute;right:32px;bottom:32px;width:300px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(28,30,38,.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#686C78"><span style="width:8px;height:8px;border-radius:50%;background:#6FBF7A"></span>Cell Biology · Lecture</div>
+              <span style="font-size:17px;font-weight:600"># Lecture 8 — Cell membrane</span>
+              <span style="font-size:13px;color:#686C78;line-height:1.5">The membrane is a phospholipid bilayer that controls what enters and leaves the cell.</span>
+              <div style="display:flex;align-items:center;gap:8px;padding-top:4px"><span style="font-size:13px;color:#9A9DA6;flex:1">4 links · 2 open tasks</span><div style="height:34px;padding:0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center">Open</div></div>
+            </div>
+            <div style="position:absolute;right:32px;top:32px;display:flex;gap:8px">
+              <div style="width:40px;height:40px;border-radius:8px;border:1px solid #DFE1E6;background:#fff;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="remove" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import></div>
+              <div style="width:40px;height:40px;border-radius:8px;border:1px solid #DFE1E6;background:#fff;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import></div>
+              <div style="width:40px;height:40px;border-radius:8px;border:1px solid #DFE1E6;background:#fff;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="center_focus_weak" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import></div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      
+    </div>
+  </div>
+
+  <div class="dv-group">
+    <div class="dv-gname">Quick capture and inbox</div>
+    <div class="dv-gsub">Capture anywhere in one line, sort it into a course later.</div>
+    <div class="dv-opts">
+      <div class="dv-opt" id="5a">
+        <div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Global quick entry with parsed course and date</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" active="inbox" hint-size="276px,100%"></dc-import>
+          <main style="flex:1;min-width:0;padding:52px 64px;overflow:auto;box-sizing:border-box">
+            <div style="width:100%;max-width:{{ pageMax }};margin:0 auto;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;align-items:center;gap:14px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="inbox" size="{{ 30 }}" weight="{{ 300 }}" color="#2F6BEB" hint-size="30px,30px"></x-import><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Inbox</span></div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ inbox }}" as="i" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid #F0F1F4">
+                  <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ i.icon }}" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>
+                  <span style="flex:1;font-size:15px">{{ i.title }}</span>
+                  <span style="font-size:13px;color:#9A9DA6">{{ i.meta }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </main>
+          <div style="position:absolute;inset:0;background:rgba(28,30,38,0.32);display:flex;align-items:flex-start;justify-content:center;padding-top:170px">
+            <div style="width:620px;background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(28,30,38,.24);padding:22px 24px 16px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:flex-start;gap:14px">
+                <div style="padding-top:5px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Checkbox" checked="{{ false }}" hint-size="16px,16px"></x-import></div>
+                <div style="flex:1;font-size:20px;line-height:1.4">Read ch. 6 before <span style="background:#E6EDFD;color:#2457D6;border-radius:4px;padding:0 3px">wed</span> for <span style="background:#D8EFD9;color:#2F7D3E;border-radius:4px;padding:0 3px">@bio</span> <span style="color:#686C78">#reading</span><span style="display:inline-block;width:2px;height:22px;background:#2F6BEB;vertical-align:-4px;margin-left:2px"></span></div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;padding-left:30px">
+                <span style="display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;background:#D8EFD9;color:#2F7D3E;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="eco" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>Cell Biology</span>
+                <span style="display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;background:#E6EDFD;color:#2457D6;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="calendar_today" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>Wed 30 Sep</span>
+                <span style="display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;border:1px solid #DFE1E6;color:#686C78;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="sell" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>reading</span>
+                <span style="display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;border:1px dashed #DFE1E6;color:#686C78;font-size:13px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="school" size="{{ 16 }}" weight="{{ 300 }}" hint-size="16px,16px"></x-import>Attach to Lecture 9</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;border-top:1px solid #F0F1F4;padding-top:14px;font-size:13px;color:#9A9DA6">
+                <div style="display:flex;gap:2px;background:#F3F4F6;border-radius:8px;padding:3px">
+                  <span style="height:26px;padding:0 10px;border-radius:6px;background:#fff;color:#1C1E26;display:flex;align-items:center;box-shadow:0 1px 2px rgba(28,30,38,.08)">Task</span>
+                  <span style="height:26px;padding:0 10px;display:flex;align-items:center;color:#686C78">Note</span>
+                </div>
+                <span style="flex:1">⌘⇧Space from anywhere</span>
+                <span>⌘↵ Inbox</span>
+                <div style="height:34px;padding:0 14px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center">Add to Cell Biology ↵</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dv-opt" id="5b">
+        <div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>Inbox triage: pick a course, a time, a type</div>
+        <div class="dv-card">
+          <dc-import name="Sidebar" active="inbox" collapsed="{{ true }}" hint-size="56px,100%"></dc-import>
+          <div style="width:400px;flex:none;border-right:1px solid #E9EAEE;padding:40px 16px;display:flex;flex-direction:column;gap:16px;background:#FCFCFD">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 8px"><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Inbox</span><span style="font-size:13px;color:#686C78">5 to sort</span></div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ inbox }}" as="i" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;background:{{ i.bg }}">
+                  <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ i.icon }}" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ i.title }}</span><span style="font-size:12px;color:#9A9DA6">{{ i.meta }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border:1px solid #DFE1E6;border-radius:8px;background:#fff;color:#9A9DA6;font-size:15px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 20 }}" weight="{{ 300 }}" hint-size="20px,20px"></x-import>Capture something…</div>
+          </div>
+          <main style="flex:1;min-width:0;padding:40px 40px;overflow:auto;box-sizing:border-box">
+            <div style="width:100%;max-width:{{ noteMax }};margin:0 auto;display:flex;flex-direction:column;gap:26px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:13px;color:#9A9DA6">Captured 9:12 from your phone</span>
+              <span style="font-size:20px;font-weight:600">Email Dr. Okafor about lab partner</span>
+              <span style="font-size:15px;color:#686C78;line-height:1.5">Partner dropped the course. Ask if I can join the Thursday group for Lab 3.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:600;color:#686C78">Course</span>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+                <sc-for list="{{ pickCourses }}" as="c" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:{{ c.border }};background:{{ c.pbg }}">
+                    <div style="width:32px;height:32px;border-radius:8px;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;flex:none"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ c.icon }}" size="{{ 18 }}" weight="{{ 300 }}" color="{{ c.fg }}" hint-size="18px,18px"></x-import></div>
+                    <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:600;color:#686C78">When</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <span style="height:34px;padding:0 14px;border-radius:8px;background:#E6EDFD;color:#2457D6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Today</span>
+                <span style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Tomorrow</span>
+                <span style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Before next lecture · Tue</span>
+                <span style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Someday</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:600;color:#686C78">Keep as</span>
+              <div style="display:flex;gap:2px;background:#F3F4F6;border-radius:8px;padding:3px;align-self:flex-start">
+                <span style="height:30px;padding:0 14px;border-radius:6px;background:#fff;font-size:15px;display:flex;align-items:center;box-shadow:0 1px 2px rgba(28,30,38,.08)">Task</span>
+                <span style="height:30px;padding:0 14px;font-size:15px;display:flex;align-items:center;color:#686C78">Note</span>
+                <span style="height:30px;padding:0 14px;font-size:15px;display:flex;align-items:center;color:#686C78">Add to lecture note</span>
+              </div>
+            </div>
+            <div style="margin-top:auto;display:flex;gap:10px;justify-content:flex-end">
+              <div style="height:40px;padding:0 16px;border-radius:8px;border:1px solid #DFE1E6;font-size:15px;display:flex;align-items:center;white-space:nowrap">Delete</div>
+              <div style="height:40px;padding:0 18px;border-radius:8px;background:#2F6BEB;color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center">Move to Cell Biology</div>
+            </div>
+          </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Sidebar: click the panel icon next to the arrows in any mockup to collapse or expand it. <a class="dv-oid" href="#3a">3a</a>, <a class="dv-oid" href="#4a">4a</a> and <a class="dv-oid" href="#5b">5b</a> start collapsed.<br>Try next: "make <a class="dv-oid" href="#3a">3a</a> interactive" · "combine <a class="dv-oid" href="#1a">1a</a> cards with the timetable from <a class="dv-oid" href="#1b">1b</a>" · "add Today and Upcoming views"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;readableLineLength&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const C = [
+  { id: 'bio', name: 'Cell Biology', code: 'BIO 201', prof: 'Dr. Okafor', icon: 'eco', bg: '#D8EFD9', fg: '#2F7D3E', dot: '#6FBF7A', notes: 14, grade: 'A−', pct: 91, next: 'Tue 10:00', nextTitle: 'Lecture 9 · Membrane transport', room: 'Sci 204', lastNote: 'Lecture 8 — Cell membrane', snippet: 'Phospholipid bilayer and the fluid mosaic model…', edited: 'Today', deadline: 'Midterm', deadlineDay: 'Thu 1 Oct', dl: true },
+  { id: 'chem', name: 'Organic Chemistry', code: 'CHEM 230', prof: 'Prof. Lindqvist', icon: 'science', bg: '#D9E7DC', fg: '#2F5D3A', dot: '#7FA88A', notes: 11, grade: 'B+', pct: 87, next: 'Mon 14:00', nextTitle: 'Lab 4 · Recrystallisation', room: 'Lab C', lastNote: 'Stereochemistry', snippet: 'Chiral centres and R/S naming…', edited: 'Yesterday', deadline: 'Lab report: TLC', deadlineDay: 'Tomorrow', dl: true },
+  { id: 'math', name: 'Linear Algebra', code: 'MATH 221', prof: 'Dr. Haddad', icon: 'change_history', bg: '#D6E2FA', fg: '#274FA8', dot: '#6E97EC', notes: 18, grade: 'A', pct: 94, next: 'Wed 11:00', nextTitle: 'Lecture 10 · Eigenvalues', room: 'Math 101', lastNote: 'Determinants', snippet: 'Row operations and cofactor expansion…', edited: '2 days ago', deadline: 'Problem set 4', deadlineDay: 'Today, 23:59', dl: true },
+  { id: 'hist', name: 'Modern Europe', code: 'HIST 210', prof: 'Prof. Brennan', icon: 'account_balance', bg: '#FBE8C4', fg: '#8F5D0E', dot: '#E8B85C', notes: 9, grade: 'B', pct: 84, next: 'Wed 13:00', nextTitle: 'Seminar · Congress of Vienna', room: 'Arts 3.12', lastNote: 'The 1848 revolutions', snippet: 'Causes across France, Prussia and Austria…', edited: '3 days ago', deadline: 'Essay proposal', deadlineDay: 'Fri 2 Oct' },
+  { id: 'econ', name: 'Macroeconomics', code: 'ECON 102', prof: 'Dr. Silva', icon: 'trending_up', bg: '#E5DEF8', fg: '#5B41B0', dot: '#9A86DE', notes: 12, grade: 'A−', pct: 90, next: 'Tue 15:00', nextTitle: 'Lecture 9 · Fiscal policy', room: 'Hall B', lastNote: 'IS–LM model', snippet: 'Equilibrium in goods and money markets…', edited: '4 days ago', deadline: 'Quiz 3', deadlineDay: 'Tue 6 Oct' },
+  { id: 'phil', name: 'Philosophy of Mind', code: 'PHIL 240', prof: 'Dr. Moreau', icon: 'psychology', bg: '#FADAD6', fg: '#B3372B', dot: '#EC8A80', notes: 7, grade: 'B+', pct: 88, next: 'Thu 16:00', nextTitle: 'Seminar · Functionalism', room: 'Arts 1.04', lastNote: 'The Chinese Room', snippet: "Searle's argument against strong AI…", edited: '5 days ago', deadline: 'Response paper', deadlineDay: 'Fri 2 Oct' }
+];
+const CM = Object.fromEntries(C.map(c => [c.id, c]));
+const DUE = [
+  { c: 'math', title: 'Problem set 4', day: 'Today', icon: 'edit_note' },
+  { c: 'chem', title: 'Lab report: TLC', day: 'Tomorrow', icon: 'description' },
+  { c: 'bio', title: 'Read chapter 6', day: 'Wed', icon: 'menu_book', done: true },
+  { c: 'bio', title: 'Midterm', day: 'Thu', icon: 'event', exam: true },
+  { c: 'hist', title: 'Essay proposal', day: 'Fri', icon: 'description' },
+  { c: 'phil', title: 'Response paper', day: 'Fri', icon: 'description' }
+];
+const SES = [
+  [0, 'math', 11, 1.5, 'Lecture'], [0, 'chem', 14, 3, 'Lab'],
+  [1, 'bio', 10, 1.5, 'Lecture'], [1, 'econ', 15, 1.5, 'Lecture'],
+  [2, 'math', 11, 1.5, 'Lecture'], [2, 'hist', 13, 2, 'Seminar'],
+  [3, 'bio', 10, 1.5, 'Lecture'], [3, 'phil', 16, 1.5, 'Seminar'],
+  [4, 'econ', 9, 1, 'Tutorial'], [4, 'hist', 11, 1, 'Lecture'], [4, 'chem', 13, 1.5, 'Lecture']
+];
+const H = 56, START = 9;
+const fmt = h => `${Math.floor(h)}:${h % 1 ? '30' : '00'}`;
+class Component extends DCLogic {
+  renderVals() {
+    const courses = C.map((c, i) => ({ ...c, pctW: ((c.pct - 60) / 40 * 100) + '%', cardBorder: i === 0 ? '1.5px solid #2F6BEB' : '1px solid #E4E5E9', deadlineColor: c.dl ? '#D93F33' : '#686C78' }));
+    const dueWeek = DUE.map(d => {
+      const c = CM[d.c];
+      return { ...d, code: c.code, dot: c.dot, bg: c.bg, fg: c.fg, isExam: !!d.exam, done: !!d.done, tc: d.done ? '#9A9DA6' : '#1C1E26', deco: d.done ? 'line-through' : 'none', dayColor: (d.day === 'Today' || d.day === 'Tomorrow') ? '#D93F33' : '#686C78' };
+    });
+    const days = ['Mon 28', 'Tue 29', 'Wed 30', 'Thu 1', 'Fri 2'].map((s, i) => { const [name, date] = s.split(' '); return { name, date, color: i === 0 ? '#2F6BEB' : '#1C1E26' }; });
+    const hours = Array.from({ length: 10 }, (_, i) => ({ label: `${START + i}:00`, top: i * H + 'px' }));
+    const ttDays = [0, 1, 2, 3, 4].map(d => ({
+      isToday: d === 0,
+      bg: d === 0 ? '#F7F9FE' : 'transparent',
+      sessions: SES.filter(s => s[0] === d).map(([, cid, st, dur, kind]) => {
+        const c = CM[cid];
+        return { short: c.name, code: c.code, kind, time: fmt(st), top: (st - START) * H + 3 + 'px', height: dur * H - 6 + 'px', bg: c.bg, fg: c.fg };
+      })
+    }));
+    const exams = [
+      { c: 'bio', title: 'Midterm', mon: 'OCT', day: '1', weight: '25%' },
+      { c: 'math', title: 'Midterm', mon: 'OCT', day: '14', weight: '30%' },
+      { c: 'econ', title: 'Quiz 3', mon: 'OCT', day: '6', weight: '5%' }
+    ].map(e => ({ ...e, code: CM[e.c].code, dot: CM[e.c].dot }));
+    const task = (t) => ({ ...t, done: !!t.done, tc: t.done ? '#9A9DA6' : '#1C1E26', deco: t.done ? 'line-through' : 'none', dueColor: t.red ? '#D93F33' : '#686C78', hasWeight: !!t.weight, hasDue: !!t.due, hasBadge: !!t.badge, hasFrom: !!t.from });
+    const bioAssign = [
+      { title: 'Lab report 3 — Osmosis', weight: '15%', due: 'Fri 2 Oct' },
+      { title: 'Problem set 2', weight: '10%', due: 'Graded 18/20', done: true },
+      { title: 'Literature review draft', weight: '20%', due: 'Fri 16 Oct' }
+    ].map(task);
+    const bioPrep = [
+      { title: 'Review lectures 1–8', due: 'Wed', from: 'Exam prep' },
+      { title: 'Flashcards: organelles', due: 'Tue', done: true, from: 'Lecture 7' },
+      { title: 'Practice paper 2024', due: 'Wed', from: 'Exam prep' },
+      { title: 'Ask about osmosis question in office hours', due: 'Tue', from: 'Lecture 8' }
+    ].map(task);
+    const lectures = [
+      { n: 'Lecture 9', title: 'Membrane transport', date: 'Tue 29 Sep · 10:00', upcoming: true },
+      { n: 'Lecture 8', title: 'Cell membrane', date: 'Thu 24 Sep', tasks: '2 open', selected: true },
+      { n: 'Lecture 7', title: 'Organelles', date: 'Tue 22 Sep', tasks: '' },
+      { n: 'Lecture 6', title: 'Prokaryotes and eukaryotes', date: 'Thu 17 Sep', tasks: '' },
+      { n: 'Lab 2', title: 'Microscopy', date: 'Mon 14 Sep', tasks: '' }
+    ].map(l => ({ ...l, isUp: !!l.upcoming, isPast: !l.upcoming, hasTasks: !!l.tasks, rowBg: l.selected ? '#E6EDFD' : 'transparent', icon: l.upcoming ? 'event_upcoming' : 'description', ic: l.upcoming ? '#2F6BEB' : '#686C78' }));
+    const refNotes = [
+      { title: 'Membrane transport summary', meta: '6 links · Yesterday' },
+      { title: 'Glossary', meta: '42 terms · 3 days ago' },
+      { title: 'Midterm formula sheet', meta: 'Pinned · 1 week ago' }
+    ];
+    const gradeParts = [
+      { label: 'Problem sets', weight: '20%', score: '18/20', w: '90%' },
+      { label: 'Lab reports', weight: '25%', score: '46/50', w: '92%' },
+      { label: 'Midterm', weight: '25%', score: 'Thu 1 Oct', w: '0%' },
+      { label: 'Final exam', weight: '30%', score: 'Dec 11', w: '0%' }
+    ];
+    const noteList = [
+      { group: 'This week', items: [
+        { title: 'Lecture 8 — Cell membrane', snip: 'Phospholipid bilayer and the fluid mosaic model.', time: 'Thu', sel: true },
+        { title: 'Membrane transport summary', snip: 'Passive vs active transport, with examples.', time: 'Wed' }
+      ] },
+      { group: 'Last week', items: [
+        { title: 'Lecture 7 — Organelles', snip: 'Structure and function of each organelle.', time: 'Tue' },
+        { title: 'Lecture 6 — Prokaryotes', snip: 'Key differences from eukaryotic cells.', time: 'Thu' },
+        { title: 'Glossary', snip: 'Terms to know for the midterm.', time: 'Mon' }
+      ] }
+    ].map(g => ({ ...g, items: g.items.map(i => ({ ...i, bg: i.sel ? '#E6EDFD' : 'transparent' })) }));
+    const nodes = [
+      ['bio', 'Cell Biology', 420, 330, 'bio', 1], ['b1', 'Lecture 8 — Cell membrane', 350, 225, 'bio'], ['b2', 'Lecture 7 — Organelles', 300, 390, 'bio'], ['b3', 'Membrane transport', 490, 425, 'bio'], ['b4', 'Glossary', 520, 265, 'bio'],
+      ['chem', 'Organic Chemistry', 660, 185, 'chem', 1], ['c1', 'Stereochemistry', 740, 105, 'chem'], ['c2', 'Lab 4', 590, 95, 'chem'], ['c3', 'Lipids', 575, 300, 'chem'],
+      ['math', 'Linear Algebra', 840, 390, 'math', 1], ['m1', 'Eigenvalues', 910, 300, 'math'], ['m2', 'Determinants', 920, 470, 'math'], ['m3', 'Matrix basics', 760, 475, 'math'],
+      ['hist', 'Modern Europe', 390, 630, 'hist', 1], ['h1', '1848 revolutions', 300, 715, 'hist'], ['h2', 'Congress of Vienna', 470, 735, 'hist'], ['h3', 'Industrialisation', 540, 640, 'hist'],
+      ['econ', 'Macroeconomics', 650, 545, 'econ', 1], ['e1', 'IS–LM model', 620, 455, 'econ'], ['e2', 'Fiscal policy', 610, 650, 'econ'],
+      ['phil', 'Philosophy of Mind', 880, 175, 'phil', 1], ['p1', 'Chinese Room', 950, 95, 'phil'], ['p2', 'Functionalism', 820, 85, 'phil']
+    ];
+    const NM = Object.fromEntries(nodes.map(n => [n[0], n]));
+    const edgeIds = [['bio','b1'],['bio','b2'],['bio','b3'],['bio','b4'],['b1','b3'],['b1','c3'],['b3','b4'],['b2','b4'],['chem','c1'],['chem','c2'],['chem','c3'],['math','m1'],['math','m2'],['math','m3'],['m3','e1'],['hist','h1'],['hist','h2'],['hist','h3'],['h3','e2'],['h3','econ'],['econ','e1'],['econ','e2'],['phil','p1'],['phil','p2'],['p1','m1'],['b1','b4']];
+    const hot = new Set(['b1']);
+    const gEdges = edgeIds.map(([a, b]) => ({ x1: NM[a][2], y1: NM[a][3], x2: NM[b][2], y2: NM[b][3], stroke: (hot.has(a) || hot.has(b)) ? '#8FB0F3' : '#D5D7DD', sw: (hot.has(a) || hot.has(b)) ? 1.5 : 1 }));
+    const gNodes = nodes.map(([id, label, x, y, c, hub]) => ({ label, x, y, ly: y + (hub ? 26 : 20), r: hub ? 10 : (id === 'b1' ? 7 : 5), fill: id === 'b1' ? '#2F6BEB' : (hub ? CM[c].dot : CM[c].bg), stroke: id === 'b1' ? '#CFDDFB' : CM[c].dot, ringW: id === 'b1' ? 5 : 1.5, fs: hub ? 13 : 12, fw: hub ? 600 : 400, lc: hub ? '#1C1E26' : (id === 'b1' ? '#2457D6' : '#686C78') }));
+    const local = [
+      ['Lecture 8', 200, 160, '#2F6BEB', 8, '#2457D6', 1], ['Cell Biology', 90, 80, '#6FBF7A', 9, '#1C1E26', 1], ['Membrane transport', 300, 70, '#D8EFD9', 6, '#686C78', 1], ['Lipids', 320, 220, '#D9E7DC', 6, '#686C78', 1], ['Glossary', 110, 250, '#D8EFD9', 6, '#686C78', 1], ['Organic Chemistry', 330, 300, '#E9EAEE', 6, '#9A9DA6', 0.6], ['Lecture 7', 30, 190, '#E9EAEE', 5, '#9A9DA6', 0.6]
+    ];
+    const lNodes = local.map(([label, x, y, fill, r, lc, op]) => ({ label, x, y, ly: y + r + 15, fill, r, lc, op, stroke: fill === '#2F6BEB' ? '#CFDDFB' : 'transparent' }));
+    const lE = [[0,1],[0,2],[0,3],[0,4],[2,4],[3,5],[1,6],[1,4]];
+    const lEdges = lE.map(([a, b]) => ({ x1: local[a][1], y1: local[a][2], x2: local[b][1], y2: local[b][2], stroke: (a === 0) ? '#8FB0F3' : '#E4E5E9' }));
+    const inbox = [
+      { icon: 'check_box_outline_blank', title: 'Email Dr. Okafor about lab partner', meta: 'Task · 9:12', sel: true },
+      { icon: 'description', title: 'Idea: compare 1848 to Arab Spring for essay', meta: 'Note · 8:40' },
+      { icon: 'link', title: 'Khan Academy — eigenvectors intro', meta: 'Link · Yesterday' },
+      { icon: 'image', title: 'Whiteboard photo, ECON tutorial', meta: 'Image · Yesterday' },
+      { icon: 'check_box_outline_blank', title: 'Print lab safety form', meta: 'Task · Sat' }
+    ].map(i => ({ ...i, bg: i.sel ? '#E6EDFD' : 'transparent' }));
+    const pickCourses = C.map((c, i) => ({ ...c, border: i === 0 ? '1.5px solid #2F6BEB' : '1px solid #E4E5E9', pbg: i === 0 ? '#F7F9FE' : '#fff' }));
+    const courseTabs = C.map((c, i) => ({ name: c.name, dot: c.dot, color: i === 0 ? '#1C1E26' : '#686C78', fw: i === 0 ? 600 : 400, line: i === 0 ? '#1C1E26' : 'transparent' }));
+    const bioGallery = [
+      { date: 'Tue 29 Sep', kind: 'Lecture 9', theme: 'Membrane transport', snip: 'Not started. Created from your timetable at 10:00; readings: ch. 6.', meta: 'Tomorrow · Sci 204', up: true },
+      { date: 'Thu 24 Sep', kind: 'Lecture 8', theme: 'Cell membrane', snip: 'Phospholipid bilayer and the fluid mosaic model. Cholesterol keeps it fluid.', meta: '412 words', tasks: '2 open', tone: 'warning', sel: true },
+      { date: 'Tue 22 Sep', kind: 'Lecture 7', theme: 'Organelles', snip: 'Nucleus, mitochondria, ER, Golgi. Structure and function of each.', meta: '680 words', tasks: 'Done', tone: 'success' },
+      { date: 'Mon 21 Sep', kind: 'Lab 2', theme: 'Microscopy', snip: 'Onion epidermis and cheek cells at 400×. Sketches attached.', meta: '3 images' },
+      { date: 'Thu 17 Sep', kind: 'Lecture 6', theme: 'Prokaryotes and eukaryotes', snip: 'Key differences: nucleus, organelles, size, ribosome type.', meta: '520 words' },
+      { date: 'Tue 15 Sep', kind: 'Lecture 5', theme: 'Proteins and enzymes', snip: 'Primary to quaternary structure. Lock and key vs induced fit.', meta: '590 words' }
+    ].map(g => ({ ...g, hasTasks: !!g.tasks, border: g.sel ? '1.5px solid #2F6BEB' : (g.up ? '1px dashed #C4C7CF' : '1px solid #E4E5E9'), dateColor: g.up ? '#2F6BEB' : '#1C1E26' }));
+    const st = this.state || {};
+    const rll = st.rll ?? (this.props.readableLineLength ?? true);
+    const mode = st.noteMode || 'live', lastEdit = st.lastEdit || 'live';
+    const setMode = m => this.setState({ noteMode: m, lastEdit: m === 'reading' ? (mode === 'reading' ? lastEdit : mode) : m, noteMenuOpen: false });
+    const MI = (label, o = {}) => ({ item: true, sep: false, label, check: o.on ? '✓' : '', sub: !!o.sub, color: o.danger ? '#D93F33' : (o.dim ? '#B4B7BF' : '#1C1E26'), go: o.go || (() => this.setState({ noteMenuOpen: false })) });
+    const SEP = { sep: true, item: false };
+    const noteMenu = [
+      MI('Backlinks in document'), SEP,
+      MI('Reading view', { on: mode === 'reading', go: () => setMode(mode === 'reading' ? lastEdit : 'reading') }),
+      MI('Source mode', { on: mode === 'source', go: () => setMode(mode === 'source' ? 'live' : 'source') }),
+      MI('Readable line length', { on: rll, go: () => this.setState({ rll: !rll, noteMenuOpen: false }) }), SEP,
+      MI('Split right'), MI('Split down'), MI('Open in new window'), SEP,
+      MI('Rename…'), MI('Move file to…'), MI('Bookmark…'), MI('Add file property'), MI('Export to PDF…'), SEP,
+      MI('Find…'), MI('Replace…', { dim: mode === 'reading' }), SEP,
+      MI('Copy path', { sub: true }), SEP,
+      MI('Open version history'), MI('Open linked view', { sub: true }), SEP,
+      MI('Reveal in Finder'), MI('Reveal file in navigation'), SEP,
+      MI('Ask agent about this note'), SEP,
+      MI('Delete file', { danger: true })
+    ];
+    return {
+      noteMax: rll ? '700px' : 'none', pageMax: rll ? '1040px' : 'none',
+      isLive: mode === 'live', isSource: mode === 'source', isRendered: mode !== 'source',
+      noteModeIcon: mode === 'reading' ? 'menu_book' : 'edit', noteModeLabel: mode === 'reading' ? 'Reading view · click to edit' : 'Editing · click for reading view',
+      toggleNoteMode: () => setMode(mode === 'reading' ? lastEdit : 'reading'),
+      noteMenu, noteMenuOpen: !!st.noteMenuOpen, menuBtnBg: st.noteMenuOpen ? '#F0F1F4' : 'transparent', toggleNoteMenu: () => this.setState({ noteMenuOpen: !st.noteMenuOpen }),
+      courseTabs, bioGallery, bioAssign, bioPrep, lectures, refNotes, gradeParts, noteList, gEdges, gNodes, lNodes, lEdges, inbox, pickCourses,
+      courses, dueWeek, dueWeekShort: dueWeek.filter(d => !d.done).slice(0, 4),
+      days, hours, ttDays, nowTop: (13.4 - START) * H + 'px', exams
+    };
+  }
+}
+</script>
+</body>
+</html>
