@@ -98,3 +98,24 @@ public struct FixturePropertyService: PropertyService {
                                        idempotencyKey: idempotencyKey)
     }
 }
+
+/// `NoteAnalysis` over `Fixtures.week5`, in memory. Answers from a `NoteIndex` built over the fixture
+/// notes, so it follows note writes like the vault does.
+public struct FixtureNoteAnalysis: NoteAnalysis {
+    let store: FixtureStore
+    private var engine: NoteAnalysisEngine {
+        NoteAnalysisEngine(index: { [store] in await store.noteIndex() }, isNote: { _ in true })
+    }
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func outline(id: NoteID) async throws -> [OutlineItem] { try await engine.outline(id: id) }
+    public func backlinks(id: NoteID) async throws -> [NoteBacklink] { try await engine.backlinks(id: id) }
+    public func outgoing(id: NoteID) async throws -> [OutgoingLink] { try await engine.outgoing(id: id) }
+    public func stats(id: NoteID, text: String?) async throws -> NoteStats { try await engine.stats(id: id, text: text) }
+    public func properties(id: NoteID) async throws -> [NoteProperty] { try await engine.properties(id: id) }
+}

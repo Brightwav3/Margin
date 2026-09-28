@@ -24,7 +24,9 @@ actor FixtureStore {
     let semester: Semester
     let clock: any Clock
     private(set) var courses: [Course]
-    private var notes: [NoteID: StoredNote] = [:]
+    private var notes: [NoteID: StoredNote] = [:] { didSet { analysisIndex = nil } }
+    /// Index over the current notes for `FixtureNoteAnalysis`; dropped on every change.
+    private var analysisIndex: NoteIndex?
     private var changeSets: ChangeSetFactory
     private var idempotency = IdempotencyCache()
     private let extractor: TaskExtractor
@@ -144,6 +146,22 @@ actor FixtureStore {
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
     }
 
+    // MARK: Analysis
+
+    /// A `NoteIndex` over the current notes, built on first use after a change. The fixture answers
+    /// analysis queries from the same index code as the vault, so both agree by construction.
+    func noteIndex() async -> NoteIndex {
+        if let analysisIndex { return analysisIndex }
+        let index = NoteIndex(clock: clock)
+        await index.build(entries: notes.keys.sorted().compactMap { id in
+            notes[id].map { (path: path(of: $0), content: $0.content) }
+        })
+        // Another call may have built one (or a write invalidated the notes) while this one awaited.
+        if let analysisIndex { return analysisIndex }
+        analysisIndex = index
+        return index
+    }
+
     // MARK: Properties
 
     private func propertyRegistry() -> PropertyRegistry {
@@ -181,7 +199,8 @@ actor FixtureStore {
         }
         var note = StoredNote(
             summary: NoteSummary(id: id, courseID: courseID, title: title, kind: kind),
-            fileTitle: title, frontmatter: nil, body: ServiceRules.initialBody(title: title, text: text))
+            fileTitle: title, frontmatter: Self.newFrontmatter(id: id, course: course, kind: kind),
+            body: ServiceRules.initialBody(title: title, text: text))
         note.summary = summarize(note)
         let entry = ChangeSet.Entry(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.content))
         if !dryRun { notes[id] = note }
@@ -238,8 +257,9 @@ actor FixtureStore {
     func simulateExternalCreate(course: CourseID, title: String, text: String) throws -> NoteID {
         _ = try self.course(id: course)
         let id = ServiceRules.noteID(course: course, title: title)
+        let owner = try self.course(id: course)
         var note = StoredNote(summary: NoteSummary(id: id, courseID: course, title: title), fileTitle: title,
-                              frontmatter: nil, body: ServiceRules.initialBody(title: title, text: text))
+                              frontmatter: Self.newFrontmatter(id: id, course: owner, kind: .note), body: ServiceRules.initialBody(title: title, text: text))
         note.summary = summarize(note)
         notes[id] = note
         noteChanges.send([NoteChange(noteID: id, kind: .created)])
@@ -260,6 +280,12 @@ actor FixtureStore {
     }
 
     // MARK: Helpers
+
+    /// The frontmatter a note created through the app gets (same keys as `VaultNoteRepository.create`).
+    private static func newFrontmatter(id: NoteID, course: Course, kind: NoteKind) -> Frontmatter? {
+        let text = "---\nid: \(SampleVaultGenerator.scalar(id))\nclass: \"[[\(course.name)]]\"\ntype: \(kind.rawValue)\n---\n"
+        return Frontmatter.parse(text).frontmatter
+    }
 
     static func version(of body: String) -> String { ContentHash(of: body).hex }
 

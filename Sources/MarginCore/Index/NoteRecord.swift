@@ -43,6 +43,9 @@ public struct NoteRecord: Sendable, Hashable, Identifiable {
     public var contentHash: String
     /// The indexed text (kept for rename and backlink context).
     var text: String
+    /// Number of lines the frontmatter block takes in front of the body (line numbers in the
+    /// scanner output are file lines; `Note.text` starts after them).
+    var bodyLineOffset: Int = 0
 
     /// File name without extension.
     public var name: String { NoteIndex.name(ofPath: path) }

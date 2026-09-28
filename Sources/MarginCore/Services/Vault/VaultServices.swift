@@ -87,3 +87,20 @@ public struct VaultPropertyService: PropertyService {
                                          idempotencyKey: idempotencyKey)
     }
 }
+
+/// `NoteAnalysis` over a vault: answers from the note index, which the watcher and the app's own
+/// writes keep current.
+public struct VaultNoteAnalysis: NoteAnalysis {
+    let backend: VaultBackend
+    private var engine: NoteAnalysisEngine {
+        NoteAnalysisEngine(index: { [backend] in backend.index }, isNote: VaultBackend.isNotePath)
+    }
+
+    init(backend: VaultBackend) { self.backend = backend }
+
+    public func outline(id: NoteID) async throws -> [OutlineItem] { try await engine.outline(id: id) }
+    public func backlinks(id: NoteID) async throws -> [NoteBacklink] { try await engine.backlinks(id: id) }
+    public func outgoing(id: NoteID) async throws -> [OutgoingLink] { try await engine.outgoing(id: id) }
+    public func stats(id: NoteID, text: String?) async throws -> NoteStats { try await engine.stats(id: id, text: text) }
+    public func properties(id: NoteID) async throws -> [NoteProperty] { try await engine.properties(id: id) }
+}
