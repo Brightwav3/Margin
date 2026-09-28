@@ -7,14 +7,17 @@ extension AppEnvironment {
     ///
     /// - Parameter watchInterval: seconds between file scans (the portable watcher; macOS uses the
     ///   same until the FSEvents backend lands).
+    ///   - retention: how long and how many change sets are kept for undo (30 days / 500).
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
-                             watchInterval: TimeInterval = 0.3) async throws -> AppEnvironment {
-        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval)
+                             watchInterval: TimeInterval = 0.3,
+                             retention: ChangeSetRetention = .standard) async throws -> AppEnvironment {
+        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval, retention: retention)
         return AppEnvironment(
             clock: clock,
             courses: VaultCourseCatalog(backend: backend),
             notes: VaultNoteRepository(backend: backend),
             tasks: VaultTaskService(backend: backend),
+            changes: VaultChangeSetStore(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }

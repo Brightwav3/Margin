@@ -36,6 +36,7 @@ struct Harness: Sendable {
     var courses: any CourseCatalog { env.courses }
     var notes: any NoteRepository { env.notes }
     var tasks: any TaskService { env.tasks }
+    var changes: any ChangeSetStore { env.changes }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock()) async throws -> Harness {
@@ -44,7 +45,7 @@ struct Harness: Sendable {
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
-                tasks: FixtureTaskService(store: store),
+                tasks: FixtureTaskService(store: store), changes: FixtureChangeSetStore(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll() })
             return Harness(
                 kind: kind, env: env,
@@ -148,3 +149,17 @@ func collect<T: Sendable>(from stream: AsyncStream<T>, timeout: TimeInterval = 3
 }
 
 let testActor = Actor.agent(identity: "study-helper", client: "conformance", session: "s-1", purpose: "test")
+
+/// A clock tests can move forward (retention is measured against the `Clock`).
+final class MutableClock: Clock, @unchecked Sendable {
+    private let lock = NSLock()
+    private var current: Date
+    let timeZone: TimeZone
+
+    init(start: Date = FixedClock().now, timeZone: TimeZone = FixedClock.defaultTimeZone) {
+        current = start; self.timeZone = timeZone
+    }
+
+    var now: Date { lock.withLock { current } }
+    func advance(bySeconds seconds: TimeInterval) { lock.withLock { current = current.addingTimeInterval(seconds) } }
+}

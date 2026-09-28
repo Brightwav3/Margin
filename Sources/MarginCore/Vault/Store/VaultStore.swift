@@ -176,6 +176,12 @@ public actor VaultStore {
         try await atomicWrite(Data(content.utf8), to: path, expectedVersion: nil, mustNotExist: true)
     }
 
+    /// Byte-level variant of `create`.
+    @discardableResult
+    public func createData(_ path: VaultPath, data: Data) async throws -> ContentHash {
+        try await atomicWrite(data, to: path, expectedVersion: nil, mustNotExist: true)
+    }
+
     /// Renames or moves a file or folder, creating missing target folders. `MarginError.conflict`
     /// when the target exists (nothing is overwritten), `.notFound` when the source is missing.
     /// Registered `RenameObserver`s run after the move.
@@ -195,6 +201,9 @@ public actor VaultStore {
             let target = try checkedURL(to, followFinal: false)
             guard let sourceAttrs = try fileSystem.attributes(at: source) else { throw MarginError.notFound("No such file: \(from)") }
             isDirectory = sourceAttrs.kind == .directory
+            if let capture = WriteCaptureContext.current {
+                try await capture.willApply(.move(from: from, to: to))
+            }
             let targetParent = target.deletingLastPathComponent()
             try fileSystem.createDirectories(at: targetParent)
             if let ownWrites {
@@ -241,7 +250,12 @@ public actor VaultStore {
                 throw MarginError.invalid("\(path) is app data and cannot be trashed")
             }
             let url = try checkedURL(path, followFinal: false)
-            guard try fileSystem.attributes(at: url) != nil else { throw MarginError.notFound("No such file: \(path)") }
+            guard let attrs = try fileSystem.attributes(at: url) else { throw MarginError.notFound("No such file: \(path)") }
+            if let capture = WriteCaptureContext.current {
+                let isFile = attrs.kind == .file
+                try await capture.willApply(.trash(path: path, before: isFile ? try fileSystem.readData(at: url) : nil,
+                                                   isRegularFile: isFile))
+            }
             if let ownWrites {
                 announced = watchedFiles(at: url, path: path).map(\.path)
                 for p in announced { await ownWrites.register(path: p, hash: OwnWriteRegistry.deletedHash) }
@@ -253,6 +267,35 @@ public actor VaultStore {
             if let ownWrites { for p in announced { await ownWrites.forget(path: p, hash: OwnWriteRegistry.deletedHash) } }
             throw VaultStore.map(error, "trash \(path)")
         }
+    }
+
+    // MARK: - App data (.margin)
+
+    /// Names of the regular files directly inside `folder` (a folder below `.margin/`), sorted; an
+    /// absent folder has none. Used by the change-set journal, which is the only reader of its own
+    /// folder.
+    func appDataFileNames(in folder: VaultPath) throws -> [String] {
+        guard folder.isInternal else { throw MarginError.invalid("\(folder) is not app data") }
+        do {
+            let url = try checkedURL(folder, followFinal: true)
+            guard let attrs = try fileSystem.attributes(at: url) else { return [] }
+            guard attrs.kind == .directory else { throw MarginError.invalid("\(folder) is not a folder") }
+            return try fileSystem.contentsOfDirectory(at: url).filter { $0.kind == .file }.map(\.name).sorted()
+        } catch { throw VaultStore.map(error, "list \(folder)") }
+    }
+
+    /// Deletes one file of the change-set journal (`.margin/changesets/`). This is the only
+    /// deletion the store performs besides its own temporary files: journal records are app data,
+    /// never user content, and expire by the retention rule.
+    func removeJournalFile(_ path: VaultPath) throws {
+        guard path.isInside(VaultPath.internalChangeSets), path != VaultPath.internalChangeSets else {
+            throw MarginError.invalid("\(path) is not a change-set record")
+        }
+        do {
+            let url = try checkedURL(path, followFinal: false)
+            guard try fileSystem.attributes(at: url) != nil else { return }
+            try fileSystem.removeFile(at: url)
+        } catch { throw VaultStore.map(error, "remove \(path)") }
     }
 
     // MARK: - Atomic write pipeline
@@ -277,6 +320,17 @@ public actor VaultStore {
             if let expectedVersion {
                 guard existing != nil else { throw MarginError.conflict("\(path) no longer exists (expected version \(expectedVersion))") }
                 try verify(version: expectedVersion, of: target, path: path)
+            }
+
+            if let capture = WriteCaptureContext.current {
+                // Write-ahead: the bytes about to be replaced are persisted by the recorder before
+                // anything is written. They are also what `expectedVersion` was checked against.
+                let before: Data? = existing == nil ? nil : try fileSystem.readData(at: target)
+                if let expectedVersion, let before, ContentHash(of: before) != expectedVersion {
+                    throw MarginError.conflict("\(path) changed on disk (expected \(expectedVersion.hex.prefix(12)), found \(ContentHash(of: before).hex.prefix(12)))",
+                                               ConflictDetail(path: path.rawValue, currentVersion: ContentHash(of: before).hex))
+                }
+                try await capture.willApply(.write(path: path, before: before, after: data))
             }
 
             parent = target.deletingLastPathComponent()
@@ -314,11 +368,12 @@ public actor VaultStore {
     private func verify(version expected: ContentHash, of target: URL, path: VaultPath) throws {
         let current: Data
         do { current = try fileSystem.readData(at: target) } catch FileSystemError.notFound {
-            throw MarginError.conflict("\(path) no longer exists (expected version \(expected))")
+            throw MarginError.conflict("\(path) no longer exists (expected version \(expected))", ConflictDetail(path: path.rawValue))
         }
         let actual = ContentHash(of: current)
         guard actual == expected else {
-            throw MarginError.conflict("\(path) changed on disk (expected \(expected.hex.prefix(12)), found \(actual.hex.prefix(12)))")
+            throw MarginError.conflict("\(path) changed on disk (expected \(expected.hex.prefix(12)), found \(actual.hex.prefix(12)))",
+                                       ConflictDetail(path: path.rawValue, currentVersion: actual.hex))
         }
     }
 
@@ -435,6 +490,8 @@ public actor VaultStore {
 extension VaultPath {
     /// `.margin`
     static let internalRoot = VaultPath(unchecked: [internalFolderName])
+    /// `.margin/changesets`
+    static let internalChangeSets = VaultPath(unchecked: [internalFolderName, "changesets"])
     /// `.margin/trash`
     static let internalTrash = VaultPath(unchecked: [internalFolderName, PortableTrash.folderName])
 }
