@@ -96,12 +96,9 @@ enum ServiceRules {
         TodayQuery(clock: clock).run(tasks: tasks, exams: exams).items
     }
 
-    /// Open tasks and exams due after today.
+    /// Open tasks and exams due after today (see `UpcomingQuery`).
     static func upcomingItems(tasks: [TaskItem], exams: [TaskItem], clock: any Clock) -> [TaskItem] {
-        let today = clock.today
-        let open = tasks.filter { !$0.done && ($0.due.map { $0 > today } ?? false) }
-        let later = exams.filter { ($0.due.map { $0 > today } ?? false) }
-        return (open + later).map { relabel($0, today: today) }.sorted(by: TaskOrdering.dueOrder)
+        UpcomingQuery(clock: clock).run(tasks: tasks, exams: exams).items
     }
 
     /// All tasks of a course sorted by note id, then line; labels recomputed for `today`.
