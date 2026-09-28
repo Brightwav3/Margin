@@ -133,6 +133,10 @@ private struct ScanState {
             i += 1
         }
         if start < bytes.count { lines.append(LineSpan(start: start, end: bytes.count)) }
+        // A UTF-8 byte order mark is not part of the first line's text.
+        if bytes.count >= 3, bytes[0] == 0xEF, bytes[1] == 0xBB, bytes[2] == 0xBF, !lines.isEmpty {
+            lines[0].start = min(3, lines[0].end)
+        }
     }
 
     // Character constants
@@ -246,6 +250,9 @@ private struct ScanState {
                     let info = string(a, b)
                     let hasBacktick = info.utf8.contains(Self.backtick)
                     if !(ch == Self.backtick && hasBacktick) {
+                        // A fence at column 0 ends any list, so a following 4-space line is
+                        // an indented code block rather than a nested list item.
+                        if cols == 0 { inList = false }
                         inFence = true
                         fenceChar = ch; fenceLen = run; fenceStart = idx
                         fenceInfo = info.isEmpty ? nil : info
