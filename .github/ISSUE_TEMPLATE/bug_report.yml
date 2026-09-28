@@ -1,0 +1,68 @@
+name: Bug report
+description: Něco nefunguje nebo je špatně
+title: "[bug]: "
+labels:
+  - type:bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nevkládej tajemství, API klíče ani obsah soukromých poznámek.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Oblast
+      options:
+        - area:core
+        - area:ui
+        - area:api
+        - area:agent
+        - area:vault
+        - area:docs
+        - area:ci
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorita
+      options:
+        - P3
+        - P2
+        - P1
+        - P0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Co se stalo?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Kroky k reprodukci
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Očekávané chování
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logy / chyby
+      render: shell

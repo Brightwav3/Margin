@@ -1,0 +1,61 @@
+name: Task
+description: Konkrétní pracovní položka (člověk nebo agent)
+title: "[task]: "
+labels:
+  - needs-triage
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Oblast
+      options:
+        - area:core
+        - area:ui
+        - area:api
+        - area:agent
+        - area:vault
+        - area:docs
+        - area:ci
+    validations:
+      required: true
+
+  - type: input
+    id: task
+    attributes:
+      label: ID úkolu z plánu
+      placeholder: M3-05
+    validations:
+      required: false
+
+  - type: dropdown
+    id: autonomy
+    attributes:
+      label: Autonomie (pro agenty)
+      options:
+        - auto:ok — rutina; merge při zelené CI
+        - ask:required — před merge nutné schválení člověkem (smlouva, formát vaultu, model agentů, milestone)
+    validations:
+      required: false
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Shrnutí úkolu
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akceptační kritéria
+      placeholder: |
+        - [ ] Větev z main, PR míří do main
+        - [ ] scripts/check.sh zelený
+        - [ ] Closes #N nebo Task: <ID> v patičce
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext / odkazy

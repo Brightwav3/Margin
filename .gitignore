@@ -1,0 +1,12 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.claude/settings.local.json
+.claude/worktrees/
+*.p12
+*.mobileprovision
+.env
+.env.*

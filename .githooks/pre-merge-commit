@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Merge do main smí jen scripts/land.sh (lokální náhrada za squash merge PR) nebo GitHub PR.
+ROOT="$(git rev-parse --show-toplevel)"; . "$ROOT/scripts/lib.sh"
+case "$(current_branch)" in
+  main|master) [ "${MARGIN_LANDING:-}" = "1" ] || die "Do main se nemerguje ručně. Přes PR na GitHubu, nebo lokálně scripts/land.sh <větev> \"<conventional title>\".";;
+esac
+exit 0

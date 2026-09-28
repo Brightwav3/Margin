@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Conventional Commits + pravidla repozitáře (sdílená logika: scripts/lint-commit.py).
+ROOT="$(git rev-parse --show-toplevel)"
+exec python3 "$ROOT/scripts/lint-commit.py" --message-file "$1"

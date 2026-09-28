@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Název jobu "check" musí odpovídat required check v .github/rulesets/protect-main.json
+  check:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Plan consistency
+        run: python3 scripts/lint-plan.py
+
+      - name: Branch name and PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          python3 scripts/lint-commit.py --title "$PR_TITLE"
+          python3 scripts/lint-commit.py --check-branch "$HEAD_REF"
+
+      - name: Commit messages
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/lint-commit.py --range "$BASE_SHA..HEAD"
+
+      - name: Build and test
+        run: |
+          if [ -f Package.swift ]; then
+            swift build
+            swift test
+          else
+            echo "Package.swift zatím neexistuje (fáze M0), build a testy přeskočeny."
+          fi
+
+  # PR se štítkem milestone:<M> smí být sloučen jen se schválením člověka v docs/checks/<M>.md
+  milestone-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require human approval for milestone PRs
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+          ev = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          labels = [l['name'] for l in ev['pull_request'].get('labels', [])]
+          ms = [l.split(':', 1)[1] for l in labels if l.startswith('milestone:')]
+          if not ms:
+              print('Žádný štítek milestone:*, brána se nepoužije.'); sys.exit(0)
+          bad = []
+          for m in ms:
+              p = f'docs/checks/{m}.md'
+              if not os.path.exists(p): bad.append(f'{p}: chybí'); continue
+              t = open(p, encoding='utf-8').read()
+              if not re.search(r'(?m)^Stav: Schváleno\s*$', t): bad.append(f'{p}: chybí "Stav: Schváleno"')
+              if not re.search(r'(?m)^Schválil: \S+', t): bad.append(f'{p}: chybí "Schválil:"')
+              if not re.search(r'(?m)^Datum: \d{4}-\d{2}-\d{2}\s*$', t): bad.append(f'{p}: chybí "Datum:"')
+              if re.search(r'(?m)^- \[ \]', t): bad.append(f'{p}: neodškrtnuté položky checklistu')
+          if bad:
+              print('Milestone gate selhala:'); [print(' -', b) for b in bad]; sys.exit(1)
+          print('Milestone gate OK:', ', '.join(ms))
+          PY

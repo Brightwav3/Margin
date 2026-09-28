@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Před pushem: main jen přes landing, historii lze přepsat jen na vlastní feature větvi (force-with-lease), plný build+testy, STATUS aktualizován.
+set -u
+ROOT="$(git rev-parse --show-toplevel)"; cd "$ROOT"; . "$ROOT/scripts/lib.sh"
+ZERO="0000000000000000000000000000000000000000"
+while read -r LREF LSHA RREF RSHA; do
+  [ -z "${LREF:-}" ] && continue
+  [ "$LSHA" = "$ZERO" ] && die "Mazání vzdálených větví/tagů přes push je zakázáno (dělá člověk, nebo GitHub po merge PR)."
+  case "$RREF" in
+    refs/heads/main|refs/heads/master)
+      [ "${MARGIN_LANDING:-}" = "1" ] || die "Push do main jen přes PR (GitHub) nebo člověkem po scripts/land.sh. Force push do main je zakázán."
+      if [ "$RSHA" != "$ZERO" ] && ! git merge-base --is-ancestor "$RSHA" "$LSHA" 2>/dev/null; then die "Push by přepsal historii main."; fi;;
+  esac
+done
+BRANCH="$(current_branch)"
+case "$BRANCH" in main|master) exit 0;; esac
+python3 scripts/lint-commit.py --check-branch "$BRANCH" || exit 1
+
+if git rev-parse --verify -q main >/dev/null; then
+  CH="$(git diff --name-only main...HEAD)"
+  if echo "$CH" | grep -Eq '^(Sources|App|Tests)/' && ! echo "$CH" | grep -q '^docs/plan/STATUS\.md$'; then
+    die "Větev mění kód, ale neaktualizovala docs/plan/STATUS.md. Zapiš stav úkolů (docs(plan): commit) a zkus push znovu."
+  fi
+fi
+bash scripts/check.sh || die "scripts/check.sh selhal. Push zastaven."
+exit 0

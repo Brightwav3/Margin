@@ -1,0 +1,64 @@
+name: Feature request
+description: Nová funkce nebo vylepšení
+title: "[feat]: "
+labels:
+  - type:feat
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Zkontroluj `docs/plan/` a roadmapu, ať nezakládáš duplicitu. Úkol z plánu má ID (např. M3-05).
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Oblast
+      options:
+        - area:core
+        - area:ui
+        - area:api
+        - area:agent
+        - area:vault
+        - area:docs
+        - area:ci
+    validations:
+      required: true
+
+  - type: input
+    id: task
+    attributes:
+      label: ID úkolu z plánu (pokud existuje)
+      placeholder: M3-05
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problém / motivace
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Navržené řešení
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akceptační kritéria
+      placeholder: |
+        - [ ] ...
+        - [ ] Testy pokrývají hlavní scénář
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: breaking
+    attributes:
+      label: Breaking change?
+      options:
+        - label: Mění smlouvu backend↔UI, formát vaultu nebo model oprávnění agentů
+          required: false

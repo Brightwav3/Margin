@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Kontroly před commitem: větev, zakázané soubory, vrstvy, komentářové tagy, konzistence plánu, build.
+set -u
+ROOT="$(git rev-parse --show-toplevel)"; cd "$ROOT"; . "$ROOT/scripts/lib.sh"
+BRANCH="$(current_branch)"
+
+# 1) Ne na main / v detached HEAD (výjimka: landing přes scripts/land.sh)
+if [ "${MARGIN_LANDING:-}" != "1" ]; then
+  case "$BRANCH" in
+    main|master) die "Commit přímo na $BRANCH je zakázán. Vytvoř větev: git switch -c feat/ui-course-card   (<type>/<scope>-<slug>)";;
+    "(detached)") die "Detached HEAD: přepni se na větev.";;
+  esac
+  python3 scripts/lint-commit.py --check-branch "$BRANCH" || exit 1
+fi
+
+FILES="$(staged_added_files)"
+[ -z "$(git diff --cached --name-only)" ] && exit 0
+
+# 2) Zakázané soubory
+BAD="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)(\.DS_Store|\.env(\..*)?|.*\.p12|.*\.mobileprovision|id_rsa.*)$' || true)"
+[ -z "$BAD" ] || die "Do gitu nepatří: $BAD"
+for f in $FILES; do
+  [ -f "$f" ] || continue
+  SIZE=$(wc -c < "$f" | tr -d ' ')
+  case "$f" in *.otf|*.ttf|*.woff2|docs/checks/reference/*|*.png|*.pdf) LIMIT=8000000;; *) LIMIT=1000000;; esac
+  [ "$SIZE" -le "$LIMIT" ] || die "Soubor $f má $SIZE B (limit $LIMIT). Velké soubory nejsou do gitu."
+done
+if git diff --cached -U0 -- . ':!docs' ':!scripts' ':!.githooks' | grep -E '^\+' | grep -Eq '(sk-ant-[A-Za-z0-9_-]{10,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]{30,})'; then
+  die "V commitu je něco, co vypadá jako tajný klíč nebo token. Odstraň to (klíče patří do Keychainu, .env nikdy)."
+fi
+
+SWIFT_STAGED="$(echo "$FILES" | grep -E '\.swift$' || true)"
+
+# 3) Komentářové tagy: žádný holý TODO/FIXME/HACK, vždy TAG(scope|#issue|úkol): popis
+if [ -n "$SWIFT_STAGED" ]; then
+  BADTODO="$(git diff --cached -U0 -- $SWIFT_STAGED | grep -E '^\+' | grep -E '(TODO|FIXME|HACK)' | grep -Ev '(TODO|FIXME|HACK)\([^)]+\)' || true)"
+  [ -z "$BADTODO" ] || die "TODO/FIXME/HACK musí mít kontext: // TODO(M3-05): … nebo TODO(#234): … nebo TODO(core): …
+$BADTODO"
+fi
+
+# 4) Vrstvy
+UI_SW="$(echo "$FILES" | grep -E "$UI_RE" | grep -E '\.swift$' || true)"
+if [ -n "$UI_SW" ]; then
+  V="$(git diff --cached -U0 -- $UI_SW | grep -E '^\+' | grep -E '(VaultStore|NoteIndex|FileWatcher|FileManager\.default|import SQLite|import GRDB|sqlite3_)' || true)"
+  [ -z "$V" ] || die "UI (MarginUI, App/Margin) nesmí přímo používat úložiště. Použij službu z Sources/MarginCore/API (docs/plan/09-contracts.md).
+$V"
+fi
+CORE_SW="$(echo "$FILES" | grep -E '^Sources/MarginCore/' | grep -E '\.swift$' || true)"
+if [ -n "$CORE_SW" ]; then
+  V="$(git diff --cached -U0 -- $CORE_SW | grep -E '^\+' | grep -E '^\+\s*import (SwiftUI|AppKit|UIKit)' || true)"
+  [ -z "$V" ] || die "MarginCore nesmí importovat SwiftUI/AppKit/UIKit. Platformní věci patří do App/Platform.
+$V"
+fi
+
+# 5) Konzistence plánu
+if echo "$FILES" | grep -q '^docs/plan/'; then
+  python3 scripts/lint-plan.py || die "Plán je nekonzistentní (viz výše). Oprav součty, ID nebo STATUS."
+fi
+
+# 6) Build (jen když existuje kód a mění se Swift)
+if [ -n "$SWIFT_STAGED" ] && [ -f Package.swift ]; then
+  echo "pre-commit: swift build …"
+  swift build 2>&1 | tail -20 ; [ "${PIPESTATUS[0]}" -eq 0 ] || die "swift build selhal. Oprav před commitem."
+fi
+exit 0
