@@ -1,0 +1,77 @@
+import Foundation
+
+/// Provides markdown files to the index without depending on the vault store.
+///
+/// Paths are vault-relative with `/` separators (`fall-2026/bio/Cell Biology.md`).
+public protocol NoteContentSource: Sendable {
+    /// All markdown note paths in the vault.
+    func listMarkdown() async throws -> [String]
+    /// The text of one note. Throws `MarginError.notFound` when the file does not exist.
+    func read(_ path: String) async throws -> String
+}
+
+/// A wikilink found in a note, with the source line as context.
+public struct IndexedLink: Sendable, Hashable {
+    public var link: Wikilink
+    /// The whole source line, trimmed and truncated (see `Backlink.snippet`).
+    public var snippet: String
+}
+
+/// Everything the index knows about one note.
+public struct NoteRecord: Sendable, Hashable, Identifiable {
+    public var id: NoteID
+    /// Vault-relative path including `.md`.
+    public var path: String
+    public var title: String
+    /// Folder-derived course id (`<semester>/<course>/…`), else a slug of `class:`.
+    public var courseID: CourseID?
+    /// Semester folder (`fall-2026`) when the note lives in `<semester>/<course>/`.
+    public var semesterID: SemesterID?
+    /// Bare course name from `class:` frontmatter.
+    public var className: String?
+    public var kind: NoteKind
+    public var tags: [String]
+    public var date: LocalDate?
+    /// All frontmatter entries by key.
+    public var properties: [String: FrontmatterValue]
+    public var headings: [MarkdownHeading]
+    public var tasks: [TaskItem]
+    public var links: [IndexedLink]
+    public var wordCount: Int
+    public var imageCount: Int
+    public var snippet: String
+    public var contentHash: String
+    /// The indexed text (kept for rename and backlink context).
+    var text: String
+
+    /// File name without extension.
+    public var name: String { NoteIndex.name(ofPath: path) }
+
+    var ref: NoteRef {
+        NoteRef(id: id, courseID: courseID, name: name, path: NoteIndex.stripExtension(path))
+    }
+
+    public var summary: NoteSummary {
+        NoteSummary(id: id, courseID: courseID, title: title, kind: kind, date: date,
+                    snippet: snippet, wordCount: wordCount,
+                    openTasks: tasks.lazy.filter { !$0.done }.count, totalTasks: tasks.count,
+                    imageCount: imageCount, isPlaceholder: false, modified: nil)
+    }
+}
+
+/// A backlink to a note, with the source note and line context.
+public struct IndexedBacklink: Sendable, Hashable {
+    public var sourceNoteID: NoteID
+    public var sourcePath: String
+    public var link: Wikilink
+    public var line: Int
+    public var snippet: String
+}
+
+/// A link whose target does not exist yet.
+public struct UnresolvedLink: Sendable, Hashable {
+    public var sourceNoteID: NoteID
+    public var sourcePath: String
+    public var target: String
+    public var line: Int
+}
