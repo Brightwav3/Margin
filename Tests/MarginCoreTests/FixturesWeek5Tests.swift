@@ -54,3 +54,51 @@ import Testing
         #expect(e.map(\.courseID) == ["bio", "econ", "math"])
     }
 }
+
+@Suite struct FixturesContentTests {
+    let world = Fixtures.week5
+
+    @Test func bioGalleryHasSixCardsInOrder() {
+        let g = world.bioGallery
+        #expect(g.count == 6)
+        #expect(g.map(\.title) == [
+            "Lecture 9 — Membrane transport", "Lecture 8 — Cell membrane", "Lecture 7 — Organelles",
+            "Lab 2 — Microscopy", "Lecture 6 — Prokaryotes and eukaryotes", "Lecture 5 — Proteins and enzymes"])
+        #expect(g.allSatisfy { $0.courseID == "bio" })
+        #expect(g[0].isPlaceholder && g[0].date == .literal(2026, 9, 29))
+        #expect(g[1].wordCount == 412 && g[1].openTasks == 2)
+        #expect(g[3].imageCount == 3 && g[3].kind == .lab)
+        #expect(g.map(\.wordCount) == [0, 412, 680, 0, 520, 590])
+    }
+
+    @Test func notesAreUniqueAndResolvable() {
+        #expect(world.notes.count == 14)
+        #expect(Set(world.notes.map(\.id)).count == 14)
+        #expect(world.notes.allSatisfy { n in n.courseID.flatMap(world.course) != nil })
+        #expect(world.note("bio/lecture-8")?.text.hasPrefix("# Lecture 8 — Cell membrane") == true)
+        #expect(world.note("nope") == nil)
+    }
+
+    @Test func inboxHasFiveItems() {
+        let i = world.inbox
+        #expect(i.count == 5)
+        #expect(i.map(\.kind) == [.task, .note, .link, .image, .task])
+        #expect(i[0].text == "Email Dr. Okafor about lab partner")
+        #expect(i[0].captured.iso == "2026-09-28T09:12")
+        #expect(i[1].captured.iso == "2026-09-28T08:40")
+        #expect(i[4].captured.date == .literal(2026, 9, 26))
+        #expect(i[4].captured.date.weekday == .saturday)
+    }
+
+    @Test func gradesMatchScreen() {
+        let g = world.grades
+        #expect(g.count == 6)
+        #expect(g.map(\.weightPercent) == [5, 5, 15, 5, 30, 40])
+        #expect(g.compactMap(\.weightPercent).reduce(0, +) == 100)
+        #expect(g.filter { $0.score != nil }.compactMap(\.weightPercent).reduce(0, +) == 25)
+        #expect(g[0].percent == 95 && g[1].percent == 90 && g[2].percent == 88)
+        #expect(g[4].date == .literal(2026, 10, 1))
+        #expect(world.gradeSummaries.map(\.percent) == [91, 87, 94, 84, 90, 88])
+        #expect(world.gradeSummaries.map(\.letter) == ["A−", "B+", "A", "B", "A−", "B+"])
+    }
+}
