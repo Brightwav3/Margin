@@ -16,13 +16,17 @@ actor FixtureStore {
         var body: String
     }
 
+    /// Unsorted captures (`_inbox/`), newest last in insertion order.
+    var inbox: [InboxItem]
+    /// File name stem (`2026-09-28 0912 …`) of each inbox item by id.
+    var inboxStems: [String: String] = [:]
     let semester: Semester
     let clock: any Clock
     private(set) var courses: [Course]
-    private var notes: [NoteID: StoredNote] = [:]
-    private var changeSets: ChangeSetFactory
-    private var idempotency = IdempotencyCache()
-    private let extractor: TaskExtractor
+    var notes: [NoteID: StoredNote] = [:]
+    var changeSets: ChangeSetFactory
+    var idempotency = IdempotencyCache()
+    let extractor: TaskExtractor
     private let scanner = MarkdownScanner()
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
@@ -34,6 +38,8 @@ actor FixtureStore {
         self.semester = world.semester
         self.clock = clock
         self.courses = world.courses
+        self.inbox = world.inbox
+        for item in world.inbox { inboxStems[item.id] = CaptureRules.inboxStem(captured: item.captured, text: item.text) }
         self.changeSets = ChangeSetFactory(clock: clock)
         self.extractor = TaskExtractor(clock: clock)
         for summary in world.allNotes {
@@ -108,14 +114,14 @@ actor FixtureStore {
 
     /// Publishes the difference between the tasks now and at the last call. Called after every
     /// mutation, so `TaskService.updates` follows writes and simulated outside edits alike.
-    private func publishTaskChanges() {
+    func publishTaskChanges() {
         let now = Self.snapshot(of: notes, extractor: extractor)
         let update = TaskDiff.update(old: taskSnapshot, new: now)
         taskSnapshot = now
         if let update { taskChanges.send(update) }
     }
 
-    private func allTasks() -> [TaskItem] {
+    func allTasks() -> [TaskItem] {
         notes.values.filter { $0.summary.courseID != nil }.flatMap { extractTasks(of: $0) }
     }
 
@@ -230,21 +236,21 @@ actor FixtureStore {
 
     static func version(of body: String) -> String { ContentHash(of: body).hex }
 
-    private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+    func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
         publishTaskChanges()
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
         return cs
     }
 
-    private func path(of note: StoredNote) -> String {
+    func path(of note: StoredNote) -> String {
         guard let id = note.summary.courseID, let course = courses.first(where: { $0.id == id }) else {
             return VaultPath.filename(fromTitle: note.fileTitle) + ".md"
         }
         return ServiceRules.notePath(semester: semester, course: course, fileTitle: note.fileTitle)
     }
 
-    private func fileNameTaken(_ title: String, in course: CourseID, except id: NoteID?) -> Bool {
+    func fileNameTaken(_ title: String, in course: CourseID, except id: NoteID?) -> Bool {
         let name = VaultPath.filename(fromTitle: title)
         return notes.values.contains {
             $0.summary.courseID == course && $0.summary.id != id && VaultPath.filename(fromTitle: $0.fileTitle) == name
@@ -252,7 +258,7 @@ actor FixtureStore {
     }
 
     /// Recomputes what the index would derive from the body.
-    private func summarize(_ note: StoredNote) -> NoteSummary {
+    func summarize(_ note: StoredNote) -> NoteSummary {
         var s = note.summary
         let scan = scanner.scan(note.body)
         let h1 = scan.headings.first { $0.level == 1 }?.text

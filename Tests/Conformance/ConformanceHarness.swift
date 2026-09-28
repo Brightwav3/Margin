@@ -31,11 +31,15 @@ struct Harness: Sendable {
     let deleteNote: @Sendable (NoteID) async throws -> Void
     /// Changes the room of a course from outside.
     let editCourseRoom: @Sendable (CourseID, String) async throws -> Void
+    /// The text of a vault file by vault-relative path (`nil` when it does not exist, and always
+    /// for the fixture, which has no files). For checking the exact file format.
+    let readFile: @Sendable (String) -> String?
     fileprivate let keepAlive: TempFolder?
 
     var courses: any CourseCatalog { env.courses }
     var notes: any NoteRepository { env.notes }
     var tasks: any TaskService { env.tasks }
+    var capture: any CaptureService { env.capture }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
@@ -45,13 +49,14 @@ struct Harness: Sendable {
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
-                tasks: FixtureTaskService(store: store),
+                tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env,
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
                 editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
+                readFile: { _ in nil },
                 keepAlive: nil)
         case .vault:
             let folder = TempFolder()
@@ -76,6 +81,7 @@ struct Harness: Sendable {
                     fm?.set("room", .string(room))
                     try Data(((fm?.render() ?? "") + body).utf8).write(to: file)
                 },
+                readFile: { try? String(contentsOf: root.appendingPathComponent($0), encoding: .utf8) },
                 keepAlive: folder)
         }
     }

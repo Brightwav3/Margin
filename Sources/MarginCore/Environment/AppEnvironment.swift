@@ -11,12 +11,14 @@ public struct AppEnvironment: Sendable {
     public let courses: any CourseCatalog
     public let notes: any NoteRepository
     public let tasks: any TaskService
+    public let capture: any CaptureService
 
     private let onShutdown: @Sendable () async -> Void
 
     public init(clock: any Clock, courses: any CourseCatalog, notes: any NoteRepository, tasks: any TaskService,
+                capture: any CaptureService,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
-        self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
+        self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks; self.capture = capture
         self.onShutdown = shutdown
     }
 
@@ -33,6 +35,7 @@ public struct AppEnvironment: Sendable {
             courses: FixtureCourseCatalog(store: store),
             notes: FixtureNoteRepository(store: store),
             tasks: FixtureTaskService(store: store),
+            capture: FixtureCaptureService(store: store),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }
 }

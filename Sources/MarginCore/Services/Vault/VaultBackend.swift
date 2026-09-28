@@ -19,8 +19,8 @@ actor VaultBackend {
     let taskWriteBack: TaskWriteBack
 
     private(set) var model = VaultCourseModel()
-    private var changeSets: ChangeSetFactory
-    private var idempotency = IdempotencyCache()
+    var changeSets: ChangeSetFactory
+    var idempotency = IdempotencyCache()
     private let rewriter = WikilinkRewriter()
     private var watchTask: Task<Void, Never>?
 
@@ -313,7 +313,7 @@ actor VaultBackend {
         return finish(actor: actor, entries: [entry], dryRun: dryRun, key: idempotencyKey)
     }
 
-    private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+    func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
         return cs
