@@ -56,6 +56,20 @@ public struct ForceLayoutConfig: Sendable, Hashable {
     public var initialRadiusScale: Double = 12
 
     public init() {}
+
+    /// Preset that trades precision for speed as graphs grow: a coarser opening angle early in
+    /// the cooling schedule and a shorter schedule. Identical to the defaults up to 500 nodes;
+    /// fully coarsened at 5000 and above.
+    public static func adaptive(nodeCount n: Int, seed: UInt64 = 1) -> ForceLayoutConfig {
+        var c = ForceLayoutConfig()
+        c.seed = seed
+        guard n > 500 else { return c }
+        let t = min(1, log(Double(n) / 500) / log(10))
+        c.thetaCoarse = 0.9 + 0.5 * t
+        c.thetaFine = 0.9
+        c.alphaDecay = 1 - pow(c.alphaMin, 1.0 / (300 - 150 * t))
+        return c
+    }
 }
 
 /// Deterministic Barnes–Hut force-directed layout.
@@ -282,39 +296,46 @@ public struct ForceLayout: Sendable {
         let theta2 = currentTheta * currentTheta
         let k = config.repulsion * alpha
         let minD2 = config.minDistance * config.minDistance
-        for i in 0..<n where !pinned[i] {
-            let px = xs[i], py = ys[i]
-            var fx = 0.0, fy = 0.0
-            var top = 0
-            stack[0] = 0; top = 1
-            while top > 0 {
-                top -= 1
-                let c = Int(stack[top])
-                let m = tree.mass[c]
-                if m == 0 { continue }
-                let child = tree.firstChild[c]
-                if child < 0 {
-                    if Int(tree.body[c]) == i { continue }
-                } else {
-                    let w = tree.cellHalf[c] * 2
-                    let ddx = tree.comX[c] - px, ddy = tree.comY[c] - py
-                    if w * w >= theta2 * (ddx * ddx + ddy * ddy) {
-                        let f = Int32(child)
-                        stack[top] = f; stack[top + 1] = f + 1; stack[top + 2] = f + 2; stack[top + 3] = f + 3
-                        top += 4
-                        continue
+        var localRNG = rng
+        let t = tree
+        t.withBuffers { b in
+            stack.withUnsafeMutableBufferPointer { stack in
+                for i in 0..<n where !pinned[i] {
+                    let px = xs[i], py = ys[i]
+                    var fx = 0.0, fy = 0.0
+                    stack[0] = 0
+                    var top = 1
+                    while top > 0 {
+                        top -= 1
+                        let c = Int(stack[top])
+                        let m = b.mass[c]
+                        if m == 0 { continue }
+                        let child = b.firstChild[c]
+                        if child < 0 {
+                            if Int(b.body[c]) == i { continue }
+                        } else {
+                            let w = b.cellHalf[c] * 2
+                            let ddx = b.comX[c] - px, ddy = b.comY[c] - py
+                            if w * w >= theta2 * (ddx * ddx + ddy * ddy) {
+                                stack[top] = child; stack[top + 1] = child + 1
+                                stack[top + 2] = child + 2; stack[top + 3] = child + 3
+                                top += 4
+                                continue
+                            }
+                        }
+                        var dx = px - b.comX[c], dy = py - b.comY[c]
+                        if dx == 0 { dx = (localRNG.nextUnit() - 0.5) * 1e-6 }
+                        if dy == 0 { dy = (localRNG.nextUnit() - 0.5) * 1e-6 }
+                        var d2 = dx * dx + dy * dy
+                        if d2 < minD2 { d2 = (minD2 * d2).squareRoot() }
+                        let s = k * m / d2
+                        fx += dx * s; fy += dy * s
                     }
+                    vx[i] += fx; vy[i] += fy
                 }
-                var dx = px - tree.comX[c], dy = py - tree.comY[c]
-                if dx == 0 { dx = jiggle() }
-                if dy == 0 { dy = jiggle() }
-                var d2 = dx * dx + dy * dy
-                if d2 < minD2 { d2 = (minD2 * d2).squareRoot() }
-                let s = k * m / d2
-                fx += dx * s; fy += dy * s
             }
-            vx[i] += fx; vy[i] += fy
         }
+        rng = localRNG
     }
 
     private mutating func jiggle() -> Double { (rng.nextUnit() - 0.5) * 1e-6 }

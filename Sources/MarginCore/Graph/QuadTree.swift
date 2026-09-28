@@ -17,6 +17,27 @@ struct QuadTree: Sendable {
 
     static let maxDepth = 40
 
+    /// Read-only unsafe views of the cell arrays, valid only inside `withBuffers`.
+    struct Buffers {
+        let mass: UnsafeBufferPointer<Double>
+        let comX: UnsafeBufferPointer<Double>
+        let comY: UnsafeBufferPointer<Double>
+        let cellHalf: UnsafeBufferPointer<Double>
+        let firstChild: UnsafeBufferPointer<Int32>
+        let body: UnsafeBufferPointer<Int32>
+    }
+
+    func withBuffers<R>(_ work: (Buffers) -> R) -> R {
+        mass.withUnsafeBufferPointer { m in
+        comX.withUnsafeBufferPointer { cx in
+        comY.withUnsafeBufferPointer { cy in
+        cellHalf.withUnsafeBufferPointer { h in
+        firstChild.withUnsafeBufferPointer { f in
+        body.withUnsafeBufferPointer { bd in
+            work(Buffers(mass: m, comX: cx, comY: cy, cellHalf: h, firstChild: f, body: bd))
+        }}}}}}
+    }
+
     private mutating func resetArena(capacity: Int) {
         cellCount = 0
         if cellX.count < capacity {
