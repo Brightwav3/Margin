@@ -122,7 +122,7 @@ extension FixtureWorld {
 
     /// Graph labels are shorter than note titles ("Membrane transport" / "Membrane transport
     /// summary", "1848 revolutions" / "The 1848 revolutions").
-    private static func matches(_ label: String, _ title: String) -> Bool {
+    static func matches(_ label: String, _ title: String) -> Bool {
         func norm(_ s: String) -> String {
             var t = s.lowercased()
             if t.hasPrefix("the ") { t.removeFirst(4) }
