@@ -10,7 +10,8 @@ import Testing
         try dir.seed("Fall/a.md", Data("seed a".utf8))
         try dir.seed("Fall/sub/b.md", Data("seed b".utf8))
         try dir.seed("Fall/sub/_files/pic.png", Data([1, 2, 3]))
-        let registry = OwnWriteRegistry()
+        // Generous TTL: on a loaded machine the poller can lag far behind the writes.
+        let registry = OwnWriteRegistry(ttl: 120)
         let store = try await VaultStore.open(root: dir.url, ownWrites: registry)
         let watcher = PollingFileWatcher(root: store.root, interval: 0.1, ownWrites: registry)
         return (dir, store, watcher, registry)
@@ -32,7 +33,7 @@ import Testing
         try Data("external".utf8).write(to: dir.file("Fall/ext.md"))
         #expect(await c.wait { $0.contains(FileChange(path: "Fall/ext.md", kind: .created)) })
         await c.settle()
-        #expect(c.all == [FileChange(path: "Fall/ext.md", kind: .created)])
+        #expect(c.all == [FileChange(path: "Fall/ext.md", kind: .created)], "got \(c.all)")
         // Registrations for intermediate states the poller never saw are not consumed; they
         // simply expire after the registry's TTL.
     }
