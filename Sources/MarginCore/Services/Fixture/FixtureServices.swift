@@ -71,6 +71,12 @@ public struct FixtureTaskService: TaskService {
     public func today() async throws -> [TaskItem] { await store.today() }
     public func upcoming() async throws -> [TaskItem] { await store.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await store.tasks(course: course) }
+
+    public func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.toggleTask(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                   idempotencyKey: idempotencyKey)
+    }
 }
 
 /// `PropertyService` over `Fixtures.week5`, in memory. Notes carry the frontmatter the sample vault

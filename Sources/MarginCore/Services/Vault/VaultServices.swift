@@ -64,6 +64,12 @@ public struct VaultTaskService: TaskService {
     public func today() async throws -> [TaskItem] { await backend.today() }
     public func upcoming() async throws -> [TaskItem] { await backend.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await backend.tasks(course: course) }
+
+    public func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.toggleTask(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey)
+    }
 }
 
 /// `PropertyService` over a vault: edits the frontmatter of the note file losslessly through

@@ -106,6 +106,20 @@ actor FixtureStore {
         notes.values.filter { $0.summary.courseID != nil }.flatMap { extractTasks(of: $0) }
     }
 
+    // MARK: Tasks (write)
+
+    func toggleTask(id taskID: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        let owner = notes.keys.sorted().first { key in notes[key].map { extractTasks(of: $0).contains { $0.id == taskID } } ?? false }
+        guard let noteID = owner else { throw MarginError.notFound("No task \(taskID)") }
+        return try editContent(id: noteID, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                               idempotencyKey: idempotencyKey) { note in
+            let body = try TaskEditing.toggle(id: taskID, noteID: noteID, in: note.body, extractor: extractor)
+            return (note.frontmatter?.render() ?? "") + body
+        }
+    }
+
     // MARK: Notes (write)
 
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,

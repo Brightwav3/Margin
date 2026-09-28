@@ -301,6 +301,20 @@ actor VaultBackend {
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
     }
 
+    // MARK: Tasks (write)
+
+    func toggleTask(id taskID: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        let owner = await noteRecords().first { $0.tasks.contains { $0.id == taskID } }
+        guard let noteID = owner?.id else { throw MarginError.notFound("No task \(taskID)") }
+        let extractor = TaskExtractor(clock: clock)
+        return try await editContent(id: noteID, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey) { content, record in
+            try TaskEditing.toggle(id: taskID, noteID: record.id, in: content, extractor: extractor)
+        }
+    }
+
     // MARK: Properties
 
     func propertyRegistry() async -> PropertyRegistry {
