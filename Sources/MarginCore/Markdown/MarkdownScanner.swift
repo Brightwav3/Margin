@@ -98,7 +98,8 @@ public struct MarkdownScan: Sendable, Hashable {
 ///   inside a list). It is closed by a fence of the same character, at least as long, followed
 ///   only by whitespace. An unterminated fence runs to EOF.
 /// - Indented code (4+ spaces or a tab) needs a preceding blank line and must not be inside a
-///   list, so nested tasks (`    - [ ] x` under a list item) stay tasks.
+///   list, so nested tasks (`    - [ ] x` under a list item) stay tasks. A fence at column 0
+///   ends the list, like a paragraph or heading does.
 public struct MarkdownScanner: Sendable {
     public init() {}
 
@@ -246,6 +247,8 @@ private struct ScanState {
                     let info = string(a, b)
                     let hasBacktick = info.utf8.contains(Self.backtick)
                     if !(ch == Self.backtick && hasBacktick) {
+                        // A fence at column 0 is not list content, so it ends the list.
+                        if cols == 0 { inList = false }
                         inFence = true
                         fenceChar = ch; fenceLen = run; fenceStart = idx
                         fenceInfo = info.isEmpty ? nil : info

@@ -128,4 +128,38 @@ import Testing
         #expect(scan.codeBlocks.count == 1)
         #expect(scan.links.isEmpty)
     }
+
+    @Test func fenceAtColumnZeroEndsListContext() {
+        let text = """
+        # Indented code
+
+        - [ ] Task before the fence
+
+        ~~~
+        A tilde fence first.
+        ~~~
+
+            - [ ] Inside an indented code block: NOT a task
+
+        - [ ] Task after it
+
+        """
+        let scan = scanner.scan(text)
+        #expect(scan.tasks.map(\.rawText) == ["Task before the fence", "Task after it"])
+        #expect(scan.tasks.map(\.line) == [3, 11])
+        #expect(scan.tasks[0].listID != scan.tasks[1].listID)
+        #expect(scan.codeBlocks.map(\.kind) == [.fenced, .indented])
+        #expect(scan.codeBlocks[1].lines == 9...9)
+    }
+
+    @Test func fenceIndentedInsideListKeepsListContext() {
+        let scan = scanner.scan("- [ ] parent
+  ```
+  code
+  ```
+    - [ ] child
+")
+        #expect(scan.tasks.map(\.rawText) == ["parent", "child"])
+        #expect(scan.codeBlocks.map(\.kind) == [.fenced])
+    }
 }
