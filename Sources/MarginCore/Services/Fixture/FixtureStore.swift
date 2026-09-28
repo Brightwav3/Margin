@@ -78,11 +78,11 @@ actor FixtureStore {
     }
 
     func today() -> [TaskItem] {
-        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), today: clock.today)
+        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
     }
 
     func upcoming() -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), today: clock.today)
+        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
     }
 
     func tasks(course id: CourseID) throws -> [TaskItem] {

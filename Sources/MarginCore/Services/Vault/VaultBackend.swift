@@ -177,11 +177,11 @@ actor VaultBackend {
     }
 
     func today() async -> [TaskItem] {
-        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), today: clock.today)
+        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
     }
 
     func upcoming() async -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), today: clock.today)
+        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
     }
 
     func tasks(course id: CourseID) async throws -> [TaskItem] {

@@ -89,31 +89,19 @@ enum ServiceRules {
         }
     }
 
-    static func relabel(_ item: TaskItem, today: LocalDate) -> TaskItem {
-        var t = item
-        t.label = item.due.map { DueLabel.make(due: $0, today: today) }
-        return t
-    }
+    static func relabel(_ item: TaskItem, today: LocalDate) -> TaskItem { TaskOrdering.relabel(item, today: today) }
 
-    private static func dueOrder(_ a: TaskItem, _ b: TaskItem) -> Bool {
-        let (x, y) = (a.due ?? .literal(9999, 12, 31), b.due ?? .literal(9999, 12, 31))
-        if x != y { return x < y }
-        let (c, d) = (a.source.courseID ?? "", b.source.courseID ?? "")
-        return c != d ? c < d : a.id < b.id
-    }
-
-    /// Open tasks due today or earlier, exams dated today.
-    static func todayItems(tasks: [TaskItem], exams: [TaskItem], today: LocalDate) -> [TaskItem] {
-        let open = tasks.filter { !$0.done && ($0.due.map { $0 <= today } ?? false) }
-        let examsToday = exams.filter { $0.due == today }
-        return (open + examsToday).map { relabel($0, today: today) }.sorted(by: dueOrder)
+    /// Open tasks due today or earlier, exams dated today (see `TodayQuery`).
+    static func todayItems(tasks: [TaskItem], exams: [TaskItem], clock: any Clock) -> [TaskItem] {
+        TodayQuery(clock: clock).run(tasks: tasks, exams: exams).items
     }
 
     /// Open tasks and exams due after today.
-    static func upcomingItems(tasks: [TaskItem], exams: [TaskItem], today: LocalDate) -> [TaskItem] {
+    static func upcomingItems(tasks: [TaskItem], exams: [TaskItem], clock: any Clock) -> [TaskItem] {
+        let today = clock.today
         let open = tasks.filter { !$0.done && ($0.due.map { $0 > today } ?? false) }
         let later = exams.filter { ($0.due.map { $0 > today } ?? false) }
-        return (open + later).map { relabel($0, today: today) }.sorted(by: dueOrder)
+        return (open + later).map { relabel($0, today: today) }.sorted(by: TaskOrdering.dueOrder)
     }
 
     /// All tasks of a course sorted by note id, then line; labels recomputed for `today`.
