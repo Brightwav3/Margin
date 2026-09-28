@@ -6,7 +6,7 @@
 
 **Provisional assumptions:** see `docs/agents/overnight.md` §4 (Q1–Q13 defaults from STATUS.md). Every PR carries **PROVISIONAL**. Additional self-made decisions are listed below.
 
-**Summary:** started 6 / DONE 6 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
+**Summary:** started 19 / DONE 13 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
 
 | Task | Slice/branch | PR | State | Verified | Note |
 |---|---|---|---|---|---|
@@ -19,9 +19,11 @@
 | M5-03, M5-04, M5-05 | S2 feat/core-vault | | DONE | swift test (Docker), 62 total | `@before-*` = strictly after today; tasks without `^id` get line-based placeholder id until AG-02 |
 | M5-02 | S2 | | DONE | swift test (Docker), fuzz 10 000 x4 | lossless YAML subset, no third-party |
 | M5-07 | S2 | | DONE | swift test (Docker) | polling watcher; FSEvents stub UNVERIFIED on macOS; `FileChange` lives outside API |
-| M5-06 | S2 | | in progress | | |
-| M5-08 | S2 | | in progress | | |
-| M5-09, M5-10.B | S2 | | todo | | |
+| M5-06 | S2 | | DONE | swift test (Docker), 196 fault-injection cases | pure-Swift SHA-256; wikilink rewrite on rename; creation date not preserved on macOS (UNVERIFIED) |
+| M5-08 | S2 | | DONE | swift test (Docker) | 1000 notes build 0.55–0.7 s, reindex 1–1.6 ms (debug) |
+| M5-09, M5-10.B | S2 | | in progress | | service protocols + Actor/ChangeSet skeleton (api) |
+| M6-02.B, M6-12.B, M6-16.B | S4 (early, branch feat/editor-tokenizer) | | in progress | | pure text, started early |
+| M9-02, M9-09.B, M9-06.B | S7 (early, branch feat/graph-layout) | | in progress | | pure, started early |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
@@ -41,7 +43,8 @@
 State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → `feat/core-vault` → … are stacked; worker branches `feat/core-<slug>` are merged into their slice with `--no-ff`. To continue: read this ledger's task table, check out the last slice branch, pick the first `todo` row, follow `docs/agents/overnight.md` §5. Swift on Linux: `docker run --rm -v "$PWD":"$PWD" -w "$PWD" swift:latest swift test`.
 
 ## Errors
-_(none yet)_
+- Integration (task class): parallel branches both defined `ContentHash` and `SplitMix64`; fixed by unifying on SHA-256 (fix/core-vault-integration) and renaming test RNGs. Not counted as a task failure.
+- Flaky `FileWatcherTests` under load (timing): hardened with settle-waits, no test weakened or skipped; 12 consecutive green full runs.
 
 ## Questions for the human
 1. Grade weights: Grades screen item weights (Bio 5/5/15/5/30/40) vs `_course.md` grading parts (20/25/25/30). Which is authoritative? Both transcribed as-is (PR #23).
