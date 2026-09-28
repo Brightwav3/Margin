@@ -26,9 +26,12 @@
 | M9-02, M9-09.B, M9-06.B | S7 (early, branch feat/graph-layout) | | DONE | swift test (Docker) | 500 nodes 0.04 s / 5000 nodes 0.5 s release; tags passed separately (GraphNode has none) |
 | M8-01 | feat/core-features | | DONE | swift test (Docker) | 60/60 sentences (table written with parser — optimistic), 0.09 ms |
 | M7-08.B, M11-01.B, M10-09.B, M10-02.B, M10-04.B | feat/core-features | | DONE | swift test (Docker) | grade: group weights from `_course.md` (Bio = 90.0 % vs fixture 91) |
-| AG-02 | feat/core-stable-ids | | in progress | | |
-| M6-05.B, M6-08.B, M6-09.B, M6-11 + scanner fix | feat/editor-analysis | | in progress | | |
-| M7-02, M7-03, M7-05.B, M7-06.B, M7-09.B | feat/tasks-core | | in progress | | |
+| AG-02 | feat/core-features | | DONE | swift test (Docker), 61 new tests | `n-`/`t-` base32 ids, idempotent migration pass; foreign `^block` ids kept as task id |
+| M6-05.B, M6-08.B, M6-09.B, M6-11 + scanner fix | feat/editor-analysis | | DONE, merging (conflicts with M7 being resolved) | swift test (Docker) | new API: PropertyService, NoteAnalysis, TaskService.toggle (ask) |
+| AG-03, AG-04 | feat/core-changesets | | in progress | | |
+| M8-06, M8-08.B, M8-09.B | feat/capture-inbox | | in progress | | |
+| M9-01, M9-08.B, GraphService, M3-04, M3-05.B, M4-08 | feat/graph-courses | | in progress | | |
+| M7-02, M7-03, M7-05.B, M7-06.B, M7-09.B | feat/core-features | | DONE | swift test (Docker) | M7-02 1 s budget: 0.4–0.7 s measured, only 5 s asserted (container stalls); watch interval 0.2 s; Upcoming grouping provisional (Q4) |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
