@@ -6,7 +6,7 @@
 
 **Provisional assumptions:** see `docs/agents/overnight.md` §4 (Q1–Q13 defaults from STATUS.md). Every PR carries **PROVISIONAL**. Additional self-made decisions are listed below.
 
-**Summary:** started 20 / DONE 19 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
+**Summary:** started 36 / DONE 26 (by task id) / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
 
 | Task | Slice/branch | PR | State | Verified | Note |
 |---|---|---|---|---|---|
@@ -21,16 +21,18 @@
 | M5-07 | S2 | | DONE | swift test (Docker) | polling watcher; FSEvents stub UNVERIFIED on macOS; `FileChange` lives outside API |
 | M5-06 | S2 | | DONE | swift test (Docker), 196 fault-injection cases | pure-Swift SHA-256; wikilink rewrite on rename; creation date not preserved on macOS (UNVERIFIED) |
 | M5-08 | S2 | | DONE | swift test (Docker) | 1000 notes build 0.55–0.7 s, reindex 1–1.6 ms (debug) |
-| M5-09, M5-10.B | S2 | | in progress | | service protocols + Actor/ChangeSet skeleton (api) |
+| M5-09, M5-10.B | S2 | [#26](https://github.com/Brightwav3/Margin/pull/26) | DONE | swift test (Docker), 59 conformance | fixture vaults committed; optional `id:` key in `_course.md`/notes = vault format question |
 | M6-02.B, M6-12.B, M6-16.B | S4 (early, branch feat/editor-tokenizer) | | DONE | swift test (Docker) | UTF-16 offsets; typing 0.008 ms release / 0.04 ms debug per change (budget 3 ms) |
 | M9-02, M9-09.B, M9-06.B | S7 (early, branch feat/graph-layout) | | DONE | swift test (Docker) | 500 nodes 0.04 s / 5000 nodes 0.5 s release; tags passed separately (GraphNode has none) |
-| M8-01 | S7 (early, branch feat/capture-parser) | | in progress | | |
+| M8-01 | feat/core-features | | DONE | swift test (Docker) | 60/60 sentences (table written with parser — optimistic), 0.09 ms |
+| M7-08.B, M11-01.B, M10-09.B, M10-02.B, M10-04.B | feat/core-features | | DONE | swift test (Docker) | grade: group weights from `_course.md` (Bio = 90.0 % vs fixture 91) |
+| AG-02 | feat/core-stable-ids | | in progress | | |
+| M6-05.B, M6-08.B, M6-09.B, M6-11 + scanner fix | feat/editor-analysis | | in progress | | |
+| M7-02, M7-03, M7-05.B, M7-06.B, M7-09.B | feat/tasks-core | | in progress | | |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
 | S3 (AG-02, AG-03, AG-04) | feat/agent-foundations | | todo | | |
-| S4 rest (M6-05.B, M6-08.B, M6-09.B, M6-11) | | | todo | | |
-| S5 M7 | | | todo | | |
 | S7 rest, S9, S11, M12-03 | | | todo | | |
 | AG-01, AG-05…AG-36 (S6, S8, S10, S12) | | | SKIPPED (human: agent layer deferred) | | |
 | Phase 2 UI | | | SKIPPED (human: UI later on Mac) | | |
@@ -46,6 +48,7 @@
 - UI screenshots from Docker were requested: SwiftUI does not run on Linux, so real UI screenshots are impossible here (see Phase 2 notes).
 
 ## How to resume
+After the agent layer was deferred, slices S3–S12 collapse into one integration slice **`feat/core-features`** (base `feat/core-vault`, PR #26 stacked on #23); finished worker branches are merged into it with `--no-ff`.
 State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → `feat/core-vault` → … are stacked; worker branches `feat/core-<slug>` are merged into their slice with `--no-ff`. To continue: read this ledger's task table, check out the last slice branch, pick the first `todo` row, follow `docs/agents/overnight.md` §5. Swift on Linux: `docker run --rm -v "$PWD":"$PWD" -w "$PWD" swift:latest swift test`.
 
 ## Errors
@@ -54,8 +57,10 @@ State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → 
 
 ## Questions for the human
 1. Grade weights: Grades screen item weights (Bio 5/5/15/5/30/40) vs `_course.md` grading parts (20/25/25/30). Which is authoritative? Both transcribed as-is (PR #23).
-2. Lab 2 date: gallery says Mon 21 Sep, lecture list Mon 14 Sep. Fixture uses 21 Sep.
-3. Semester Fall 2026 start/end invented (2026-08-31 .. 2026-12-13) so that 28 Sep = week 5. Confirm.
+2. Bio average: calculator gives 90.0 % from `_course.md` group weights, fixture summary says 91 %. Which grading model is right (see question 1)?
+3. Vault format: optional `id:` in `_course.md` and notes (PR #26) — accept, or keep ids in a per-vault map?
+4. Lab 2 date: gallery says Mon 21 Sep, lecture list Mon 14 Sep. Fixture uses 21 Sep.
+5. Semester Fall 2026 start/end invented (2026-08-31 .. 2026-12-13) so that 28 Sep = week 5. Confirm.
 
 ## Proposals for approval
 1. **Agent routines and triggers (out of plan, new task).** Human wants agents to feel like Grok Bot / Notion Custom Agents: named teammates that act on their own on a schedule (e.g. nightly inbox triage, Sunday weekly review) or on events (new inbox item, lecture ended, exam approaching), with per-identity memory, an activity feed, and hand-offs between identities. Current plan covers identities, scoped permissions, approvals, memory, skills (AG-31, AG-12, AG-13, AG-20, AG-21) but has no triggers/routines and runs agents only while the app runs (Q2/Q11). Proposal: new task `AG-37 Routines` (schedule + event triggers over `Clock` and vault events, each run = session under an identity with purpose, results via ReviewQueue/audit), weight ~8, depends on AG-31/AG-33/AG-13; background execution needs Q2/Q11 revisited. Meanwhile AG-31's identity model is designed to carry job description, per-identity memory and triggers as data so this needs no format change later.
