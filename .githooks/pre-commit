@@ -58,7 +58,7 @@ if echo "$FILES" | grep -q '^docs/plan/'; then
 fi
 
 # 6) Build (jen když existuje kód a mění se Swift)
-if [ -n "$SWIFT_STAGED" ] && [ -f Package.swift ]; then
+if [ -n "$SWIFT_STAGED" ] && [ -f Package.swift ] && command -v swift >/dev/null; then
   echo "pre-commit: swift build …"
   swift build 2>&1 | tail -20 ; [ "${PIPESTATUS[0]}" -eq 0 ] || die "swift build selhal. Oprav před commitem."
 fi
