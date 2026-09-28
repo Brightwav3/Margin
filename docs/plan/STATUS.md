@@ -16,19 +16,19 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 | M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | — | — | ⬜ | `checks/M3.md` | |  |
 | M4 | Detail předmětu (2c) | 3 | 27 | 30 | — | — | ⬜ | `checks/M4.md` | | CP1 |
 | M5 | Vault a index | 35 | 1 | 36 | — | — | 🟦 | `checks/M5.md` | | před startem odsouhlasit spec (§12) |
-| MA0 | Agent: základy (provenance, ID, undo, souběh) | 32 | 0 | 32 | — | — | ⬜ | (testy) | | brána před M6 |
-| M6a | Editor: source + reading | 11 | 33 | 44 | — | — | ⬜ | `checks/M6a.md` | | CP2 |
-| M6b | Editor: live | 5 | 25 | 30 | — | — | ⬜ | `checks/M6b.md` | |  |
-| M7 | Úkoly | 16 | 22 | 38 | — | — | ⬜ | `checks/M7.md` | | před startem schválit návrh |
+| MA0 | Agent: základy (provenance, ID, undo, souběh) | 32 | 0 | 32 | — | — | 🟦 | (testy) | | brána před M6 |
+| M6a | Editor: source + reading | 11 | 33 | 44 | — | — | 🟦 | `checks/M6a.md` | | CP2 |
+| M6b | Editor: live | 5 | 25 | 30 | — | — | 🟦 | `checks/M6b.md` | |  |
+| M7 | Úkoly | 16 | 22 | 38 | — | — | 🟦 | `checks/M7.md` | | před startem schválit návrh |
 | MA1 | Agent: povrch nástrojů (MCP, CLI) | 83 | 0 | 83 | — | — | ⬜ | `checks/MA1.md` | | CP5 |
-| M8 | Rychlý zápis a Inbox | 25 | 19 | 44 | — | — | ⬜ | `checks/M8.md` | | CP3 |
+| M8 | Rychlý zápis a Inbox | 25 | 19 | 44 | — | — | 🟦 | `checks/M8.md` | | CP3 |
 | MA2 | Agent: oprávnění, audit, schvalování | 19 | 43 | 62 | — | — | ⬜ | `checks/MA2.md` | |  |
-| M9 | Graf | 17 | 27 | 44 | — | — | ⬜ | `checks/M9.md` | |  |
-| M10a | Popupy: navigace a psaní | 12 | 28 | 40 | — | — | ⬜ | `checks/M10a.md` | |  |
+| M9 | Graf | 17 | 27 | 44 | — | — | 🟦 | `checks/M9.md` | |  |
+| M10a | Popupy: navigace a psaní | 12 | 28 | 40 | — | — | 🟦 | `checks/M10a.md` | |  |
 | MA3 | Agent v aplikaci | 30 | 25 | 55 | — | — | ⬜ | `checks/MA3.md` | |  |
-| M10b | Popupy: data a organizace | 12 | 18 | 30 | — | — | ⬜ | `checks/M10b.md` | |  |
+| M10b | Popupy: data a organizace | 12 | 18 | 30 | — | — | 🟦 | `checks/M10b.md` | |  |
 | M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | — | — | ⬜ | `checks/M10c.md` | |  |
-| M11 | Obrazovky a stavy | 21 | 37 | 58 | — | — | ⬜ | `checks/M11.md` | | CP4 |
+| M11 | Obrazovky a stavy | 21 | 37 | 58 | — | — | 🟦 | `checks/M11.md` | | CP4 |
 | MA4 | Agent: odolnost | 32 | 3 | 35 | — | — | ⬜ | `checks/MA4.md` | |  |
 | M12 | Dokončení a vydání | 18 | 22 | 40 | — | — | ⬜ | `checks/M12.md` | |  |
 | | **Σ** | **405** | **429** | **834** | | | | | | |
