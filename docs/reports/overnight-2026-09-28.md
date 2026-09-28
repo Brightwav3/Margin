@@ -17,8 +17,11 @@
 | M2-04 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | grade weights mismatch, see questions |
 | M2-05 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | 23 nodes / 26 edges |
 | M5-03, M5-04, M5-05 | S2 feat/core-vault | | DONE | swift test (Docker), 62 total | `@before-*` = strictly after today; tasks without `^id` get line-based placeholder id until AG-02 |
-| M5-02, M5-06, M5-07 | S2 | | in progress | | |
-| M5-08, M5-09, M5-10.B | S2 | | todo | | |
+| M5-02 | S2 | | DONE | swift test (Docker), fuzz 10 000 x4 | lossless YAML subset, no third-party |
+| M5-07 | S2 | | DONE | swift test (Docker) | polling watcher; FSEvents stub UNVERIFIED on macOS; `FileChange` lives outside API |
+| M5-06 | S2 | | in progress | | |
+| M5-08 | S2 | | in progress | | |
+| M5-09, M5-10.B | S2 | | todo | | |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
@@ -29,8 +32,13 @@
 - Full autonomy granted, except: nothing is merged to `main` (explicit rule kept).
 - CI emails: `ci.yml` was invalid (`hashFiles()` in a job-level `if`), so every push produced a failed "No jobs were run" run. Fix in PR [#24](https://github.com/Brightwav3/Margin/pull/24) (green), cherry-picked into slice branches so PR CI runs.
 - **UI must stay fully replaceable**: UI depends only on `MarginCore/API` + `AppEnvironment`; deleting `Sources/MarginUI*`/`App/Margin` must keep core build and tests green. Added to every worker brief.
+- **Stop rule:** finish cleanly when ~$5 of cloud session credits remain; everything must be resumable elsewhere (see *How to resume*). The session cannot read the credit balance, so work is checkpointed after every task.
+- **Scope change: backend only.** Later extended: complete *all* planned backend with Sonnet workers, macOS-only tasks as protocol + `#if os(macOS)` (UNVERIFIED).
 - **Scope change: backend only.** Phase 2 (UI drafts, `MarginUILogic` target) is dropped from this run by the human; UI will be built later on a Mac against `MarginCore/API` + fixtures.
 - UI screenshots from Docker were requested: SwiftUI does not run on Linux, so real UI screenshots are impossible here (see Phase 2 notes).
+
+## How to resume
+State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → `feat/core-vault` → … are stacked; worker branches `feat/core-<slug>` are merged into their slice with `--no-ff`. To continue: read this ledger's task table, check out the last slice branch, pick the first `todo` row, follow `docs/agents/overnight.md` §5. Swift on Linux: `docker run --rm -v "$PWD":"$PWD" -w "$PWD" swift:latest swift test`.
 
 ## Errors
 _(none yet)_
