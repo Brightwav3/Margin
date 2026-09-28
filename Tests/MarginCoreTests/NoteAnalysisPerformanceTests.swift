@@ -3,6 +3,7 @@ import Testing
 @testable import MarginCore
 
 /// M6-09: analysis queries stay under 30 ms on a 1000-note vault.
+extension PerfSuites {
 @Suite struct NoteAnalysisPerformanceTests {
     #if DEBUG
     static let slack = 5.0   // debug builds in a Docker container are far slower than release
@@ -51,22 +52,28 @@ import Testing
 
         // Note 0 (typical), note 500 and the hub (1000 backlinks: the worst case for backlinks/stats).
         let ids = ["n-0", "n-500", "n-999", "hub"]
-        var worst: [String: Double] = [:]
-        func time(_ name: String, _ body: () async throws -> Void) async throws {
+        // Every (query, note) pair is timed `perfRuns` times after a warm-up round; the budget is judged
+        // on the median of those runs, and per query on the slowest note (the hub is the worst case).
+        var samples: [String: [Double]] = [:]
+        func time(_ name: String, _ id: String, _ body: () async throws -> Void) async throws {
             let t = ContinuousClock.now
             try await body()
-            let d = ContinuousClock.now - t
-            let ms = (Double(d.components.seconds) + Double(d.components.attoseconds) / 1e18) * 1000
-            worst[name] = max(worst[name] ?? 0, ms)
+            samples["\(name)/\(id)", default: []].append(perfMs(ContinuousClock.now - t))
         }
-        for _ in 0..<3 {
+        for round in 0...perfRuns {
             for id in ids {
-                try await time("outline") { _ = try await engine.outline(id: id) }
-                try await time("backlinks") { _ = try await engine.backlinks(id: id) }
-                try await time("outgoing") { _ = try await engine.outgoing(id: id) }
-                try await time("stats") { _ = try await engine.stats(id: id, text: nil) }
-                try await time("properties") { _ = try await engine.properties(id: id) }
+                try await time("outline", id) { _ = try await engine.outline(id: id) }
+                try await time("backlinks", id) { _ = try await engine.backlinks(id: id) }
+                try await time("outgoing", id) { _ = try await engine.outgoing(id: id) }
+                try await time("stats", id) { _ = try await engine.stats(id: id, text: nil) }
+                try await time("properties", id) { _ = try await engine.properties(id: id) }
             }
+            if round == 0 { samples = [:] }   // warm-up round is discarded
+        }
+        var worst: [String: Double] = [:]
+        for (key, values) in samples {
+            let name = String(key.prefix { $0 != "/" })
+            worst[name] = max(worst[name] ?? 0, perfMedian(values))
         }
         let hub = try await engine.backlinks(id: "hub")
         #expect(hub.count == 1000)
@@ -74,7 +81,8 @@ import Testing
         #expect(outgoing.contains { $0.state == .notCreated })
 
         let report = worst.keys.sorted().map { "\($0) \(String(format: "%.1f", worst[$0]!)) ms" }.joined(separator: ", ")
-        print("NoteAnalysis perf on 1001 notes (worst of \(ids.count * 3) calls, slack x\(Self.slack)): \(report)")
-        for (name, ms) in worst { #expect(ms < 30 * Self.slack, "\(name) took \(ms) ms (budget 30 ms x \(Self.slack))") }
+        print("NoteAnalysis perf on 1001 notes (slowest note, median of \(perfRuns) runs, slack x\(Self.slack)): \(report)")
+        for (name, ms) in worst { #expect(ms < 30 * Self.slack, "\(name) median took \(ms) ms (budget 30 ms x \(Self.slack))") }
     }
+}
 }

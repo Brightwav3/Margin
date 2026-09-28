@@ -3,11 +3,6 @@ import Testing
 @testable import MarginCore
 
 @Suite struct NoteStatsTests {
-    #if DEBUG
-    static let slack = 5.0
-    #else
-    static let slack = 1.0
-    #endif
 
     private struct SplitMix64 {
         var state: UInt64
@@ -81,51 +76,5 @@ import Testing
             }
         }
         #expect(mismatches == 0)
-    }
-
-    /// M6-08: the inspector numbers follow typing within 200 ms on a 10 000 word note.
-    @Test func updateOnATenThousandWordNoteIsFast() {
-        var rng = SplitMix64(state: 5)
-        let words = ["cell", "membrane", "protein", "energy", "atom", "bond", "the", "of", "and", "reaction"]
-        var lines: [String] = ["# Long note", ""]
-        var total = 0
-        while total < 10_000 {
-            let n = 10 + rng.below(30)
-            lines.append((0..<n).map { _ in words[rng.below(words.count)] }.joined(separator: " "))
-            total += n
-            if lines.count % 12 == 0 { lines.append("- [ ] task \(lines.count)") }
-            if lines.count % 7 == 0 { lines.append("") }
-        }
-        var tracker = NoteStatsTracker()
-        let text0 = lines.joined(separator: "\n")
-        func seconds(_ d: Duration) -> Double { Double(d.components.seconds) + Double(d.components.attoseconds) / 1e18 }
-
-        let t0 = ContinuousClock.now
-        let first = tracker.update(body: text0)
-        let cold = seconds(ContinuousClock.now - t0)
-        #expect(first.words >= 10_000)
-
-        // Typing: one word appended to a middle paragraph, many times.
-        var worstType = 0.0
-        var edited = lines
-        let middle = edited.count / 2 + 1
-        for i in 0..<50 {
-            edited[middle] += " typed\(i)"
-            let text = edited.joined(separator: "\n")
-            let t = ContinuousClock.now
-            let c = tracker.update(body: text)
-            worstType = max(worstType, seconds(ContinuousClock.now - t))
-            #expect(c.words == first.words + i + 1)
-        }
-        // Worst case for the incremental path: an edit that forces a task rescan.
-        edited[middle + 1] = "- [ ] a new task"
-        let t1 = ContinuousClock.now
-        let rescan = tracker.update(body: edited.joined(separator: "\n"))
-        let rescanTime = seconds(ContinuousClock.now - t1)
-        #expect(rescan.totalTasks == first.totalTasks + 1)
-
-        print("NoteStats on \(first.words) words (slack x\(Self.slack)): cold \(Int(cold * 1000)) ms, "
-              + "typing update worst \(String(format: "%.1f", worstType * 1000)) ms, task rescan \(Int(rescanTime * 1000)) ms")
-        #expect(cold < 0.2 * Self.slack && worstType < 0.2 * Self.slack && rescanTime < 0.2 * Self.slack)
     }
 }

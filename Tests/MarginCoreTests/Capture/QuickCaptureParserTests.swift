@@ -22,6 +22,7 @@ private struct Case {
 private func d(_ m: Int, _ day: Int, _ y: Int = 2026) -> LocalDate { LocalDate.literal(y, m, day) }
 
 @Suite struct QuickCaptureParserTests {
+    static var inputs: [String] { table.map(\.input) }
     // FixedClock: Monday 2026-09-28 13:24.
     static let parser = QuickCaptureParser(courses: Fixtures.week5.courses, clock: FixedClock(), notes: Fixtures.week5.notes)
 
@@ -103,21 +104,6 @@ private func d(_ m: Int, _ day: Int, _ y: Int = 2026) -> LocalDate { LocalDate.l
         print("QuickCaptureParser: \(correct)/\(Self.table.count) correct")
         for f in failures { print("  FAIL \(f)") }
         #expect(correct >= 57, "at least 95 % of 60 sentences (57) must be parsed correctly")
-    }
-
-    @Test func latencyUnderBudget() {
-        let inputs = Self.table.map(\.input)
-        let rounds = 20
-        let clock = ContinuousClock()
-        var sink = 0
-        let elapsed = clock.measure {
-            for _ in 0..<rounds { for s in inputs { sink &+= Self.parser.parse(s).spans.count } }
-        }
-        let perParse = elapsed / (rounds * inputs.count)
-        let ms = Double(perParse.components.attoseconds) / 1e15 + Double(perParse.components.seconds) * 1000
-        print("QuickCaptureParser: average \(String(format: "%.3f", ms)) ms per parse (\(rounds * inputs.count) parses, sink \(sink))")
-        // Budget is 5 ms; the assertion has generous slack for unoptimised builds in a slow container.
-        #expect(ms < 5)
     }
 
     @Test func spansCoverChips() throws {
@@ -216,4 +202,26 @@ private func d(_ m: Int, _ day: Int, _ y: Int = 2026) -> LocalDate { LocalDate.l
             for (a, b) in zip(r.spans, r.spans.dropFirst()) { #expect(a.range.upperBound <= b.range.lowerBound, "\(s.debugDescription) \(r.spans)") }
         }
     }
+}
+
+extension PerfSuites {
+@Suite struct QuickCaptureParserPerfTests {
+    /// Budget is 5 ms per parse (M-capture); the average over 60 sentences x 20 rounds is measured
+    /// `perfRuns` times after a warm-up and the median is asserted.
+    @Test func latencyUnderBudget() {
+        let inputs = QuickCaptureParserTests.inputs
+        let rounds = 20
+        var sink = 0
+        let clock = ContinuousClock()
+        let samples = perfSamples { () -> Double in
+            let elapsed = clock.measure {
+                for _ in 0..<rounds { for s in inputs { sink &+= QuickCaptureParserTests.parser.parse(s).spans.count } }
+            }
+            return perfMs(elapsed / (rounds * inputs.count))
+        }
+        let median = perfMedian(samples)
+        print("QuickCaptureParser: median \(String(format: "%.3f", median)) ms per parse over \(perfRuns) runs [\(samples.map { String(format: "%.3f", $0) }.joined(separator: "/"))] (sink \(sink))")
+        #expect(median < 5)
+    }
+}
 }

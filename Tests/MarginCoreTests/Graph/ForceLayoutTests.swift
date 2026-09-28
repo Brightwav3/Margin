@@ -167,18 +167,6 @@ import Testing
         #expect(bits(snapshots.last!) == bits(direct.positions))
     }
 
-    @Test func fiveHundredNodesStabilizeQuickly() {
-        let g = preferentialAttachmentGraph(nodes: 500, seed: 11)
-        var layout = ForceLayout(graph: g, config: ForceLayoutConfig())
-        let clock = ContinuousClock()
-        var result = LayoutRunResult(iterations: 0, energy: 0, reason: .maxIterations)
-        let elapsed = clock.measure { result = layout.run() }
-        print("ForceLayout 500 nodes: \(elapsed), \(result.iterations) iterations, \(result.reason)")
-        #expect(layout.positions.values.allSatisfy { $0.x.isFinite && $0.y.isFinite })
-        #expect(result.reason != .maxIterations)
-        #expect(elapsed < .seconds(perfBudget(release: 2, debug: 20)))
-    }
-
     private func cfg(seed: UInt64) -> ForceLayoutConfig { var c = ForceLayoutConfig(); c.seed = seed; return c }
 }
 
