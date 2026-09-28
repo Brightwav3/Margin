@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import MarginCore
 
@@ -100,5 +101,59 @@ import Testing
         #expect(g[4].date == .literal(2026, 10, 1))
         #expect(world.gradeSummaries.map(\.percent) == [91, 87, 94, 84, 90, 88])
         #expect(world.gradeSummaries.map(\.letter) == ["A−", "B+", "A", "B", "A−", "B+"])
+    }
+}
+
+@Suite struct FixturesGraphTests {
+    let graph = Fixtures.week5.graph
+
+    private func node(_ id: String) -> GraphNode? { graph.nodes.first { $0.id == id } }
+
+    @Test func countsAndIntegrity() {
+        #expect(graph.nodes.count == 23)
+        #expect(graph.edges.count == 26)
+        #expect(graph.nodes.filter { $0.kind == .course }.count == 6)
+        let ids = Set(graph.nodes.map(\.id))
+        #expect(ids.count == 23)
+        #expect(graph.edges.allSatisfy { ids.contains($0.source) && ids.contains($0.target) })
+        #expect(Set(graph.edges.map(\.id)).count == 26)
+        #expect(graph.nodes.allSatisfy { n in n.courseID.flatMap(Fixtures.week5.course) != nil })
+    }
+
+    @Test func exactPositions() {
+        let expected: [(String, String, Double, Double)] = [
+            ("bio", "Cell Biology", 420, 330), ("b1", "Lecture 8 — Cell membrane", 350, 225),
+            ("chem", "Organic Chemistry", 660, 185), ("c2", "Lab 4", 590, 95),
+            ("math", "Linear Algebra", 840, 390), ("m2", "Determinants", 920, 470),
+            ("hist", "Modern Europe", 390, 630), ("h2", "Congress of Vienna", 470, 735),
+            ("econ", "Macroeconomics", 650, 545), ("e1", "IS–LM model", 620, 455),
+            ("phil", "Philosophy of Mind", 880, 175), ("p1", "Chinese Room", 950, 95),
+        ]
+        for (id, label, x, y) in expected {
+            let n = node(id)
+            #expect(n?.label == label)
+            #expect(n?.x == x && n?.y == y)
+        }
+        #expect(node("bio")?.kind == .course)
+        #expect(node("b1")?.kind == .note)
+    }
+
+    @Test func edgesFollowMockup() {
+        #expect(graph.edges.first == GraphEdge(source: "bio", target: "b1"))
+        #expect(graph.edges.last == GraphEdge(source: "b1", target: "b4"))
+        #expect(graph.edges.contains(GraphEdge(source: "p1", target: "m1")))
+        #expect(graph.edges.filter { $0.source == "bio" }.count == 4)
+    }
+}
+
+@Suite struct FixturesRoundTripTests {
+    private func rt<T: Codable & Equatable>(_ v: T) throws {
+        #expect(try JSONDecoder().decode(T.self, from: JSONEncoder().encode(v)) == v)
+    }
+
+    @Test func everyFixtureSurvivesJSON() throws {
+        let w = Fixtures.week5
+        try rt(w.semester); try rt(w.courses); try rt(w.dueItems); try rt(w.notes)
+        try rt(w.inbox); try rt(w.grades); try rt(w.gradeSummaries); try rt(w.graph)
     }
 }
