@@ -64,4 +64,5 @@ public struct VaultTaskService: TaskService {
     public func today() async throws -> [TaskItem] { await backend.today() }
     public func upcoming() async throws -> [TaskItem] { await backend.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await backend.tasks(course: course) }
+    public var updates: AsyncStream<TaskUpdate> { backend.tasksStore.updates.subscribe() }
 }

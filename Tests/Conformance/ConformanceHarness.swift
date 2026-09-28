@@ -38,14 +38,15 @@ struct Harness: Sendable {
     var tasks: any TaskService { env.tasks }
     var clock: any Clock { env.clock }
 
-    static func make(_ kind: HarnessKind, clock: any Clock = FixedClock()) async throws -> Harness {
+    static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
+                     watchInterval: TimeInterval = 0.05) async throws -> Harness {
         switch kind {
         case .fixture:
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
                 tasks: FixtureTaskService(store: store),
-                shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll() })
+                shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env,
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
@@ -57,7 +58,7 @@ struct Harness: Sendable {
             // The sample vault of the same fixtures (M5-09), written before the environment opens it.
             let store = try await VaultStore.open(root: folder.url, clock: clock, createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
-            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: 0.05)
+            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: watchInterval)
             let root = folder.url
             return Harness(
                 kind: kind, env: env,
@@ -95,9 +96,9 @@ struct Harness: Sendable {
 }
 
 /// Runs `body` against a fresh harness and always shuts it down.
-func withHarness(_ kind: HarnessKind, clock: any Clock = FixedClock(),
+func withHarness(_ kind: HarnessKind, clock: any Clock = FixedClock(), watchInterval: TimeInterval = 0.05,
                  _ body: (Harness) async throws -> Void) async throws {
-    let harness = try await Harness.make(kind, clock: clock)
+    let harness = try await Harness.make(kind, clock: clock, watchInterval: watchInterval)
     do { try await body(harness) } catch {
         await harness.shutdown()
         throw error
