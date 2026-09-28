@@ -6,7 +6,7 @@
 
 **Provisional assumptions:** see `docs/agents/overnight.md` §4 (Q1–Q13 defaults from STATUS.md). Every PR carries **PROVISIONAL**. Additional self-made decisions are listed below.
 
-**Summary:** started 19 / DONE 13 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
+**Summary:** started 20 / DONE 19 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
 
 | Task | Slice/branch | PR | State | Verified | Note |
 |---|---|---|---|---|---|
@@ -22,8 +22,9 @@
 | M5-06 | S2 | | DONE | swift test (Docker), 196 fault-injection cases | pure-Swift SHA-256; wikilink rewrite on rename; creation date not preserved on macOS (UNVERIFIED) |
 | M5-08 | S2 | | DONE | swift test (Docker) | 1000 notes build 0.55–0.7 s, reindex 1–1.6 ms (debug) |
 | M5-09, M5-10.B | S2 | | in progress | | service protocols + Actor/ChangeSet skeleton (api) |
-| M6-02.B, M6-12.B, M6-16.B | S4 (early, branch feat/editor-tokenizer) | | in progress | | pure text, started early |
-| M9-02, M9-09.B, M9-06.B | S7 (early, branch feat/graph-layout) | | in progress | | pure, started early |
+| M6-02.B, M6-12.B, M6-16.B | S4 (early, branch feat/editor-tokenizer) | | DONE | swift test (Docker) | UTF-16 offsets; typing 0.008 ms release / 0.04 ms debug per change (budget 3 ms) |
+| M9-02, M9-09.B, M9-06.B | S7 (early, branch feat/graph-layout) | | DONE | swift test (Docker) | 500 nodes 0.04 s / 5000 nodes 0.5 s release; tags passed separately (GraphNode has none) |
+| M8-01 | S7 (early, branch feat/capture-parser) | | in progress | | |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
@@ -52,7 +53,7 @@ State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → 
 3. Semester Fall 2026 start/end invented (2026-08-31 .. 2026-12-13) so that 28 Sep = week 5. Confirm.
 
 ## Proposals for approval
-_(none yet)_
+1. **Agent routines and triggers (out of plan, new task).** Human wants agents to feel like Grok Bot / Notion Custom Agents: named teammates that act on their own on a schedule (e.g. nightly inbox triage, Sunday weekly review) or on events (new inbox item, lecture ended, exam approaching), with per-identity memory, an activity feed, and hand-offs between identities. Current plan covers identities, scoped permissions, approvals, memory, skills (AG-31, AG-12, AG-13, AG-20, AG-21) but has no triggers/routines and runs agents only while the app runs (Q2/Q11). Proposal: new task `AG-37 Routines` (schedule + event triggers over `Clock` and vault events, each run = session under an identity with purpose, results via ReviewQueue/audit), weight ~8, depends on AG-31/AG-33/AG-13; background execution needs Q2/Q11 revisited. Meanwhile AG-31's identity model is designed to carry job description, per-identity memory and triggers as data so this needs no format change later.
 
 ## Recommended morning steps
 _(filled at the end)_
