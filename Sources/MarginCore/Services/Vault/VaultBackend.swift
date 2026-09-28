@@ -13,6 +13,10 @@ actor VaultBackend {
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
+    /// Tasks of the vault with change tracking; its `updates` feed `TaskService.updates`.
+    let tasksStore: TasksStore
+    /// Writes task checkboxes to note files (used by `TaskService.toggle`).
+    let taskWriteBack: TaskWriteBack
 
     private(set) var model = VaultCourseModel()
     private var changeSets: ChangeSetFactory
@@ -22,6 +26,8 @@ actor VaultBackend {
 
     private init(store: VaultStore, index: NoteIndex, clock: any Clock) {
         self.store = store; self.index = index; self.clock = clock
+        self.tasksStore = TasksStore(index: index)
+        self.taskWriteBack = TaskWriteBack(store: store, index: index, clock: clock)
         self.changeSets = ChangeSetFactory(clock: clock)
     }
 
@@ -37,6 +43,7 @@ actor VaultBackend {
         let backend = VaultBackend(store: store, index: index, clock: clock)
         await store.addRenameObserver(backend.rewriter)
         await backend.reloadModel()
+        await backend.primeTasks()
         // The watcher compares file times, which are real time, so it always uses the system clock.
         let watcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
         await backend.startWatching(watcher)
@@ -49,6 +56,7 @@ actor VaultBackend {
         watchTask = nil
         noteChanges.finishAll()
         catalogUpdates.finishAll()
+        tasksStore.updates.finishAll()
     }
 
     // MARK: Watching
@@ -84,8 +92,19 @@ actor VaultBackend {
             await reloadModel()
             let changed = Self.changedCourses(old: old, new: model.courses)
             if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed)) }
+            // A course file can change which course a note belongs to, and the exam dates.
+            await tasksMayHaveChanged(paths: nil)
+            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old, new: model.courses))
+        } else {
+            await tasksMayHaveChanged(paths: batch.map(\.path))
         }
         if !notes.isEmpty { noteChanges.send(notes.sorted { ($0.noteID, $0.kind.rawValue) < ($1.noteID, $1.kind.rawValue) }) }
+    }
+
+    private static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
+        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0.exams) })
+        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0.exams) })
+        return Set(before.keys).union(after.keys).filter { (before[$0] ?? []) != (after[$0] ?? []) }.sorted()
     }
 
     private static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
@@ -160,20 +179,28 @@ actor VaultBackend {
         let r = try await record(id)
         let (content, version) = try await store.read(VaultPath(r.path))
         // Reading is the moment the index catches up with what is on disk.
-        await index.update(path: r.path, content: content)
+        if await index.update(path: r.path, content: content) { await tasksMayHaveChanged(paths: [r.path]) }
         let fresh = await index.note(byPath: r.path) ?? r
         return Note(summary: summary(of: fresh), text: Frontmatter.parse(content).body, version: version.hex)
     }
 
     // MARK: Tasks (read)
 
+    private var courseResolver: TasksStore.CourseResolver {
+        let model = self.model
+        return { model.courseID(semesterFolder: $0.semesterID, folder: $0.courseID, className: $0.className) }
+    }
+
     private func allTasks(course: CourseID? = nil) async -> [TaskItem] {
-        var items: [TaskItem] = []
-        for r in await noteRecords() {
-            guard let cid = courseID(of: r), course == nil || cid == course else { continue }
-            items += r.tasks.map { var t = $0; t.source.courseID = cid; return t }
-        }
-        return items
+        await tasksStore.allTasks(courseOf: courseResolver, course: course)
+    }
+
+    func primeTasks() async { await tasksStore.prime(courseOf: courseResolver) }
+
+    /// Tells the tasks store that the tasks of these notes may have changed (`nil`: any note), so
+    /// `TaskService.updates` reports the difference. Called after every write and every watcher batch.
+    func tasksMayHaveChanged(paths: [String]?) async {
+        await tasksStore.reconcile(paths: paths, courseOf: courseResolver)
     }
 
     func today() async -> [TaskItem] {
@@ -207,6 +234,7 @@ actor VaultBackend {
             if !dryRun {
                 try await store.write(path, content: newContent, expectedVersion: version)
                 await index.update(path: r.path, content: newContent)
+                await tasksMayHaveChanged(paths: [r.path])
             }
         }
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
@@ -236,6 +264,7 @@ actor VaultBackend {
         if !dryRun {
             try await store.create(path, content: content)
             await index.update(path: path.rawValue, content: content)
+            await tasksMayHaveChanged(paths: [path.rawValue])
         }
         return finish(actor: actor, entries: [change], dryRun: dryRun, key: idempotencyKey)
     }
@@ -258,9 +287,12 @@ actor VaultBackend {
                 try await store.rename(from, to: to)
                 await index.rename(from: from.rawValue, to: to.rawValue)
                 // The rename observer rewrote links in other notes; bring the index up to date.
+                var touched = [from.rawValue, to.rawValue]
                 for rewritten in await rewriter.lastReport.notesRewritten {
                     _ = try? await index.update(path: rewritten.rawValue)
+                    touched.append(rewritten.rawValue)
                 }
+                await tasksMayHaveChanged(paths: touched)
             }
         }
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
@@ -276,6 +308,7 @@ actor VaultBackend {
         if !dryRun {
             try await store.trash(path)
             await index.remove(path: r.path)
+            await tasksMayHaveChanged(paths: [r.path])
         }
         return finish(actor: actor, entries: [entry], dryRun: dryRun, key: idempotencyKey)
     }

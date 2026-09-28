@@ -27,6 +27,8 @@ actor FixtureStore {
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
+    nonisolated let taskChanges = Broadcaster<TaskUpdate>()
+    private var taskSnapshot: [NoteID: TaskSnapshotEntry] = [:]
 
     init(world: FixtureWorld, clock: any Clock) {
         self.semester = world.semester
@@ -38,6 +40,7 @@ actor FixtureStore {
             notes[summary.id] = StoredNote(summary: summary, fileTitle: summary.title,
                                            body: world.markdownBody(of: summary.id) ?? "# \(summary.title)\n")
         }
+        taskSnapshot = Self.snapshot(of: notes, extractor: extractor)
     }
 
     // MARK: Courses
@@ -89,6 +92,27 @@ actor FixtureStore {
         _ = try course(id: id)
         let items = notes.values.filter { $0.summary.courseID == id }.flatMap { extractTasks(of: $0) }
         return ServiceRules.courseTasks(items, today: clock.today)
+    }
+
+    private static func snapshot(of notes: [NoteID: StoredNote], extractor: TaskExtractor) -> [NoteID: TaskSnapshotEntry] {
+        var result: [NoteID: TaskSnapshotEntry] = [:]
+        for (id, note) in notes {
+            guard let course = note.summary.courseID else { continue }
+            let tasks = extractor.extract(from: note.body).map {
+                extractor.taskItem($0, noteID: id, courseID: course)
+            }
+            result[id] = TaskSnapshotEntry(noteID: id, courseID: course, tasks: tasks)
+        }
+        return result
+    }
+
+    /// Publishes the difference between the tasks now and at the last call. Called after every
+    /// mutation, so `TaskService.updates` follows writes and simulated outside edits alike.
+    private func publishTaskChanges() {
+        let now = Self.snapshot(of: notes, extractor: extractor)
+        let update = TaskDiff.update(old: taskSnapshot, new: now)
+        taskSnapshot = now
+        if let update { taskChanges.send(update) }
     }
 
     private func allTasks() -> [TaskItem] {
@@ -170,6 +194,7 @@ actor FixtureStore {
         note.body = text
         note.summary = summarize(note)
         notes[id] = note
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .modified)])
     }
 
@@ -180,6 +205,7 @@ actor FixtureStore {
                               body: ServiceRules.initialBody(title: title, text: text))
         note.summary = summarize(note)
         notes[id] = note
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .created)])
         return id
     }
@@ -187,13 +213,16 @@ actor FixtureStore {
     func simulateExternalDelete(id: NoteID) throws {
         guard notes[id] != nil else { throw MarginError.notFound("No note \(id)") }
         notes[id] = nil
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .deleted)])
     }
 
     /// Changes a course as if `_course.md` had been edited elsewhere.
     func simulateExternalCourseEdit(id: CourseID, _ change: @Sendable (inout Course) -> Void) throws {
         guard let i = courses.firstIndex(where: { $0.id == id }) else { throw MarginError.notFound("No course \(id)") }
+        let examsBefore = courses[i].exams
         change(&courses[i])
+        if courses[i].exams != examsBefore { taskChanges.send(TaskUpdate(noteIDs: [], courseIDs: [id])) }
         catalogUpdates.send(CatalogUpdate(courses: [id]))
     }
 
@@ -202,6 +231,7 @@ actor FixtureStore {
     static func version(of body: String) -> String { ContentHash(of: body).hex }
 
     private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+        publishTaskChanges()
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
         return cs

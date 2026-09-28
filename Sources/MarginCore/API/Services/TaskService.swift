@@ -13,6 +13,10 @@
 ///   `tasks(course:)` sorts by note id, then line.
 /// - **Exams** are `TaskItem`s of kind `.exam` derived from the course's exams (id `exam-<exam.id>`,
 ///   source note `<course>/_course`); they never appear in `tasks(course:)`.
+/// - **Updates:** `updates` reports a change to any task within 1 s of it happening: an edit made
+///   by another program, or a write through `NoteRepository`. An edit that leaves every task as it
+///   was (prose only) reports nothing. `today()`, `upcoming()` and `tasks(course:)` already show the
+///   change when the update arrives.
 /// - **Errors:** `tasks(course:)` throws `MarginError.notFound` for an unknown course.
 public protocol TaskService: Sendable {
     /// Open tasks due today or overdue, plus exams dated today.
@@ -23,4 +27,8 @@ public protocol TaskService: Sendable {
 
     /// All tasks of a course, done and open, with or without due date.
     func tasks(course: CourseID) async throws -> [TaskItem]
+
+    /// A new stream on every access. Each element says which notes and courses have changed tasks.
+    /// The stream stays open until the consumer stops iterating or the environment shuts down.
+    var updates: AsyncStream<TaskUpdate> { get }
 }

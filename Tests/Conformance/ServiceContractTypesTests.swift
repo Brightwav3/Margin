@@ -80,6 +80,7 @@ import Testing
         func today() async throws -> [TaskItem] { [] }
         func upcoming() async throws -> [TaskItem] { [] }
         func tasks(course: CourseID) async throws -> [TaskItem] { throw MarginError.notFound(course) }
+        var updates: AsyncStream<TaskUpdate> { AsyncStream { $0.finish() } }
     }
 
     @Test func protocolsCanBeImplementedFromTheAPIAlone() async throws {
