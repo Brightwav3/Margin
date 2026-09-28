@@ -1,0 +1,150 @@
+import Foundation
+import Testing
+@testable import MarginCore
+
+/// Which implementation of the services a conformance test runs against (contract §5). Every
+/// suite is parameterised over these, so a fixture that behaves differently from the vault fails
+/// its own test.
+enum HarnessKind: String, CaseIterable, Sendable, CustomTestStringConvertible {
+    case fixture, vault
+    var testDescription: String { rawValue }
+}
+
+/// A removable temp folder.
+final class TempFolder: @unchecked Sendable {
+    let url: URL
+    init() {
+        url = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("margin-conformance-\(UUID().uuidString)", isDirectory: true)
+    }
+    deinit { try? FileManager.default.removeItem(at: url) }
+}
+
+/// One `AppEnvironment` plus the means to change its data "behind its back", the way another
+/// program would (fixture: through the in-memory store; vault: by writing files directly).
+struct Harness: Sendable {
+    let kind: HarnessKind
+    let env: AppEnvironment
+    /// Replaces the body of a note from outside.
+    let editNote: @Sendable (NoteID, String) async throws -> Void
+    /// Deletes a note from outside.
+    let deleteNote: @Sendable (NoteID) async throws -> Void
+    /// Changes the room of a course from outside.
+    let editCourseRoom: @Sendable (CourseID, String) async throws -> Void
+    fileprivate let keepAlive: TempFolder?
+
+    var courses: any CourseCatalog { env.courses }
+    var notes: any NoteRepository { env.notes }
+    var tasks: any TaskService { env.tasks }
+    var clock: any Clock { env.clock }
+
+    static func make(_ kind: HarnessKind, clock: any Clock = FixedClock()) async throws -> Harness {
+        switch kind {
+        case .fixture:
+            let store = FixtureStore(world: Fixtures.week5, clock: clock)
+            let env = AppEnvironment(
+                clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
+                tasks: FixtureTaskService(store: store),
+                shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll() })
+            return Harness(
+                kind: kind, env: env,
+                editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
+                deleteNote: { id in try await store.simulateExternalDelete(id: id) },
+                editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
+                keepAlive: nil)
+        case .vault:
+            let folder = TempFolder()
+            // The sample vault of the same fixtures (M5-09), written before the environment opens it.
+            let store = try await VaultStore.open(root: folder.url, clock: clock, createIfMissing: true)
+            try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
+            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: 0.05)
+            let root = folder.url
+            return Harness(
+                kind: kind, env: env,
+                editNote: { id, text in
+                    let file = try Self.file(ofNoteWithID: id, in: root)
+                    let content = try String(contentsOf: file, encoding: .utf8)
+                    let fm = Frontmatter.parse(content).frontmatter
+                    try Data(((fm?.render() ?? "") + text).utf8).write(to: file)
+                },
+                deleteNote: { id in try FileManager.default.removeItem(at: try Self.file(ofNoteWithID: id, in: root)) },
+                editCourseRoom: { id, room in
+                    let file = try Self.file(ofNoteWithID: nil, courseID: id, in: root)
+                    let content = try String(contentsOf: file, encoding: .utf8)
+                    var (fm, body) = Frontmatter.parse(content)
+                    fm?.set("room", .string(room))
+                    try Data(((fm?.render() ?? "") + body).utf8).write(to: file)
+                },
+                keepAlive: folder)
+        }
+    }
+
+    func shutdown() async { await env.shutdown() }
+
+    /// The markdown file whose frontmatter has `id: <noteID>` (or, for a course, its `_course.md`).
+    private static func file(ofNoteWithID noteID: NoteID?, courseID: CourseID? = nil, in root: URL) throws -> URL {
+        let en = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)
+        while let url = en?.nextObject() as? URL {
+            guard url.pathExtension == "md", let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let id = Frontmatter.parse(text).frontmatter?.string(for: "id")
+            if let noteID, id == noteID, url.lastPathComponent != "_course.md" { return url }
+            if let courseID, id == courseID, url.lastPathComponent == "_course.md" { return url }
+        }
+        throw MarginError.notFound("No file for \(noteID ?? courseID ?? "?")")
+    }
+}
+
+/// Runs `body` against a fresh harness and always shuts it down.
+func withHarness(_ kind: HarnessKind, clock: any Clock = FixedClock(),
+                 _ body: (Harness) async throws -> Void) async throws {
+    let harness = try await Harness.make(kind, clock: clock)
+    do { try await body(harness) } catch {
+        await harness.shutdown()
+        throw error
+    }
+    await harness.shutdown()
+}
+
+/// The first element of `stream` that satisfies `predicate`, or `nil` after `timeout` seconds.
+func next<T: Sendable>(from stream: AsyncStream<T>, timeout: TimeInterval = 30,
+                       where predicate: @escaping @Sendable (T) -> Bool = { _ in true }) async -> T? {
+    await withTaskGroup(of: T?.self) { group in
+        group.addTask {
+            for await element in stream where predicate(element) { return element }
+            return nil
+        }
+        group.addTask {
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            return nil
+        }
+        let first = await group.next() ?? nil
+        group.cancelAll()
+        return first
+    }
+}
+
+/// Elements of `stream` collected until one satisfies `predicate` (or the timeout passes).
+func collect<T: Sendable>(from stream: AsyncStream<T>, timeout: TimeInterval = 30,
+                          until predicate: @escaping @Sendable (T) -> Bool) async -> [T] {
+    await withTaskGroup(of: [T].self) { group in
+        group.addTask {
+            var seen: [T] = []
+            for await element in stream {
+                seen.append(element)
+                if predicate(element) { break }
+            }
+            return seen
+        }
+        group.addTask {
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            return []
+        }
+        // Whichever finishes first: the collector (found) or the timer (empty).
+        var result: [T] = []
+        for await r in group { result = r; break }
+        group.cancelAll()
+        return result
+    }
+}
+
+let testActor = Actor.agent(identity: "study-helper", client: "conformance", session: "s-1", purpose: "test")
