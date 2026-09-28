@@ -72,3 +72,29 @@ public struct FixtureTaskService: TaskService {
     public func upcoming() async throws -> [TaskItem] { await store.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await store.tasks(course: course) }
 }
+
+/// `PropertyService` over `Fixtures.week5`, in memory. Notes carry the frontmatter the sample vault
+/// writes (`id`, `date`, `class`, `type`), so properties behave as in the vault.
+public struct FixturePropertyService: PropertyService {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func types() async throws -> [String: PropertyType] { await store.propertyTypes() }
+
+    public func set(key: String, value: FrontmatterValue, on note: NoteID, actor: Actor, baseVersion: String?,
+                    dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setProperty(key: key, value: value, on: note, actor: actor, baseVersion: baseVersion,
+                                    dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func remove(key: String, on note: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.removeProperty(key: key, on: note, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+}

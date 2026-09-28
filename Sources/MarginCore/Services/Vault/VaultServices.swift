@@ -65,3 +65,25 @@ public struct VaultTaskService: TaskService {
     public func upcoming() async throws -> [TaskItem] { await backend.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await backend.tasks(course: course) }
 }
+
+/// `PropertyService` over a vault: edits the frontmatter of the note file losslessly through
+/// `VaultStore` (atomic, `expectedVersion`).
+public struct VaultPropertyService: PropertyService {
+    let backend: VaultBackend
+
+    init(backend: VaultBackend) { self.backend = backend }
+
+    public func types() async throws -> [String: PropertyType] { await backend.propertyTypes() }
+
+    public func set(key: String, value: FrontmatterValue, on note: NoteID, actor: Actor, baseVersion: String?,
+                    dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.setProperty(key: key, value: value, on: note, actor: actor, baseVersion: baseVersion,
+                                      dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func remove(key: String, on note: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.removeProperty(key: key, on: note, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                         idempotencyKey: idempotencyKey)
+    }
+}
