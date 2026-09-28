@@ -62,8 +62,9 @@ public struct TaskExtractor: Sendable {
         return result
     }
 
-    /// Maps an extracted task to the contract type. Until AG-02 assigns ids, a task without
-    /// `^id` gets the location-derived id `<noteID>#L<line>`, which is not stable across edits.
+    /// Maps an extracted task to the contract type. A task without
+    /// `^id` (before `IDAssigner` has run) gets the location-derived placeholder `<noteID>#L<line>`,
+    /// which is not stable across edits.
     public func taskItem(_ task: ExtractedTask, noteID: NoteID, courseID: CourseID? = nil) -> TaskItem {
         TaskItem(
             id: task.blockID ?? "\(noteID)#L\(task.line)", text: task.text, due: task.due,
