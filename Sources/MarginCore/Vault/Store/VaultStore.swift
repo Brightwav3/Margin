@@ -26,29 +26,34 @@ public actor VaultStore {
     private let fileSystem: any FileSystem
     private let clock: any Clock
     private let trashService: any Trash
+    private let ownWrites: OwnWriteRegistry?
     private var renameObservers: [any RenameObserver] = []
 
     static let temporarySuffix = ".margin-tmp"
 
-    private init(root: URL, rootReal: String, fileSystem: any FileSystem, clock: any Clock, trash: any Trash) {
+    private init(root: URL, rootReal: String, fileSystem: any FileSystem, clock: any Clock, trash: any Trash, ownWrites: OwnWriteRegistry?) {
         self.root = root
         self.rootReal = rootReal
         self.fileSystem = fileSystem
         self.clock = clock
         self.trashService = trash
+        self.ownWrites = ownWrites
     }
 
     /// Opens the vault at `root`, removing temporary files left behind by an interrupted write.
     ///
     /// - Parameters:
     ///   - createIfMissing: creates the folder when absent (otherwise `MarginError.notFound`).
+    ///   - ownWrites: when given, every write, rename and trash is announced to this registry right
+    ///     before it happens, so a `FileWatcher` sharing it does not report the app's own changes.
     ///   - trash: defaults to the macOS Trash on macOS and `PortableTrash` elsewhere.
     public static func open(
         root: URL,
         fileSystem: any FileSystem = POSIXFileSystem(),
         clock: any Clock = SystemClock(),
         trash: (any Trash)? = nil,
-        createIfMissing: Bool = false
+        createIfMissing: Bool = false,
+        ownWrites: OwnWriteRegistry? = nil
     ) async throws -> VaultStore {
         let root = root.standardizedFileURL
         do {
@@ -65,7 +70,7 @@ public actor VaultStore {
             #else
             let defaultTrash: any Trash = PortableTrash()
             #endif
-            let store = VaultStore(root: root, rootReal: real.path, fileSystem: fileSystem, clock: clock, trash: trash ?? defaultTrash)
+            let store = VaultStore(root: root, rootReal: real.path, fileSystem: fileSystem, clock: clock, trash: trash ?? defaultTrash, ownWrites: ownWrites)
             await store.recoverTemporaryFiles()
             return store
         } catch { throw VaultStore.map(error, "open vault") }
@@ -155,20 +160,20 @@ public actor VaultStore {
     ///   otherwise `MarginError.conflict` and nothing is written.
     /// - Returns: the version of the newly written file.
     @discardableResult
-    public func write(_ path: VaultPath, content: String, expectedVersion: ContentHash? = nil) throws -> ContentHash {
-        try atomicWrite(Data(content.utf8), to: path, expectedVersion: expectedVersion, mustNotExist: false)
+    public func write(_ path: VaultPath, content: String, expectedVersion: ContentHash? = nil) async throws -> ContentHash {
+        try await atomicWrite(Data(content.utf8), to: path, expectedVersion: expectedVersion, mustNotExist: false)
     }
 
     /// Byte-level variant of `write`.
     @discardableResult
-    public func writeData(_ path: VaultPath, data: Data, expectedVersion: ContentHash? = nil) throws -> ContentHash {
-        try atomicWrite(data, to: path, expectedVersion: expectedVersion, mustNotExist: false)
+    public func writeData(_ path: VaultPath, data: Data, expectedVersion: ContentHash? = nil) async throws -> ContentHash {
+        try await atomicWrite(data, to: path, expectedVersion: expectedVersion, mustNotExist: false)
     }
 
     /// Creates a new file; `MarginError.conflict` when something already exists at `path`.
     @discardableResult
-    public func create(_ path: VaultPath, content: String) throws -> ContentHash {
-        try atomicWrite(Data(content.utf8), to: path, expectedVersion: nil, mustNotExist: true)
+    public func create(_ path: VaultPath, content: String) async throws -> ContentHash {
+        try await atomicWrite(Data(content.utf8), to: path, expectedVersion: nil, mustNotExist: true)
     }
 
     /// Renames or moves a file or folder, creating missing target folders. `MarginError.conflict`
@@ -177,6 +182,7 @@ public actor VaultStore {
     public func rename(_ from: VaultPath, to: VaultPath) async throws {
         guard from != to else { return }
         let isDirectory: Bool
+        var announced: [(path: String, hash: String)] = []
         do {
             for p in [from, to] where VaultStore.isTrashArea(p) {
                 throw MarginError.invalid("\(p) is inside the trash area and cannot be renamed")
@@ -191,6 +197,15 @@ public actor VaultStore {
             isDirectory = sourceAttrs.kind == .directory
             let targetParent = target.deletingLastPathComponent()
             try fileSystem.createDirectories(at: targetParent)
+            if let ownWrites {
+                // Announce before the move: the source disappears and the same bytes appear at the target.
+                for file in watchedFiles(at: source, path: from) {
+                    let moved = to.rawValue + file.path.dropFirst(from.rawValue.count)
+                    announced.append((file.path, OwnWriteRegistry.deletedHash))
+                    announced.append((moved, file.hash))
+                }
+                for a in announced { await ownWrites.register(path: a.path, hash: a.hash) }
+            }
             do {
                 try fileSystem.moveItemNoReplace(from: source, to: target)
             } catch FileSystemError.alreadyExists {
@@ -206,7 +221,10 @@ public actor VaultStore {
             try? fileSystem.syncDirectory(at: targetParent)
             let sourceParent = source.deletingLastPathComponent()
             if sourceParent != targetParent { try? fileSystem.syncDirectory(at: sourceParent) }
-        } catch { throw VaultStore.map(error, "rename \(from)") }
+        } catch {
+            if let ownWrites { for a in announced { await ownWrites.forget(path: a.path, hash: a.hash) } }
+            throw VaultStore.map(error, "rename \(from)")
+        }
 
         for observer in renameObservers {
             await observer.vaultDidRename(from: from, to: to, isDirectory: isDirectory, in: self)
@@ -216,23 +234,33 @@ public actor VaultStore {
     /// Moves a file or folder to the trash. Nothing is ever hard-deleted. Returns the item's new
     /// location when the trash reports it.
     @discardableResult
-    public func trash(_ path: VaultPath) throws -> URL? {
+    public func trash(_ path: VaultPath) async throws -> URL? {
+        var announced: [String] = []
         do {
             if VaultStore.isTrashArea(path) || path == VaultPath.internalRoot {
                 throw MarginError.invalid("\(path) is app data and cannot be trashed")
             }
             let url = try checkedURL(path, followFinal: false)
             guard try fileSystem.attributes(at: url) != nil else { throw MarginError.notFound("No such file: \(path)") }
+            if let ownWrites {
+                announced = watchedFiles(at: url, path: path).map(\.path)
+                for p in announced { await ownWrites.register(path: p, hash: OwnWriteRegistry.deletedHash) }
+            }
             let destination = try trashService.moveToTrash(itemAt: url, vaultRoot: root, fileSystem: fileSystem, clock: clock)
             try? fileSystem.syncDirectory(at: url.deletingLastPathComponent())
             return destination
-        } catch { throw VaultStore.map(error, "trash \(path)") }
+        } catch {
+            if let ownWrites { for p in announced { await ownWrites.forget(path: p, hash: OwnWriteRegistry.deletedHash) } }
+            throw VaultStore.map(error, "trash \(path)")
+        }
     }
 
     // MARK: - Atomic write pipeline
 
-    private func atomicWrite(_ data: Data, to path: VaultPath, expectedVersion: ContentHash?, mustNotExist: Bool) throws -> ContentHash {
+    private func atomicWrite(_ data: Data, to path: VaultPath, expectedVersion: ContentHash?, mustNotExist: Bool) async throws -> ContentHash {
         let parent: URL
+        let newHash = ContentHash(of: data)
+        var announced = false
         do {
             if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
             let target = try checkedURL(path, followFinal: false)
@@ -255,6 +283,10 @@ public actor VaultStore {
             try fileSystem.createDirectories(at: parent)
             let temp = parent.appendingPathComponent(".\(UUID().uuidString)\(VaultStore.temporarySuffix)")
             do {
+                if let ownWrites, VaultStore.isWatched(path) {
+                    await ownWrites.register(path: path.rawValue, hash: newHash)
+                    announced = true
+                }
                 try fileSystem.createFile(at: temp, data: data, permissions: existing?.permissions)
                 try fileSystem.sync(fileAt: temp)
                 // Narrow the check-to-rename window for writers outside this process.
@@ -268,12 +300,15 @@ public actor VaultStore {
                 try? fileSystem.removeFile(at: temp)
                 throw error
             }
-        } catch { throw VaultStore.map(error, "write \(path)") }
+        } catch {
+            if announced, let ownWrites { await ownWrites.forget(path: path.rawValue, hash: newHash) }
+            throw VaultStore.map(error, "write \(path)")
+        }
 
         do { try fileSystem.syncDirectory(at: parent) } catch {
             throw MarginError.io("\(path) was written but syncing its folder failed: \(error)")
         }
-        return ContentHash(of: data)
+        return newHash
     }
 
     private func verify(version expected: ContentHash, of target: URL, path: VaultPath) throws {
@@ -284,6 +319,32 @@ public actor VaultStore {
         let actual = ContentHash(of: current)
         guard actual == expected else {
             throw MarginError.conflict("\(path) changed on disk (expected \(expected.hex.prefix(12)), found \(actual.hex.prefix(12)))")
+        }
+    }
+
+    // MARK: - Own-write announcements
+
+    private static func isWatched(_ path: VaultPath) -> Bool {
+        PollingFileWatcher.isWatched(components: path.components)
+    }
+
+    /// Files the watcher would report below (or at) `url`, with the hash of their current bytes.
+    private func watchedFiles(at url: URL, path: VaultPath) -> [(path: String, hash: String)] {
+        guard let attrs = try? fileSystem.attributes(at: url) else { return [] }
+        switch attrs.kind {
+        case .file:
+            guard VaultStore.isWatched(path), let data = try? fileSystem.readData(at: url) else { return [] }
+            return [(path.rawValue, ContentHash(of: data).hex)]
+        case .directory:
+            guard let entries = try? fileSystem.contentsOfDirectory(at: url) else { return [] }
+            var out: [(path: String, hash: String)] = []
+            for entry in entries where !entry.name.hasPrefix(".") {
+                guard let child = try? VaultPath(components: path.components + [entry.name]) else { continue }
+                out += watchedFiles(at: url.appendingPathComponent(entry.name), path: child)
+            }
+            return out
+        case .symlink, .other:
+            return []
         }
     }
 

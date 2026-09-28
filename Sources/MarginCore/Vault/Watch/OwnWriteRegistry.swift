@@ -44,6 +44,16 @@ public actor OwnWriteRegistry {
         return true
     }
 
+    /// Withdraws a registration whose write never happened (e.g. it failed before the rename).
+    public func forget(path: String, hash: String) {
+        _ = consume(path: path, hash: hash)
+    }
+
+    /// Typed variant of `forget(path:hash:)`.
+    public func forget(path: String, hash: ContentHash) {
+        forget(path: path, hash: hash.hex)
+    }
+
     /// Number of live registrations (for tests and diagnostics).
     public var pendingCount: Int {
         prune()
