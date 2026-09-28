@@ -34,12 +34,18 @@ struct Harness: Sendable {
     /// The text of a vault file by vault-relative path (`nil` when it does not exist, and always
     /// for the fixture, which has no files). For checking the exact file format.
     let readFile: @Sendable (String) -> String?
+    /// Names of the files (not folders) below a vault-relative folder, sorted; empty for the
+    /// fixture and for a missing folder. For checking that files were trashed, not destroyed.
+    let listFiles: @Sendable (String) -> [String]
+    /// Writes a vault file from outside (vault only; the fixture ignores it).
+    let writeFile: @Sendable (String, String) throws -> Void
     fileprivate let keepAlive: TempFolder?
 
     var courses: any CourseCatalog { env.courses }
     var notes: any NoteRepository { env.notes }
     var tasks: any TaskService { env.tasks }
     var capture: any CaptureService { env.capture }
+    var inbox: any InboxService { env.inbox }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
@@ -50,13 +56,14 @@ struct Harness: Sendable {
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
                 tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
+                inbox: FixtureInboxService(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env,
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
                 editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
-                readFile: { _ in nil },
+                readFile: { _ in nil }, listFiles: { _ in [] }, writeFile: { _, _ in },
                 keepAlive: nil)
         case .vault:
             let folder = TempFolder()
@@ -82,6 +89,16 @@ struct Harness: Sendable {
                     try Data(((fm?.render() ?? "") + body).utf8).write(to: file)
                 },
                 readFile: { try? String(contentsOf: root.appendingPathComponent($0), encoding: .utf8) },
+                listFiles: { folder in
+                    let url = root.appendingPathComponent(folder, isDirectory: true)
+                    let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+                    return names.filter { !$0.hasPrefix(".") }.sorted()
+                },
+                writeFile: { path, text in
+                    let url = root.appendingPathComponent(path)
+                    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try Data(text.utf8).write(to: url)
+                },
                 keepAlive: folder)
         }
     }

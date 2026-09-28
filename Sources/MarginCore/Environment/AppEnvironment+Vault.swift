@@ -21,6 +21,7 @@ extension AppEnvironment {
             notes: VaultNoteRepository(backend: backend),
             tasks: VaultTaskService(backend: backend),
             capture: VaultCaptureService(backend: backend),
+            inbox: VaultInboxService(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }
