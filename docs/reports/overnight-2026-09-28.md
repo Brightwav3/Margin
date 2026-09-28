@@ -6,17 +6,17 @@
 
 **Provisional assumptions:** see `docs/agents/overnight.md` §4 (Q1–Q13 defaults from STATUS.md). Every PR carries **PROVISIONAL**. Additional self-made decisions are listed below.
 
-**Summary:** started 0 / DONE 0 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
+**Summary:** started 6 / DONE 6 / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
 
 | Task | Slice/branch | PR | State | Verified | Note |
 |---|---|---|---|---|---|
-| M0-01 | S1 feat/core-foundation | | DONE (branch pushed) | swift build + test (Docker) | Package.swift, MarginUI only on macOS |
-| M2-01 | S1 | | todo | | |
-| M2-02 | S1 | | todo | | |
-| M2-03 | S1 | | todo | | |
-| M2-04 | S1 | | todo | | |
-| M2-05 | S1 | | todo | | |
-| M5-02..M5-10.B | S2 feat/core-vault | | todo | | |
+| M0-01 | S1 feat/core-foundation | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE (branch pushed) | swift build + test (Docker) | Package.swift, MarginUI only on macOS |
+| M2-01 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | types + MarginError, ask:required |
+| M2-02 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | FixedClock 2026-09-28 13:24 Europe/Prague |
+| M2-03 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | counts match plan |
+| M2-04 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | grade weights mismatch, see questions |
+| M2-05 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | 23 nodes / 26 edges |
+| M5-02..M5-10.B | S2 feat/core-vault | | in progress (wave 1: M5-02, M5-03/04/05, M5-06) | | |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
@@ -26,7 +26,9 @@
 _(none yet)_
 
 ## Questions for the human
-_(none yet)_
+1. Grade weights: Grades screen item weights (Bio 5/5/15/5/30/40) vs `_course.md` grading parts (20/25/25/30). Which is authoritative? Both transcribed as-is (PR #23).
+2. Lab 2 date: gallery says Mon 21 Sep, lecture list Mon 14 Sep. Fixture uses 21 Sep.
+3. Semester Fall 2026 start/end invented (2026-08-31 .. 2026-12-13) so that 28 Sep = week 5. Confirm.
 
 ## Proposals for approval
 _(none yet)_
