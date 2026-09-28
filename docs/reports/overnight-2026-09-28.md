@@ -16,16 +16,20 @@
 | M2-03 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | counts match plan |
 | M2-04 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | grade weights mismatch, see questions |
 | M2-05 | S1 | [#23](https://github.com/Brightwav3/Margin/pull/23) | DONE | swift test (Docker), 26 tests | 23 nodes / 26 edges |
-| M5-02..M5-10.B | S2 feat/core-vault | | in progress (wave 1: M5-02, M5-03/04/05, M5-06) | | |
+| M5-03, M5-04, M5-05 | S2 feat/core-vault | | DONE | swift test (Docker), 62 total | `@before-*` = strictly after today; tasks without `^id` get line-based placeholder id until AG-02 |
+| M5-02, M5-06, M5-07 | S2 | | in progress | | |
+| M5-08, M5-09, M5-10.B | S2 | | todo | | |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
-| S6–S12, Phase 2 UI | | | todo | | |
+| S6–S12 | | | todo | | |
+| Phase 2 UI | | | SKIPPED (human: UI later on Mac) | | |
 
 ## Human instructions received mid-run
 - Full autonomy granted, except: nothing is merged to `main` (explicit rule kept).
 - CI emails: `ci.yml` was invalid (`hashFiles()` in a job-level `if`), so every push produced a failed "No jobs were run" run. Fix in PR [#24](https://github.com/Brightwav3/Margin/pull/24) (green), cherry-picked into slice branches so PR CI runs.
 - **UI must stay fully replaceable**: UI depends only on `MarginCore/API` + `AppEnvironment`; deleting `Sources/MarginUI*`/`App/Margin` must keep core build and tests green. Added to every worker brief.
+- **Scope change: backend only.** Phase 2 (UI drafts, `MarginUILogic` target) is dropped from this run by the human; UI will be built later on a Mac against `MarginCore/API` + fixtures.
 - UI screenshots from Docker were requested: SwiftUI does not run on Linux, so real UI screenshots are impossible here (see Phase 2 notes).
 
 ## Errors
