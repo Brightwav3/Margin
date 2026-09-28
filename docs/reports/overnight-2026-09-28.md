@@ -22,6 +22,12 @@
 | M7-* | S5 feat/tasks-core | | todo | | |
 | S6–S12, Phase 2 UI | | | todo | | |
 
+## Human instructions received mid-run
+- Full autonomy granted, except: nothing is merged to `main` (explicit rule kept).
+- CI emails: `ci.yml` was invalid (`hashFiles()` in a job-level `if`), so every push produced a failed "No jobs were run" run. Fix in PR [#24](https://github.com/Brightwav3/Margin/pull/24) (green), cherry-picked into slice branches so PR CI runs.
+- **UI must stay fully replaceable**: UI depends only on `MarginCore/API` + `AppEnvironment`; deleting `Sources/MarginUI*`/`App/Margin` must keep core build and tests green. Added to every worker brief.
+- UI screenshots from Docker were requested: SwiftUI does not run on Linux, so real UI screenshots are impossible here (see Phase 2 notes).
+
 ## Errors
 _(none yet)_
 
