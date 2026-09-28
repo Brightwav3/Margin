@@ -12,7 +12,7 @@ permissions:
 jobs:
   # Název jobu "check" musí odpovídat required check v .github/rulesets/protect-main.json
   check:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,14 +36,16 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 scripts/lint-commit.py --range "$BASE_SHA..HEAD"
 
+  # Build a testy Swiftu běží na macOS (hostované macOS minuty jsou na soukromém repu dražší, proto až když existuje Package.swift)
+  build:
+    if: hashFiles('Package.swift') != ''
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
       - name: Build and test
         run: |
-          if [ -f Package.swift ]; then
-            swift build
-            swift test
-          else
-            echo "Package.swift zatím neexistuje (fáze M0), build a testy přeskočeny."
-          fi
+          swift build
+          swift test
 
   # PR se štítkem milestone:<M> smí být sloučen jen se schválením člověka v docs/checks/<M>.md
   milestone-gate:
