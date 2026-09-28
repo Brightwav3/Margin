@@ -48,6 +48,7 @@ import Testing
 
                 let fresh = MarkdownTokenizer(text: tk.string)
                 let ok = tk.tokens == fresh.tokens
+                    && tk.blockModel() == fresh.blockModel()
                     && tk.lineCount == fresh.lineCount
                     && (0..<tk.lineCount).allSatisfy { tk.lineRange($0) == fresh.lineRange($0) }
                 if !ok {

@@ -94,6 +94,12 @@ public struct MarkdownTokenizer: Sendable {
         MarkdownTokenizer(text: text).tokens
     }
 
+    /// The document split into blocks, for live preview.
+    public func blockModel() -> BlockModel {
+        BlockModel(lineStarts: lineStarts, lineEnds: (0..<records.count).map { contentEnd(of: $0) },
+                   kinds: records.map(\.kind))
+    }
+
     // MARK: Editing
 
     /// Replaces `range` with `replacement` and retokenizes only what the change can affect.
