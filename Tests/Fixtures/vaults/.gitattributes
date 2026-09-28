@@ -1,0 +1,2 @@
+# Vault fixtures are byte-exact test data: never normalise line endings.
+* -text
