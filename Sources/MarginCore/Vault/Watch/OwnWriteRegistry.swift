@@ -5,7 +5,7 @@ import Foundation
 /// watcher calls `consume(path:hash:)` when it sees the resulting content. A match is swallowed
 /// exactly once; entries expire after `ttl` seconds (measured with the injected `Clock`).
 public actor OwnWriteRegistry {
-    /// Hash to register for a deletion the app performs itself.
+    /// Hash (hex string) to register for a deletion the app performs itself.
     public static let deletedHash = "<deleted>"
 
     private struct Entry { let hash: String; let expires: Date }
@@ -23,6 +23,16 @@ public actor OwnWriteRegistry {
     public func register(path: String, hash: String) {
         prune()
         entries[path, default: []].append(Entry(hash: hash, expires: clock.now.addingTimeInterval(ttl)))
+    }
+
+    /// Typed variant of `register(path:hash:)` using the store's SHA-256 version.
+    public func register(path: String, hash: ContentHash) {
+        register(path: path, hash: hash.hex)
+    }
+
+    /// Typed variant of `consume(path:hash:)`.
+    public func consume(path: String, hash: ContentHash) -> Bool {
+        consume(path: path, hash: hash.hex)
     }
 
     /// `true` (and forgets the entry) when a live registration matches `path` and `hash`.

@@ -1,8 +1,8 @@
 import Testing
 @testable import MarginCore
 
-/// Deterministic SplitMix64 so every fuzz run is reproducible.
-private struct SplitMix64 {
+/// Deterministic FuzzRNG so every fuzz run is reproducible.
+private struct FuzzRNG {
     var state: UInt64
     init(seed: UInt64) { state = seed }
     mutating func next() -> UInt64 {
@@ -28,17 +28,17 @@ private let nastyStrings = [
     "---", "...", "a:", ":a", "cr\rlf", "25%", "Tue", "10:00", "é", "e\u{301}", "\u{2028}", "x]y", "'", "\"",
 ]
 
-private func randomWord(_ r: inout SplitMix64) -> String {
+private func randomWord(_ r: inout FuzzRNG) -> String {
     r.chance(75) ? r.pick(words) : String((0..<(1 + r.int(6))).map { _ in
         r.pick(Array("abcdefghijklmnopqrstuvwxyzÁéß0123456789 _-:#[]{}\"'".map { $0 }))
     })
 }
 
-private func randomDate(_ r: inout SplitMix64) -> LocalDate {
+private func randomDate(_ r: inout FuzzRNG) -> LocalDate {
     LocalDate(year: 2020 + r.int(10), month: 1 + r.int(12), day: 1 + r.int(28))!
 }
 
-private func randomValue(_ r: inout SplitMix64, depth: Int = 0) -> FrontmatterValue {
+private func randomValue(_ r: inout FuzzRNG, depth: Int = 0) -> FrontmatterValue {
     let kinds = depth >= 2 ? 7 : 9
     switch r.int(kinds) {
     case 0: return .null
@@ -55,7 +55,7 @@ private func randomValue(_ r: inout SplitMix64, depth: Int = 0) -> FrontmatterVa
 }
 
 /// Renders a hand-styled scalar the way people write them (quoting, comments, odd spacing).
-private func styledScalar(_ r: inout SplitMix64) -> String {
+private func styledScalar(_ r: inout FuzzRNG) -> String {
     switch r.int(14) {
     case 0: return "plain text"
     case 1: return "\"double \\\"quoted\\\" \\u00e9\""
@@ -74,7 +74,7 @@ private func styledScalar(_ r: inout SplitMix64) -> String {
     }
 }
 
-private func randomEntry(_ r: inout SplitMix64) -> String {
+private func randomEntry(_ r: inout FuzzRNG) -> String {
     let key = r.chance(85) ? r.pick(words) : (r.chance(50) ? "\"quoted key\"" : "'sq key'")
     let space = r.pick(["", " ", "  ", "   "])
     let comment = r.chance(25) ? r.pick(["  # note", " #x", "\t# tab", "   # a: b"]) : ""
@@ -104,7 +104,7 @@ private func randomEntry(_ r: inout SplitMix64) -> String {
     }
 }
 
-private func randomDocument(_ r: inout SplitMix64) -> String {
+private func randomDocument(_ r: inout FuzzRNG) -> String {
     var lines: [String] = []
     for _ in 0..<r.int(9) {
         lines.append(randomEntry(&r))
@@ -133,7 +133,7 @@ private func bytes(_ s: String) -> [UInt8] { Array(s.utf8) }
     static let count = 10_000
 
     @Test func parseRenderIsByteIdentical() {
-        var r = SplitMix64(seed: 0xF00D_0001)
+        var r = FuzzRNG(seed: 0xF00D_0001)
         var withFrontmatter = 0
         var withEntries = 0
         for i in 0..<Self.count {
@@ -160,7 +160,7 @@ private func bytes(_ s: String) -> [UInt8] { Array(s.utf8) }
     }
 
     @Test func setKeyChangesOnlyThatKey() {
-        var r = SplitMix64(seed: 0xF00D_0002)
+        var r = FuzzRNG(seed: 0xF00D_0002)
         var checked = 0
         for i in 0..<Self.count {
             let text = randomDocument(&r)
@@ -223,7 +223,7 @@ private func bytes(_ s: String) -> [UInt8] { Array(s.utf8) }
     }
 
     @Test func removeKeyChangesOnlyThatKey() {
-        var r = SplitMix64(seed: 0xF00D_0003)
+        var r = FuzzRNG(seed: 0xF00D_0003)
         for i in 0..<2_000 {
             let text = randomDocument(&r)
             guard var f = Frontmatter.parse(text).frontmatter, let key = f.keys.first else { continue }
@@ -237,7 +237,7 @@ private func bytes(_ s: String) -> [UInt8] { Array(s.utf8) }
     }
 
     @Test func garbageNeverCrashesAndRoundTrips() {
-        var r = SplitMix64(seed: 0xF00D_0004)
+        var r = FuzzRNG(seed: 0xF00D_0004)
         let alphabet: [String] = ["---", "\n", "\r\n", "\r", " ", "  ", "\t", ":", ": ", "-", "- ", "#", " #", "[", "]", "{", "}",
                                   ",", "\"", "'", "\\", "\\u00", "\\x", "|", ">", "&", "*", "!", "?", "%", "@", "`", "key", "a", "1",
                                   "2026-09-24", "\u{FEFF}", "é", "🎓", "\u{0}", "\u{7F}", "\u{85}", "\u{2028}", "[[x]]"]
@@ -263,7 +263,7 @@ private func bytes(_ s: String) -> [UInt8] { Array(s.utf8) }
     }
 
     @Test func valuesRoundTripThroughRendering() {
-        var r = SplitMix64(seed: 0xF00D_0005)
+        var r = FuzzRNG(seed: 0xF00D_0005)
         for i in 0..<Self.count {
             let value = randomValue(&r)
             var f = Frontmatter()

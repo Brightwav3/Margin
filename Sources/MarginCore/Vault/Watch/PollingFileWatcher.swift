@@ -21,13 +21,19 @@ public struct PollingFileWatcher: FileWatcher {
         interval: TimeInterval = 0.3,
         clock: any Clock = SystemClock(),
         ownWrites: OwnWriteRegistry? = nil,
-        hashProvider: @escaping @Sendable (URL) -> String? = { ContentHash.ofFile(at: $0) }
+        hashProvider: @escaping @Sendable (URL) -> String? = { PollingFileWatcher.sha256Hex(ofFileAt: $0) }
     ) {
         self.root = root.resolvingSymlinksInPath()
         self.interval = interval
         self.clock = clock
         self.ownWrites = ownWrites
         self.hashProvider = hashProvider
+    }
+
+    /// Lowercase hex SHA-256 (`ContentHash.hex`) of a file's bytes, or `nil` when unreadable.
+    public static func sha256Hex(ofFileAt url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return ContentHash(of: data).hex
     }
 
     struct Entry: Equatable {

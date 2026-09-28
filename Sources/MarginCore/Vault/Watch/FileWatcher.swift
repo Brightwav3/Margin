@@ -26,21 +26,3 @@ public protocol FileWatcher: Sendable {
     /// after the call is reported.
     func changes() -> AsyncStream<[FileChange]>
 }
-
-/// Content hash helper (FNV-1a 64, hex). Cheap and dependency-free; not cryptographic.
-public enum ContentHash {
-    public static func fnv1a(_ data: Data) -> String {
-        var h: UInt64 = 0xcbf2_9ce4_8422_2325
-        for b in data {
-            h ^= UInt64(b)
-            h = h &* 0x0000_0100_0000_01b3
-        }
-        return String(h, radix: 16)
-    }
-
-    /// Hash of a file's bytes, or `nil` when it cannot be read.
-    public static func ofFile(at url: URL) -> String? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return fnv1a(data)
-    }
-}

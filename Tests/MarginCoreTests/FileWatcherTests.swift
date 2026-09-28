@@ -102,7 +102,7 @@ private func settle() async { try? await Task.sleep(nanoseconds: 900_000_000) }
         defer { c.stop() }
 
         let own = "own content"
-        await registry.register(path: "Course/own.md", hash: ContentHash.fnv1a(Data(own.utf8)))
+        await registry.register(path: "Course/own.md", hash: ContentHash(of: own))
         try write(own, "Course/own.md", in: root)
         try write("external", "Course/ext.md", in: root)
         #expect(await c.wait { $0.contains(FileChange(path: "Course/ext.md", kind: .created)) })
