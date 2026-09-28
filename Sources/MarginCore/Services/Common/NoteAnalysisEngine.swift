@@ -8,6 +8,8 @@ struct NoteAnalysisEngine: Sendable {
     let index: @Sendable () async -> NoteIndex
     /// Whether a vault path is a note (not `_course.md`, not the inbox).
     let isNote: @Sendable (String) -> Bool
+    /// Text counters of notes being edited, so typing recomputes only what changed.
+    let trackers = StatsTrackers()
 
     private func record(_ id: NoteID, in index: NoteIndex) async throws -> NoteRecord {
         guard let r = await index.note(byID: id), isNote(r.path) else { throw MarginError.notFound("No note \(id)") }
@@ -69,7 +71,7 @@ struct NoteAnalysisEngine: Sendable {
         let r = try await record(id, in: index)
         let backlinks = await index.backlinks(to: id).filter { isNote($0.sourcePath) }.count
         if let text {
-            let counts = NoteStatsCalculator.count(body: text)
+            let counts = await trackers.update(id: id, body: text)
             return NoteStats(backlinks: backlinks, properties: r.properties.count, words: counts.words,
                              openTasks: counts.openTasks, totalTasks: counts.totalTasks)
         }
@@ -89,5 +91,24 @@ struct NoteAnalysisEngine: Sendable {
             result.append(NoteProperty(key: key, type: type, value: value))
         }
         return result
+    }
+}
+
+/// One `NoteStatsTracker` per note that is being edited; the least recently used are dropped.
+actor StatsTrackers {
+    private var trackers: [NoteID: NoteStatsTracker] = [:]
+    private var order: [NoteID] = []
+    private let capacity: Int
+
+    init(capacity: Int = 16) { self.capacity = capacity }
+
+    func update(id: NoteID, body: String) -> NoteTextCounts {
+        var tracker = trackers[id] ?? NoteStatsTracker()
+        let counts = tracker.update(body: body)
+        trackers[id] = tracker
+        order.removeAll { $0 == id }
+        order.append(id)
+        while order.count > capacity { trackers[order.removeFirst()] = nil }
+        return counts
     }
 }

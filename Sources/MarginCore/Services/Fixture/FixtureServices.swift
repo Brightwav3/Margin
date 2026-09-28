@@ -103,15 +103,16 @@ public struct FixturePropertyService: PropertyService {
 /// notes, so it follows note writes like the vault does.
 public struct FixtureNoteAnalysis: NoteAnalysis {
     let store: FixtureStore
-    private var engine: NoteAnalysisEngine {
-        NoteAnalysisEngine(index: { [store] in await store.noteIndex() }, isNote: { _ in true })
-    }
+    private let engine: NoteAnalysisEngine
 
     public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
-        self.store = FixtureStore(world: world, clock: clock)
+        self.init(store: FixtureStore(world: world, clock: clock))
     }
 
-    init(store: FixtureStore) { self.store = store }
+    init(store: FixtureStore) {
+        self.store = store
+        self.engine = NoteAnalysisEngine(index: { await store.noteIndex() }, isNote: { _ in true })
+    }
 
     public func outline(id: NoteID) async throws -> [OutlineItem] { try await engine.outline(id: id) }
     public func backlinks(id: NoteID) async throws -> [NoteBacklink] { try await engine.backlinks(id: id) }

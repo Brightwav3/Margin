@@ -92,11 +92,12 @@ public struct VaultPropertyService: PropertyService {
 /// writes keep current.
 public struct VaultNoteAnalysis: NoteAnalysis {
     let backend: VaultBackend
-    private var engine: NoteAnalysisEngine {
-        NoteAnalysisEngine(index: { [backend] in backend.index }, isNote: VaultBackend.isNotePath)
-    }
+    private let engine: NoteAnalysisEngine
 
-    init(backend: VaultBackend) { self.backend = backend }
+    init(backend: VaultBackend) {
+        self.backend = backend
+        self.engine = NoteAnalysisEngine(index: { backend.index }, isNote: VaultBackend.isNotePath)
+    }
 
     public func outline(id: NoteID) async throws -> [OutlineItem] { try await engine.outline(id: id) }
     public func backlinks(id: NoteID) async throws -> [NoteBacklink] { try await engine.backlinks(id: id) }
