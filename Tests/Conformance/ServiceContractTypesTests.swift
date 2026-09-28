@@ -41,6 +41,20 @@ import Testing
         #expect(ChangeSet(id: "e", actor: .system, timestamp: Date(timeIntervalSince1970: 0), entries: []).isEmpty)
     }
 
+    @Test func changeSetUndoFieldsRoundTripAndOldRecordsStillDecode() throws {
+        let undo = ChangeSet(
+            id: "cs-2", actor: .system, timestamp: Date(timeIntervalSince1970: 1_790_000_100),
+            entries: [.init(path: "b.md", kind: .modified, beforeHash: "b2", afterHash: "b1", merged: true)],
+            revertsID: "cs-1")
+        #expect(try roundTrip(undo) == undo)
+        #expect(undo.revertsID == "cs-1" && undo.entries[0].merged == true)
+        // A record written before AG-03/AG-04 has neither key.
+        let old = Data(#"{"id":"cs-0","actor":{"kind":"user"},"timestamp":1,"entries":[{"path":"a.md","kind":"created","afterHash":"aa"}],"isDryRun":false}"#.utf8)
+        let decoded = try JSONDecoder().decode(ChangeSet.self, from: old)
+        #expect(decoded.revertsID == nil && decoded.entries[0].merged == nil)
+        #expect(try roundTrip(UndoMode.merge) == .merge)
+    }
+
     @Test func sessionOccurrenceHasStableIDAndStart() throws {
         let session = Session(courseID: "bio", day: .tuesday, start: .literal(10), lengthHours: 1.5, kind: "Lecture")
         let occurrence = SessionOccurrence(session: session, date: .literal(2026, 9, 29))
@@ -82,7 +96,18 @@ import Testing
         func tasks(course: CourseID) async throws -> [TaskItem] { throw MarginError.notFound(course) }
     }
 
+    struct StubChanges: ChangeSetStore {
+        func changes(limit: Int?) async throws -> [ChangeSet] { [] }
+        func change(id: String) async throws -> ChangeSet { throw MarginError.notFound(id) }
+        func undo(id: String, actor: WriteActor, mode: UndoMode, dryRun: Bool) async throws -> ChangeSet {
+            throw MarginError.notFound(id)
+        }
+    }
+
     @Test func protocolsCanBeImplementedFromTheAPIAlone() async throws {
+        let changes: any ChangeSetStore = StubChanges()
+        #expect(try await changes.changes().isEmpty)
+        await #expect(throws: MarginError.self) { try await changes.undo(id: "x", actor: .user) }
         let catalog: any CourseCatalog = StubCatalog()
         let notes: any NoteRepository = StubNotes()
         let tasks: any TaskService = StubTasks()

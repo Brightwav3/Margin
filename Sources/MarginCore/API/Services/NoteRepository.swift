@@ -19,8 +19,13 @@ public struct NoteChange: Codable, Sendable, Hashable {
 ///
 /// - `actor`: who writes.
 /// - `baseVersion`: the `Note.version` the caller worked from. When it no longer matches the stored
-///   version the call throws `MarginError.conflict` and changes nothing. `nil` skips the check
-///   (the last writer wins); agents must always send it.
+///   version the call throws `MarginError.conflict` (carrying the current version in its
+///   `ConflictDetail`) and changes nothing. `nil` skips the check (the last writer wins); agents
+///   must always send it. One exception, for `save` only: when the caller's text and the stored
+///   text changed *different, non-overlapping* lines since `baseVersion`, they are merged (line-based
+///   three-way merge) and the merged text is written (`ChangeSet.Entry.merged == true`). Overlapping
+///   edits, or a `baseVersion` the service can no longer reconstruct, stay a `.conflict`; for
+///   overlapping edits its `ConflictDetail.mergedText` holds the merge with conflict markers.
 /// - `dryRun`: compute and return the `ChangeSet`, change nothing.
 /// - `idempotencyKey`: a repeated call with the same actor and key returns the first call's
 ///   `ChangeSet` and does not write again.
@@ -37,6 +42,8 @@ public struct NoteChange: Codable, Sendable, Hashable {
 /// - **Errors:** unknown note or course `.notFound`; stale `baseVersion` `.conflict`; creating a
 ///   note whose title is taken in the course `.conflict`; an empty title `.invalid`.
 /// - **Delete** moves the note to the trash, it is never destroyed.
+/// - **Undo:** every non-dry-run write that changed something is recorded in the `ChangeSetStore`
+///   and can be undone there.
 public protocol NoteRepository: Sendable {
     /// Notes of a course, or of all courses when `course` is `nil`. Unknown course: `.notFound`.
     func notes(course: CourseID?) async throws -> [NoteSummary]

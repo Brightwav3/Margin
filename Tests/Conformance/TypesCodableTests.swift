@@ -35,6 +35,26 @@ private let t = LocalTime.literal(10, 0)
         #expect(throws: DecodingError.self) { try JSONDecoder().decode(MarginError.self, from: bad) }
     }
 
+    @Test func conflictErrorsCarryTheirDetail() throws {
+        let detail = ConflictDetail(path: "Fall/bio/a.md", currentVersion: "abc", mergedText: "<<<<<<< x\n", conflictCount: 1)
+        let e = MarginError.conflict("stale", detail)
+        try roundTrip(e)
+        #expect(e.code == "conflict" && e.message == "stale" && e.conflictDetail == detail)
+        #expect(MarginError.conflict("plain").conflictDetail == nil)
+        #expect(MarginError.notFound("x").conflictDetail == nil)
+        // A plain conflict keeps the old wire shape; a detail is one extra key.
+        let plain = String(data: try JSONEncoder().encode(MarginError.conflict("m")), encoding: .utf8)
+        #expect(plain?.contains("detail") == false)
+        let old = Data(#"{"code":"conflict","message":"m"}"#.utf8)
+        #expect(try JSONDecoder().decode(MarginError.self, from: old) == .conflict("m"))
+        let full = try JSONEncoder().encode(e)
+        #expect(String(decoding: full, as: UTF8.self).contains("\"currentVersion\":\"abc\""))
+        // Equality includes the detail.
+        #expect(MarginError.conflict("m", ConflictDetail(currentVersion: "1")) != .conflict("m"))
+        // Callers that only match the case keep working.
+        if case MarginError.conflict = e {} else { Issue.record("case pattern without payload must match") }
+    }
+
     @Test func modelTypes() throws {
         let semester = Semester(id: "fall-2026", name: "Fall 2026",
                                 start: .literal(2026, 8, 31), end: .literal(2026, 12, 13), breakWeeks: [9])
