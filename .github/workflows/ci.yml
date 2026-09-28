@@ -37,13 +37,14 @@ jobs:
         run: python3 scripts/lint-commit.py --range "$BASE_SHA..HEAD"
 
   # Build a testy Swiftu běží na macOS (hostované macOS minuty jsou na soukromém repu dražší, proto až když existuje Package.swift)
+  # hashFiles() is not allowed in a job-level `if` (it made the whole workflow invalid), so the check is a step.
   build:
-    if: hashFiles('Package.swift') != ''
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Build and test
         run: |
+          if [ ! -f Package.swift ]; then echo "No Package.swift yet, skipping."; exit 0; fi
           swift build
           swift test
 
