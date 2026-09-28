@@ -72,3 +72,21 @@ public struct FixtureTaskService: TaskService {
     public func upcoming() async throws -> [TaskItem] { await store.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await store.tasks(course: course) }
 }
+
+/// `ChangeSetStore` over the in-memory fixture world: records the writes of the `Fixture…` services
+/// that share its store and undoes them. Same observable behaviour as `VaultChangeSetStore`.
+public struct FixtureChangeSetStore: ChangeSetStore {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func changes(limit: Int?) async throws -> [ChangeSet] { await store.changes(limit: limit) }
+    public func change(id: String) async throws -> ChangeSet { try await store.change(id: id) }
+    public func undo(id: String, actor: Actor, mode: UndoMode, dryRun: Bool) async throws -> ChangeSet {
+        try await store.undo(id: id, actor: actor, mode: mode, dryRun: dryRun)
+    }
+}
