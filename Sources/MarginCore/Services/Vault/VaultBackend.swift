@@ -313,6 +313,70 @@ actor VaultBackend {
         return finish(actor: actor, entries: [entry], dryRun: dryRun, key: idempotencyKey)
     }
 
+    /// Rewrites a note file through `transform` (whole content in, new content or `nil` out) with the
+    /// usual write rules. Shared by the property and task write paths.
+    func editContent(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
+                     transform: (_ content: String, _ record: NoteRecord) throws -> String?) async throws -> ChangeSet {
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        let r = try await record(id)
+        let path = try VaultPath(r.path)
+        let (content, version) = try await store.read(path)
+        try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
+        var entries: [ChangeSet.Entry] = []
+        if let newContent = try transform(content, r), newContent != content {
+            entries = [.init(path: r.path, kind: .modified, noteID: id, beforeHash: version.hex,
+                             afterHash: ContentHash(of: newContent).hex)]
+            if !dryRun {
+                try await store.write(path, content: newContent, expectedVersion: version)
+                if await index.update(path: r.path, content: newContent) { await tasksMayHaveChanged(paths: [r.path]) }
+            }
+        }
+        return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
+    }
+
+    // MARK: Tasks (write)
+
+    /// Flips a task through `TaskWriteBack` (finds it again in the current file text, retries when the
+    /// file changes meanwhile) and lets the tasks store know, so `TaskService.updates` fires.
+    func toggleTask(id taskID: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        var found: TaskItem?
+        for record in await noteRecords() {
+            if let task = record.tasks.first(where: { $0.id == taskID }) { found = task; break }
+        }
+        guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+        let result = try await taskWriteBack.setDone(!item.done, task: item, baseVersion: baseVersion, dryRun: dryRun)
+        if !dryRun, result.entry != nil { await tasksMayHaveChanged(paths: [result.path]) }
+        return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: dryRun, key: idempotencyKey)
+    }
+
+    // MARK: Properties
+
+    func propertyRegistry() async -> PropertyRegistry {
+        PropertyEditing.registry(inferredFrom: await noteRecords().map(\.properties))
+    }
+
+    func propertyTypes() async -> [String: PropertyType] { await propertyRegistry().types }
+
+    func setProperty(key: String, value: FrontmatterValue, on id: NoteID, actor: Actor, baseVersion: String?,
+                     dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        let registry = await propertyRegistry()
+        return try await editContent(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey) { content, _ in
+            try PropertyEditing.set(key: key, value: value, in: content, registry: registry)
+        }
+    }
+
+    func removeProperty(key: String, on id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                        idempotencyKey: String?) async throws -> ChangeSet {
+        try await editContent(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                              idempotencyKey: idempotencyKey) { content, _ in
+            try PropertyEditing.remove(key: key, in: content)
+        }
+    }
+
     private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }

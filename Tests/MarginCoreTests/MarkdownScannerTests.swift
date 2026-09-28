@@ -13,6 +13,22 @@ import Testing
         #expect(scan.codeBlocks[0].lines == 2...4)
     }
 
+    @Test func listAfterFenceEndsTheListSoIndentedCodeIsNotATask() {
+        let text = "- [ ] a\n\n```\ncode\n```\n\n    - [ ] code, not a task\n\n- [ ] b\n"
+        let scan = scanner.scan(text)
+        #expect(scan.tasks.map(\.rawText) == ["a", "b"])
+    }
+
+    @Test func taskOnFirstLineAfterByteOrderMark() {
+        let scan = scanner.scan("\u{FEFF}- [ ] first\n- [x] second\n")
+        #expect(scan.tasks.map(\.rawText) == ["first", "second"])
+        #expect(scan.tasks.map(\.line) == [1, 2])
+        #expect(scan.tasks[0].range == ByteRange(start: 3, end: 3 + "- [ ] first".utf8.count))
+        let heading = scanner.scan("\u{FEFF}# Title\n")
+        #expect(heading.headings.map(\.text) == ["Title"])
+        #expect(scanner.scan("\u{FEFF}").lineCount <= 1)
+    }
+
     @Test func tildeFenceAndInfoString() {
         let scan = scanner.scan("~~~python title\n- [ ] no\n~~~\n")
         #expect(scan.tasks.isEmpty)

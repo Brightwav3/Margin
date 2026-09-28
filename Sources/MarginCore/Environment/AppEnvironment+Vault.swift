@@ -20,6 +20,8 @@ extension AppEnvironment {
             courses: VaultCourseCatalog(backend: backend),
             notes: VaultNoteRepository(backend: backend),
             tasks: VaultTaskService(backend: backend),
+            properties: VaultPropertyService(backend: backend),
+            analysis: VaultNoteAnalysis(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }

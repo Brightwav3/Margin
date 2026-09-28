@@ -335,13 +335,18 @@ public actor NoteIndex {
         }
         for l in scan.links where l.isEmbed && Self.isImage(l.inner) { images += 1 }
 
+        var offset = 0
+        if fm != nil {
+            let prefix = text.utf8.count - body.utf8.count
+            offset = text.utf8.prefix(prefix).reduce(0) { $0 + ($1 == 0x0A ? 1 : 0) }
+        }
         return NoteRecord(
             id: id, hasStableID: stableID != nil, tasksWithoutID: tasksWithoutID,
             path: path, title: title, courseID: courseID, semesterID: semester,
             className: className, kind: fm?.kind ?? .note, tags: fm?.tags ?? [], date: fm?.date,
             properties: properties, headings: scan.headings, tasks: tasks, links: links,
             wordCount: Self.wordCount(body), imageCount: images, snippet: Self.snippet(body),
-            contentHash: Self.hash(text), text: text)
+            contentHash: Self.hash(text), text: text, bodyLineOffset: offset)
     }
 
     // MARK: Static helpers

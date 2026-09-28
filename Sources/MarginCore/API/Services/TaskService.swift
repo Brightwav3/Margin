@@ -1,4 +1,4 @@
-/// Tasks found in notes (`- [ ] text @date ^id`) and exams, read side. M7 adds `toggle`,
+/// Tasks found in notes (`- [ ] text @date ^id`) and exams. Reading, `updates` and `toggle`; M7 adds
 /// `setDue` and the rest of the write side.
 ///
 /// Implementations: `FixtureTaskService` and `VaultTaskService`. Rules both obey (checked by
@@ -17,7 +17,14 @@
 ///   by another program, or a write through `NoteRepository`. An edit that leaves every task as it
 ///   was (prose only) reports nothing. `today()`, `upcoming()` and `tasks(course:)` already show the
 ///   change when the update arrives.
-/// - **Errors:** `tasks(course:)` throws `MarginError.notFound` for an unknown course.
+/// - **Toggle:** `toggle` flips `- [ ]` and `- [x]` on the task's line in its note, changing that one
+///   character and nothing else, atomically. It takes the write context of contract rule 0 (`baseVersion`
+///   is the note's `Note.version`); the `ChangeSet` has one `.modified` entry for the note. The task is
+///   found again in the current text (`^id`, then text), so a stale line number cannot flip the wrong
+///   line, and `updates` reports the change.
+/// - **Errors:** `tasks(course:)` throws `MarginError.notFound` for an unknown course. `toggle` throws
+///   `.notFound` for an unknown task id or one that is no longer in its note, `.invalid` for an exam,
+///   `.conflict` for a stale `baseVersion`.
 public protocol TaskService: Sendable {
     /// Open tasks due today or overdue, plus exams dated today.
     func today() async throws -> [TaskItem]
@@ -31,4 +38,8 @@ public protocol TaskService: Sendable {
     /// A new stream on every access. Each element says which notes and courses have changed tasks.
     /// The stream stays open until the consumer stops iterating or the environment shuts down.
     var updates: AsyncStream<TaskUpdate> { get }
+
+    /// Flips a task between open and done. `id` is `TaskItem.id`.
+    func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
 }
