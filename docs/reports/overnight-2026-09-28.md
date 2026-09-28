@@ -28,13 +28,18 @@
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
 | M7-* | S5 feat/tasks-core | | todo | | |
-| S6–S12 | | | todo | | |
+| S3 (AG-02, AG-03, AG-04) | feat/agent-foundations | | todo | | |
+| S4 rest (M6-05.B, M6-08.B, M6-09.B, M6-11) | | | todo | | |
+| S5 M7 | | | todo | | |
+| S7 rest, S9, S11, M12-03 | | | todo | | |
+| AG-01, AG-05…AG-36 (S6, S8, S10, S12) | | | SKIPPED (human: agent layer deferred) | | |
 | Phase 2 UI | | | SKIPPED (human: UI later on Mac) | | |
 
 ## Human instructions received mid-run
 - Full autonomy granted, except: nothing is merged to `main` (explicit rule kept).
 - CI emails: `ci.yml` was invalid (`hashFiles()` in a job-level `if`), so every push produced a failed "No jobs were run" run. Fix in PR [#24](https://github.com/Brightwav3/Margin/pull/24) (green), cherry-picked into slice branches so PR CI runs.
 - **UI must stay fully replaceable**: UI depends only on `MarginCore/API` + `AppEnvironment`; deleting `Sources/MarginUI*`/`App/Margin` must keep core build and tests green. Added to every worker brief.
+- **Agent layer deferred (human):** MA1–MA4 (AG-05…AG-36) and AG-01 audit are SKIPPED for now, "door left open": write services keep `Actor`/`baseVersion`/`dryRun`/`ChangeSet` so agents can plug in later. Kept from MA0 because they protect user data without agents: AG-02 stable IDs (D-012), AG-03 undo via ChangeSet, AG-04 baseVersion + merge. Slices S6, S8, S10, S12 (agent parts) dropped; M12-03 robustness kept.
 - **Stop rule:** finish cleanly when ~$5 of cloud session credits remain; everything must be resumable elsewhere (see *How to resume*). The session cannot read the credit balance, so work is checkpointed after every task.
 - **Scope change: backend only.** Later extended: complete *all* planned backend with Sonnet workers, macOS-only tasks as protocol + `#if os(macOS)` (UNVERIFIED).
 - **Scope change: backend only.** Phase 2 (UI drafts, `MarginUILogic` target) is dropped from this run by the human; UI will be built later on a Mac against `MarginCore/API` + fixtures.
