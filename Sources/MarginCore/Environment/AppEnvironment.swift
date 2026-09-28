@@ -37,6 +37,6 @@ public struct AppEnvironment: Sendable {
             tasks: FixtureTaskService(store: store),
             properties: FixturePropertyService(store: store),
             analysis: FixtureNoteAnalysis(store: store),
-            shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll() })
+            shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }
 }

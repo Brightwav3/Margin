@@ -113,4 +113,15 @@ import Testing
             #expect(try await h.rawContent(note) == written)
         }
     }
+
+    @Test(arguments: HarnessKind.allCases)
+    func togglingReportsATaskUpdate(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let updates = h.tasks.updates
+            _ = try await h.tasks.toggle(id: "task-bio-read-chapter-6", actor: .user, baseVersion: nil, dryRun: false,
+                                         idempotencyKey: nil)
+            let update = await next(from: updates, timeout: 10) { $0.noteIDs.contains("bio/assignments") }
+            #expect(update?.courseIDs.contains("bio") == true)
+        }
+    }
 }

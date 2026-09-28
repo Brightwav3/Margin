@@ -34,6 +34,8 @@ actor FixtureStore {
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
+    nonisolated let taskChanges = Broadcaster<TaskUpdate>()
+    private var taskSnapshot: [NoteID: TaskSnapshotEntry] = [:]
 
     init(world: FixtureWorld, clock: any Clock) {
         self.semester = world.semester
@@ -49,6 +51,7 @@ actor FixtureStore {
             }
             notes[summary.id] = StoredNote(summary: summary, fileTitle: summary.title, frontmatter: frontmatter, body: body)
         }
+        taskSnapshot = Self.snapshot(of: notes, extractor: extractor)
     }
 
     // MARK: Courses
@@ -89,17 +92,38 @@ actor FixtureStore {
     }
 
     func today() -> [TaskItem] {
-        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), today: clock.today)
+        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
     }
 
     func upcoming() -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), today: clock.today)
+        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
     }
 
     func tasks(course id: CourseID) throws -> [TaskItem] {
         _ = try course(id: id)
         let items = notes.values.filter { $0.summary.courseID == id }.flatMap { extractTasks(of: $0) }
         return ServiceRules.courseTasks(items, today: clock.today)
+    }
+
+    private static func snapshot(of notes: [NoteID: StoredNote], extractor: TaskExtractor) -> [NoteID: TaskSnapshotEntry] {
+        var result: [NoteID: TaskSnapshotEntry] = [:]
+        for (id, note) in notes {
+            guard let course = note.summary.courseID else { continue }
+            let tasks = extractor.extract(from: note.body).map {
+                extractor.taskItem($0, noteID: id, courseID: course)
+            }
+            result[id] = TaskSnapshotEntry(noteID: id, courseID: course, tasks: tasks)
+        }
+        return result
+    }
+
+    /// Publishes the difference between the tasks now and at the last call. Called after every
+    /// mutation, so `TaskService.updates` follows writes and simulated outside edits alike.
+    private func publishTaskChanges() {
+        let now = Self.snapshot(of: notes, extractor: extractor)
+        let update = TaskDiff.update(old: taskSnapshot, new: now)
+        taskSnapshot = now
+        if let update { taskChanges.send(update) }
     }
 
     private func allTasks() -> [TaskItem] {
@@ -111,11 +135,20 @@ actor FixtureStore {
     func toggleTask(id taskID: String, actor: Actor, baseVersion: String?, dryRun: Bool,
                     idempotencyKey: String?) throws -> ChangeSet {
         try TaskEditing.requireTask(id: taskID)
-        let owner = notes.keys.sorted().first { key in notes[key].map { extractTasks(of: $0).contains { $0.id == taskID } } ?? false }
-        guard let noteID = owner else { throw MarginError.notFound("No task \(taskID)") }
-        return try editContent(id: noteID, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+        var found: TaskItem?
+        for key in notes.keys.sorted() {
+            if let note = notes[key], let task = extractTasks(of: note).first(where: { $0.id == taskID }) { found = task; break }
+        }
+        guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+        // Same steps as `TaskWriteBack` in the vault: find the task again in the current text, flip it.
+        return try editContent(id: item.source.noteID, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
                                idempotencyKey: idempotencyKey) { note in
-            let body = try TaskEditing.toggle(id: taskID, noteID: noteID, in: note.body, extractor: extractor)
+            guard let match = TaskLocator.resolve(TaskTarget(item: item), in: extractor.extract(from: note.body)) else {
+                throw MarginError.notFound("Task \"\(item.text)\" is no longer in \(item.source.noteID)")
+            }
+            guard let body = TaskWriteBack.setting(!match.task.done, in: note.body, task: match.task) else {
+                throw MarginError.invalid("Line \(match.task.line) is not a checkbox")
+            }
             return (note.frontmatter?.render() ?? "") + body
         }
     }
@@ -265,6 +298,7 @@ actor FixtureStore {
         note.body = text
         note.summary = summarize(note)
         notes[id] = note
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .modified)])
     }
 
@@ -276,6 +310,7 @@ actor FixtureStore {
                               frontmatter: Self.newFrontmatter(id: id, course: owner, kind: .note), body: ServiceRules.initialBody(title: title, text: text))
         note.summary = summarize(note)
         notes[id] = note
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .created)])
         return id
     }
@@ -283,13 +318,16 @@ actor FixtureStore {
     func simulateExternalDelete(id: NoteID) throws {
         guard notes[id] != nil else { throw MarginError.notFound("No note \(id)") }
         notes[id] = nil
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .deleted)])
     }
 
     /// Changes a course as if `_course.md` had been edited elsewhere.
     func simulateExternalCourseEdit(id: CourseID, _ change: @Sendable (inout Course) -> Void) throws {
         guard let i = courses.firstIndex(where: { $0.id == id }) else { throw MarginError.notFound("No course \(id)") }
+        let examsBefore = courses[i].exams
         change(&courses[i])
+        if courses[i].exams != examsBefore { taskChanges.send(TaskUpdate(noteIDs: [], courseIDs: [id])) }
         catalogUpdates.send(CatalogUpdate(courses: [id]))
     }
 
@@ -304,6 +342,7 @@ actor FixtureStore {
     static func version(of body: String) -> String { ContentHash(of: body).hex }
 
     private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+        publishTaskChanges()
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
         return cs

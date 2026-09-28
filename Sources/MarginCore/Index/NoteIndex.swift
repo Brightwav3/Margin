@@ -18,6 +18,8 @@ public actor NoteIndex {
     private var byPath: [String: NoteRecord] = [:]
     /// Note id -> path. Duplicate ids: the lexicographically smallest path wins.
     private var idToPath: [NoteID: String] = [:]
+    /// Task id -> paths of the notes that contain it (one entry per occurrence).
+    private var taskPaths: [String: [String]] = [:]
     /// Normalised file name -> paths.
     private var pathsByName: [String: Set<String>] = [:]
     /// Normalised link target file name -> paths of notes that contain such a link.
@@ -50,7 +52,7 @@ public actor NoteIndex {
 
     /// Replaces the index with the given notes.
     public func build(entries: [(path: String, content: String)]) {
-        byPath = [:]; idToPath = [:]; pathsByName = [:]; linkers = [:]
+        byPath = [:]; idToPath = [:]; taskPaths = [:]; pathsByName = [:]; linkers = [:]
         byPath.reserveCapacity(entries.count)
         for e in entries where Self.isMarkdown(e.path) {
             let record = makeRecord(path: e.path, text: e.content)
@@ -89,8 +91,8 @@ public actor NoteIndex {
         return true
     }
 
-    /// Moves a note to a new path (content unchanged). Course, name and placeholder id are
-    /// re-derived. Returns `false` when `from` is unknown.
+    /// Moves a note to a new path (content unchanged). Course and name are re-derived; a note
+    /// with a stable `id:` keeps its id and its tasks their `^id`, only a placeholder id follows the path. Returns `false` when `from` is unknown.
     @discardableResult
     public func rename(from: String, to: String) -> Bool {
         guard let old = byPath[from], Self.isMarkdown(to), from != to else { return false }
@@ -126,6 +128,50 @@ public actor NoteIndex {
     public func note(byPath path: String) -> NoteRecord? { byPath[path] }
 
     public func note(byID id: NoteID) -> NoteRecord? { idToPath[id].flatMap { byPath[$0] } }
+
+    /// The task with `id`. When an id is used more than once (a copy-pasted line, see
+    /// `duplicateTaskIDs()`), the first by note path and line wins, the same rule the
+    /// `IDAssignmentPass` applies when it reassigns the later ones.
+    public func task(byID id: String) -> TaskItem? {
+        for path in Set(taskPaths[id] ?? []).sorted() {
+            if let t = byPath[path]?.tasks.first(where: { $0.id == id }) { return t }
+        }
+        return nil
+    }
+
+    /// Task ids used more than once, with all their locations ordered by path and line.
+    public func duplicateTaskIDs() -> [DuplicateID] {
+        taskPaths.compactMap { id, paths in
+            guard paths.count > 1 else { return nil }
+            return DuplicateID(id: id, locations: occurrences(ofTask: id, in: Set(paths)))
+        }.sorted { $0.id < $1.id }
+    }
+
+    /// Note ids used by more than one note, with the paths ordered; the first path keeps the id in
+    /// `note(byID:)`.
+    public func duplicateNoteIDs() -> [DuplicateID] {
+        var byID: [NoteID: [String]] = [:]
+        for r in byPath.values { byID[r.id, default: []].append(r.path) }
+        return byID.compactMap { id, paths in
+            paths.count > 1 ? DuplicateID(id: id, locations: paths.sorted().map { IDOccurrence(path: $0, line: nil) }) : nil
+        }.sorted { $0.id < $1.id }
+    }
+
+    /// Notes that still lack a frontmatter id or have tasks without `^id` (candidates for the
+    /// `IDAssignmentPass`), ordered by path.
+    public func notesNeedingIDs() -> [NoteRecord] {
+        allNotes.filter(\.needsIDAssignment)
+    }
+
+    private func occurrences(ofTask id: String, in paths: Set<String>) -> [IDOccurrence] {
+        var result: [IDOccurrence] = []
+        for path in paths.sorted() {
+            for t in byPath[path]?.tasks ?? [] where t.id == id {
+                result.append(IDOccurrence(path: path, line: t.source.line))
+            }
+        }
+        return result
+    }
 
     public func notes(inCourse course: CourseID) -> [NoteRecord] {
         byPath.values.filter { $0.courseID == course }.sorted { $0.path < $1.path }
@@ -228,6 +274,7 @@ public actor NoteIndex {
         if let existing = idToPath[record.id], existing < record.path {} else {
             idToPath[record.id] = record.path
         }
+        for t in record.tasks { taskPaths[t.id, default: []].append(record.path) }
         pathsByName[WikilinkExtractor.normalise(record.name), default: []].insert(record.path)
         for item in record.links where !item.link.isSelfLink {
             linkers[WikilinkExtractor.normalise(item.link.name), default: []].insert(record.path)
@@ -238,6 +285,10 @@ public actor NoteIndex {
         byPath[record.path] = nil
         if idToPath[record.id] == record.path {
             idToPath[record.id] = byPath.values.filter { $0.id == record.id }.map(\.path).min()
+        }
+        for t in record.tasks {
+            taskPaths[t.id]?.removeAll { $0 == record.path }
+            if taskPaths[t.id]?.isEmpty == true { taskPaths[t.id] = nil }
         }
         let name = WikilinkExtractor.normalise(record.name)
         pathsByName[name]?.remove(record.path)
@@ -256,7 +307,8 @@ public actor NoteIndex {
         let (semester, folderCourse) = Self.folderCourse(ofPath: path)
         let className = fm?.className
         let courseID = folderCourse ?? className.map(Self.slug)
-        let id = fm?.id ?? Self.stripExtension(path)
+        let stableID = fm.flatMap(IDAssigner.noteID(of:))
+        let id = stableID ?? Self.stripExtension(path)
 
         var properties: [String: FrontmatterValue] = [:]
         if let fm { for key in fm.keys { properties[key] = fm.value(for: key) } }
@@ -265,7 +317,9 @@ public actor NoteIndex {
         let title = (h1?.isEmpty == false ? h1 : nil) ?? name
 
         var tasks: [TaskItem] = []
+        var tasksWithoutID = 0
         for t in extractor.extract(from: scan) {
+            if t.blockID == nil { tasksWithoutID += 1 }
             tasks.append(extractor.taskItem(t, noteID: id, courseID: courseID))
         }
 
@@ -287,7 +341,8 @@ public actor NoteIndex {
             offset = text.utf8.prefix(prefix).reduce(0) { $0 + ($1 == 0x0A ? 1 : 0) }
         }
         return NoteRecord(
-            id: id, path: path, title: title, courseID: courseID, semesterID: semester,
+            id: id, hasStableID: stableID != nil, tasksWithoutID: tasksWithoutID,
+            path: path, title: title, courseID: courseID, semesterID: semester,
             className: className, kind: fm?.kind ?? .note, tags: fm?.tags ?? [], date: fm?.date,
             properties: properties, headings: scan.headings, tasks: tasks, links: links,
             wordCount: Self.wordCount(body), imageCount: images, snippet: Self.snippet(body),

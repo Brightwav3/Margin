@@ -77,6 +77,8 @@ public struct FixtureTaskService: TaskService {
         try await store.toggleTask(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
                                    idempotencyKey: idempotencyKey)
     }
+
+    public var updates: AsyncStream<TaskUpdate> { store.taskChanges.subscribe() }
 }
 
 /// `PropertyService` over `Fixtures.week5`, in memory. Notes carry the frontmatter the sample vault

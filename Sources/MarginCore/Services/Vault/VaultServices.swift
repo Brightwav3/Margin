@@ -70,6 +70,8 @@ public struct VaultTaskService: TaskService {
         try await backend.toggleTask(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
                                      idempotencyKey: idempotencyKey)
     }
+
+    public var updates: AsyncStream<TaskUpdate> { backend.tasksStore.updates.subscribe() }
 }
 
 /// `PropertyService` over a vault: edits the frontmatter of the note file losslessly through
