@@ -25,11 +25,20 @@ var targets: [Target] = [
 
 #if os(macOS)
 products.append(.library(name: "MarginUI", targets: ["MarginUI"]))
+products.append(.library(name: "MarginPlatform", targets: ["MarginPlatform"]))
 targets.append(
     .target(
         name: "MarginUI",
         dependencies: ["MarginCore"],
         path: "Sources/MarginUI"
+    )
+)
+// macOS platform services (global hotkey, ...). Not built on Linux.
+targets.append(
+    .target(
+        name: "MarginPlatform",
+        dependencies: ["MarginCore"],
+        path: "App/Platform"
     )
 )
 #endif
