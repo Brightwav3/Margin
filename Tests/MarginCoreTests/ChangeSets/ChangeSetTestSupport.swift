@@ -2,6 +2,28 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+/// Parent suite of the long-running change-set tests (fault sweeps, stress). `.serialized` is inherited
+/// by the nested suites, so no two of them run at the same time and they do not starve the timing
+/// tests of other suites.
+@Suite(.serialized) enum HeavySuites {}
+
+/// The real file system without the durability flushes. A simulated crash (`FaultInjectingFileSystem`)
+/// does not need fsync to be observable, and the sweeps make thousands of writes.
+struct NoSyncFileSystem: FileSystem {
+    let base: any FileSystem = POSIXFileSystem()
+    func attributes(at url: URL) throws -> FileAttributes? { try base.attributes(at: url) }
+    func realPath(_ url: URL) throws -> URL { try base.realPath(url) }
+    func readData(at url: URL) throws -> Data { try base.readData(at: url) }
+    func createDirectories(at url: URL) throws { try base.createDirectories(at: url) }
+    func createFile(at url: URL, data: Data, permissions: UInt16?) throws { try base.createFile(at: url, data: data, permissions: permissions) }
+    func sync(fileAt url: URL) throws {}
+    func syncDirectory(at url: URL) throws {}
+    func replaceItem(at destination: URL, withItemAt source: URL) throws { try base.replaceItem(at: destination, withItemAt: source) }
+    func moveItemNoReplace(from source: URL, to destination: URL) throws { try base.moveItemNoReplace(from: source, to: destination) }
+    func removeFile(at url: URL) throws { try base.removeFile(at: url) }
+    func contentsOfDirectory(at url: URL) throws -> [DirectoryEntry] { try base.contentsOfDirectory(at: url) }
+}
+
 /// Wraps a real file system and runs a closure just BEFORE chosen calls (by index since `arm`),
 /// to simulate another program writing at an exact moment of the store's work.
 final class HookFileSystem: FileSystem, @unchecked Sendable {

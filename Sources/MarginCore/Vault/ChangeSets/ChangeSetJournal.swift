@@ -215,6 +215,9 @@ actor ChangeSetJournal {
         }
         let changeSet = ChangeSet(id: id, actor: actor, timestamp: now, entries: entries,
                                   idempotencyKey: idempotencyKey, revertsID: revertsID)
+        // An operation the store refused after it was announced leaves its op file behind (see
+        // `TransactionCapture.didNotApply`); drop it so the record has exactly `ops.count` op files.
+        try? await store.removeJournalFile(Self.path(Self.opFileName(base: base, index: capture.strayIndex)))
         do {
             let record = CommittedRecord(format: Self.format, changeSet: changeSet, operationCount: ops.count)
             let data = try Self.encoder.encode(record)
@@ -371,6 +374,17 @@ final class TransactionCapture: WriteCapture, @unchecked Sendable {
         }
         lock.withLock { recorded.append(op) }
     }
+
+    /// Forgets the last operation (see `WriteCapture.didNotApply`). Its op file stays until the next
+    /// operation overwrites it (same index) or the commit removes it; while it exists a rollback
+    /// still sees it, finds the file in the "before" state and leaves it alone.
+    func didNotApply(_ operation: CapturedOperation) async {
+        let op = RecordedOperation(operation)
+        lock.withLock { if recorded.last == op { recorded.removeLast() } }
+    }
+
+    /// Index of an op file left behind by a forgotten operation, if any (at most one, at the tail).
+    var strayIndex: Int { lock.withLock { recorded.count + 1 } }
 }
 
 extension VaultPath {

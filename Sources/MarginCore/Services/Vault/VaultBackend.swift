@@ -19,6 +19,10 @@ actor VaultBackend {
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
+    /// Tasks of the vault with change tracking; its `updates` feed `TaskService.updates`.
+    let tasksStore: TasksStore
+    /// Writes task checkboxes to note files (used by `TaskService.toggle`).
+    let taskWriteBack: TaskWriteBack
 
     private(set) var model = VaultCourseModel()
     private var changeSets: ChangeSetFactory
@@ -34,6 +38,8 @@ actor VaultBackend {
 
     private init(store: VaultStore, index: NoteIndex, clock: any Clock, journal: ChangeSetJournal) {
         self.store = store; self.index = index; self.clock = clock; self.journal = journal
+        self.tasksStore = TasksStore(index: index)
+        self.taskWriteBack = TaskWriteBack(store: store, index: index, clock: clock)
         self.changeSets = ChangeSetFactory(clock: clock)
     }
 
@@ -57,6 +63,7 @@ actor VaultBackend {
         let backend = VaultBackend(store: store, index: index, clock: clock, journal: journal)
         await store.addRenameObserver(backend.rewriter)
         await backend.reloadModel()
+        await backend.primeTasks()
         // The watcher compares file times, which are real time, so it always uses the system clock.
         let watcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
         await backend.startWatching(watcher)
@@ -69,6 +76,7 @@ actor VaultBackend {
         watchTask = nil
         noteChanges.finishAll()
         catalogUpdates.finishAll()
+        tasksStore.updates.finishAll()
     }
 
     // MARK: Watching
@@ -104,8 +112,19 @@ actor VaultBackend {
             await reloadModel()
             let changed = Self.changedCourses(old: old, new: model.courses)
             if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed)) }
+            // A course file can change which course a note belongs to, and the exam dates.
+            await tasksMayHaveChanged(paths: nil)
+            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old, new: model.courses))
+        } else {
+            await tasksMayHaveChanged(paths: batch.map(\.path))
         }
         if !notes.isEmpty { noteChanges.send(notes.sorted { ($0.noteID, $0.kind.rawValue) < ($1.noteID, $1.kind.rawValue) }) }
+    }
+
+    private static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
+        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0.exams) })
+        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0.exams) })
+        return Set(before.keys).union(after.keys).filter { (before[$0] ?? []) != (after[$0] ?? []) }.sorted()
     }
 
     private static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
@@ -181,28 +200,36 @@ actor VaultBackend {
         let (content, version) = try await store.read(VaultPath(r.path))
         versions.remember(content, version: version.hex)
         // Reading is the moment the index catches up with what is on disk.
-        await index.update(path: r.path, content: content)
+        if await index.update(path: r.path, content: content) { await tasksMayHaveChanged(paths: [r.path]) }
         let fresh = await index.note(byPath: r.path) ?? r
         return Note(summary: summary(of: fresh), text: Frontmatter.parse(content).body, version: version.hex)
     }
 
     // MARK: Tasks (read)
 
+    private var courseResolver: TasksStore.CourseResolver {
+        let model = self.model
+        return { model.courseID(semesterFolder: $0.semesterID, folder: $0.courseID, className: $0.className) }
+    }
+
     private func allTasks(course: CourseID? = nil) async -> [TaskItem] {
-        var items: [TaskItem] = []
-        for r in await noteRecords() {
-            guard let cid = courseID(of: r), course == nil || cid == course else { continue }
-            items += r.tasks.map { var t = $0; t.source.courseID = cid; return t }
-        }
-        return items
+        await tasksStore.allTasks(courseOf: courseResolver, course: course)
+    }
+
+    func primeTasks() async { await tasksStore.prime(courseOf: courseResolver) }
+
+    /// Tells the tasks store that the tasks of these notes may have changed (`nil`: any note), so
+    /// `TaskService.updates` reports the difference. Called after every write and every watcher batch.
+    func tasksMayHaveChanged(paths: [String]?) async {
+        await tasksStore.reconcile(paths: paths, courseOf: courseResolver)
     }
 
     func today() async -> [TaskItem] {
-        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), today: clock.today)
+        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
     }
 
     func upcoming() async -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), today: clock.today)
+        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
     }
 
     func tasks(course id: CourseID) async throws -> [TaskItem] {
@@ -212,9 +239,13 @@ actor VaultBackend {
 
     // MARK: Notes (write)
 
-    /// Applies the operations a committed transaction performed to the index and the version cache.
+    /// Applies the operations a committed transaction performed to the index, the version cache and
+    /// the tasks store.
     private func afterCommit(_ committed: ChangeSetJournal.Committed) async {
+        var touched: [String] = []
         for op in committed.operations {
+            touched.append(op.path)
+            if let from = op.fromPath { touched.append(from) }
             switch op.kind {
             case .write, .create:
                 if let before = op.before, let hash = op.beforeHash, let text = String(validating: before, as: UTF8.self) {
@@ -232,11 +263,26 @@ actor VaultBackend {
                 await index.remove(path: op.path)
             }
         }
+        if !touched.isEmpty { await tasksMayHaveChanged(paths: touched) }
     }
 
     /// Identifies the note at a vault path, for change-set entries of files a write touched
     /// indirectly (notes whose links a move rewrote).
     private func noteID(atPath path: String) async -> NoteID? { await index.note(byPath: path)?.id }
+
+    /// Runs `body` as one recorded transaction and applies its result to the index. A transaction
+    /// that performed no operation (nothing to write) is not recorded.
+    private func runTransaction(actor: Actor, key: String?,
+                        body: @Sendable () async throws -> [ChangeSet.Entry]) async throws -> ChangeSet {
+        let committed = try await journal.transaction(
+            actor: actor, idempotencyKey: key, noteID: { [weak self] in await self?.noteID(atPath: $0) }, body: body)
+        guard !committed.operations.isEmpty else {
+            return finish(actor: actor, entries: committed.changeSet.entries, dryRun: false, key: key)
+        }
+        await afterCommit(committed)
+        idempotency.remember(committed.changeSet, actor: actor)
+        return committed.changeSet
+    }
 
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
               idempotencyKey: String?) async throws -> ChangeSet {
@@ -280,17 +326,45 @@ actor VaultBackend {
                 if dryRun { return finish(actor: actor, entries: [entry], dryRun: true, key: idempotencyKey) }
                 do {
                     let store = self.store
-                    let committed = try await journal.transaction(
-                        actor: actor, idempotencyKey: idempotencyKey, noteID: { [weak self] in await self?.noteID(atPath: $0) },
-                        body: {
-                            try await store.write(path, content: newContent, expectedVersion: version)
-                            return [entry]
-                        })
-                    await afterCommit(committed)
-                    idempotency.remember(committed.changeSet, actor: actor)
-                    return committed.changeSet
+                    return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                        try await store.write(path, content: newContent, expectedVersion: version)
+                        return [entry]
+                    }
                 } catch MarginError.conflict where attempt < Self.maxWriteAttempts {
                     continue   // another program changed the file since the read: start over with what it wrote
+                }
+            }
+        }
+    }
+
+    /// Rewrites a note file through `transform` (whole content in, new content or `nil` out) with the
+    /// usual write rules. Shared by the property write paths.
+    func editContent(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
+                     transform: (_ content: String, _ record: NoteRecord) throws -> String?) async throws -> ChangeSet {
+        try await writeGate.withLock {
+            if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+            var attempt = 0
+            while true {
+                attempt += 1
+                let r = try await record(id)
+                let path = try VaultPath(r.path)
+                let (content, version) = try await store.read(path)
+                versions.remember(content, version: version.hex)
+                try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)", path: r.path)
+                guard let newContent = try transform(content, r), !sameBytes(newContent, content) else {
+                    return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey)
+                }
+                let entry = ChangeSet.Entry(path: r.path, kind: .modified, noteID: id, beforeHash: version.hex,
+                                            afterHash: ContentHash(of: newContent).hex)
+                if dryRun { return finish(actor: actor, entries: [entry], dryRun: true, key: idempotencyKey) }
+                do {
+                    let store = self.store
+                    return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                        try await store.write(path, content: newContent, expectedVersion: version)
+                        return [entry]
+                    }
+                } catch MarginError.conflict where attempt < Self.maxWriteAttempts {
+                    continue
                 }
             }
         }
@@ -320,15 +394,10 @@ actor VaultBackend {
             let change = ChangeSet.Entry(path: path.rawValue, kind: .created, noteID: id, afterHash: ContentHash(of: content).hex)
             if dryRun { return finish(actor: actor, entries: [change], dryRun: true, key: idempotencyKey) }
             let store = self.store
-            let committed = try await journal.transaction(
-                actor: actor, idempotencyKey: idempotencyKey, noteID: { [weak self] in await self?.noteID(atPath: $0) },
-                body: {
-                    try await store.create(path, content: content)
-                    return [change]
-                })
-            await afterCommit(committed)
-            idempotency.remember(committed.changeSet, actor: actor)
-            return committed.changeSet
+            return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                try await store.create(path, content: content)
+                return [change]
+            }
         }
     }
 
@@ -350,15 +419,10 @@ actor VaultBackend {
             let store = self.store
             // The rename triggers the link rewriting in other notes; those writes join the same
             // transaction, so undoing the move restores them too.
-            let committed = try await journal.transaction(
-                actor: actor, idempotencyKey: idempotencyKey, noteID: { [weak self] in await self?.noteID(atPath: $0) },
-                body: {
-                    try await store.rename(from, to: to)
-                    return [change]
-                })
-            await afterCommit(committed)
-            idempotency.remember(committed.changeSet, actor: actor)
-            return committed.changeSet
+            return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                try await store.rename(from, to: to)
+                return [change]
+            }
         }
     }
 
@@ -372,15 +436,62 @@ actor VaultBackend {
             let entry = ChangeSet.Entry(path: r.path, kind: .deleted, noteID: id, beforeHash: version.hex)
             if dryRun { return finish(actor: actor, entries: [entry], dryRun: true, key: idempotencyKey) }
             let store = self.store
-            let committed = try await journal.transaction(
-                actor: actor, idempotencyKey: idempotencyKey, noteID: { [weak self] in await self?.noteID(atPath: $0) },
-                body: {
-                    try await store.trash(path)
-                    return [entry]
-                })
-            await afterCommit(committed)
-            idempotency.remember(committed.changeSet, actor: actor)
-            return committed.changeSet
+            return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                try await store.trash(path)
+                return [entry]
+            }
+        }
+    }
+
+    // MARK: Tasks (write)
+
+    /// Flips a task through `TaskWriteBack` (finds it again in the current file text, retries when the
+    /// file changes meanwhile) inside one recorded transaction, so `TaskService.updates` fires and the
+    /// toggle can be undone.
+    func toggleTask(id taskID: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        return try await writeGate.withLock {
+            if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+            var found: TaskItem?
+            for record in await noteRecords() {
+                if let task = record.tasks.first(where: { $0.id == taskID }) { found = task; break }
+            }
+            guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+            let writeBack = taskWriteBack
+            if dryRun {
+                let result = try await writeBack.setDone(!item.done, task: item, baseVersion: baseVersion, dryRun: true)
+                return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: true, key: idempotencyKey)
+            }
+            return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                let result = try await writeBack.setDone(!item.done, task: item, baseVersion: baseVersion, dryRun: false)
+                return result.entry.map { [$0] } ?? []
+            }
+        }
+    }
+
+    // MARK: Properties
+
+    func propertyRegistry() async -> PropertyRegistry {
+        PropertyEditing.registry(inferredFrom: await noteRecords().map(\.properties))
+    }
+
+    func propertyTypes() async -> [String: PropertyType] { await propertyRegistry().types }
+
+    func setProperty(key: String, value: FrontmatterValue, on id: NoteID, actor: Actor, baseVersion: String?,
+                     dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        let registry = await propertyRegistry()
+        return try await editContent(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey) { content, _ in
+            try PropertyEditing.set(key: key, value: value, in: content, registry: registry)
+        }
+    }
+
+    func removeProperty(key: String, on id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                        idempotencyKey: String?) async throws -> ChangeSet {
+        try await editContent(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                              idempotencyKey: idempotencyKey) { content, _ in
+            try PropertyEditing.remove(key: key, in: content)
         }
     }
 

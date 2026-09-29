@@ -191,6 +191,7 @@ public actor VaultStore {
         guard from != to else { return }
         let isDirectory: Bool
         var announced: [(path: String, hash: String)] = []
+        var captured: CapturedOperation?
         do {
             for p in [from, to] where VaultStore.isTrashArea(p) {
                 throw MarginError.invalid("\(p) is inside the trash area and cannot be renamed")
@@ -204,7 +205,9 @@ public actor VaultStore {
             guard let sourceAttrs = try fileSystem.attributes(at: source) else { throw MarginError.notFound("No such file: \(from)") }
             isDirectory = sourceAttrs.kind == .directory
             if let capture = WriteCaptureContext.current {
-                try await capture.willApply(.move(from: from, to: to))
+                let operation = CapturedOperation.move(from: from, to: to)
+                try await capture.willApply(operation)
+                captured = operation
             }
             let targetParent = target.deletingLastPathComponent()
             try fileSystem.createDirectories(at: targetParent)
@@ -234,7 +237,9 @@ public actor VaultStore {
             if sourceParent != targetParent { try? fileSystem.syncDirectory(at: sourceParent) }
         } catch {
             if let ownWrites { for a in announced { await ownWrites.forget(path: a.path, hash: a.hash) } }
-            throw VaultStore.map(error, "rename \(from)")
+            let mapped = VaultStore.map(error, "rename \(from)")
+            if let captured, case .conflict = mapped, let capture = WriteCaptureContext.current { await capture.didNotApply(captured) }
+            throw mapped
         }
 
         guard notifyObservers else { return }
@@ -307,6 +312,7 @@ public actor VaultStore {
         let parent: URL
         let newHash = ContentHash(of: data)
         var announced = false
+        var captured: CapturedOperation?
         do {
             if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
             let target = try checkedURL(path, followFinal: false)
@@ -333,7 +339,9 @@ public actor VaultStore {
                     throw MarginError.conflict("\(path) changed on disk (expected \(expectedVersion.hex.prefix(12)), found \(ContentHash(of: before).hex.prefix(12)))",
                                                ConflictDetail(path: path.rawValue, currentVersion: ContentHash(of: before).hex))
                 }
-                try await capture.willApply(.write(path: path, before: before, after: data))
+                let operation = CapturedOperation.write(path: path, before: before, after: data)
+                try await capture.willApply(operation)
+                captured = operation
             }
 
             parent = target.deletingLastPathComponent()
@@ -359,7 +367,9 @@ public actor VaultStore {
             }
         } catch {
             if announced, let ownWrites { await ownWrites.forget(path: path.rawValue, hash: newHash) }
-            throw VaultStore.map(error, "write \(path)")
+            let mapped = VaultStore.map(error, "write \(path)")
+            if let captured, case .conflict = mapped, let capture = WriteCaptureContext.current { await capture.didNotApply(captured) }
+            throw mapped
         }
 
         do { try fileSystem.syncDirectory(at: parent) } catch {

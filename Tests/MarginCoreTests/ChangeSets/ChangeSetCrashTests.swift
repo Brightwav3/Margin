@@ -6,6 +6,7 @@ import Testing
 /// undo) is failed in turn, before and after it executes, both as a survivable error and as a
 /// simulated kill (nothing can clean up afterwards). After a restart the group is either completely
 /// there or completely absent, and the journal agrees with the files.
+extension HeavySuites {
 @Suite struct ChangeSetCrashTests {
     typealias Files = [String: Data]
 
@@ -20,7 +21,7 @@ import Testing
     private func run(phase: Phase, fault: FaultInjectingFileSystem.Fault?, dir: TempDir) async throws
         -> (calls: [String], threw: Bool, committedListed: Bool?, id: String?) {
         try ChangeSetJournalTests.seed(dir)
-        let fs = FaultInjectingFileSystem()
+        let fs = FaultInjectingFileSystem(base: NoSyncFileSystem())
         let (store, journal) = try await openJournal(dir, fileSystem: fs)
         var undoTarget: String?
         if phase == .undo {
@@ -155,7 +156,7 @@ import Testing
     @Test func aCrashWhileExpiringOldRecordsRollsNothingBack() async throws {
         func runCommit(fault: FaultInjectingFileSystem.Fault?, dir: TempDir) async throws -> [String] {
             try dir.seed("n.md", Data("v0\n".utf8))
-            let fs = FaultInjectingFileSystem()
+            let fs = FaultInjectingFileSystem(base: NoSyncFileSystem())
             let (store, journal) = try await openJournal(dir, fileSystem: fs, retention: .init(maxAge: 1_000_000, maxCount: 2))
             for i in 1...2 {
                 let expected = ContentHash(of: "v\(i - 1)\n")
@@ -193,4 +194,5 @@ import Testing
         }
         #expect(problems.isEmpty, "\(problems.prefix(10).joined(separator: "\n"))")
     }
+}
 }

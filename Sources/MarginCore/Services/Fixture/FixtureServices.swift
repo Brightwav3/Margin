@@ -71,6 +71,62 @@ public struct FixtureTaskService: TaskService {
     public func today() async throws -> [TaskItem] { await store.today() }
     public func upcoming() async throws -> [TaskItem] { await store.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await store.tasks(course: course) }
+
+    public func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.toggleTask(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                   idempotencyKey: idempotencyKey)
+    }
+
+    public var updates: AsyncStream<TaskUpdate> { store.taskChanges.subscribe() }
+}
+
+/// `PropertyService` over `Fixtures.week5`, in memory. Notes carry the frontmatter the sample vault
+/// writes (`id`, `date`, `class`, `type`), so properties behave as in the vault.
+public struct FixturePropertyService: PropertyService {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func types() async throws -> [String: PropertyType] { await store.propertyTypes() }
+
+    public func set(key: String, value: FrontmatterValue, on note: NoteID, actor: Actor, baseVersion: String?,
+                    dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setProperty(key: key, value: value, on: note, actor: actor, baseVersion: baseVersion,
+                                    dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func remove(key: String, on note: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.removeProperty(key: key, on: note, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+}
+
+/// `NoteAnalysis` over `Fixtures.week5`, in memory. Answers from a `NoteIndex` built over the fixture
+/// notes, so it follows note writes like the vault does.
+public struct FixtureNoteAnalysis: NoteAnalysis {
+    let store: FixtureStore
+    private let engine: NoteAnalysisEngine
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.init(store: FixtureStore(world: world, clock: clock))
+    }
+
+    init(store: FixtureStore) {
+        self.store = store
+        self.engine = NoteAnalysisEngine(index: { await store.noteIndex() }, isNote: { _ in true })
+    }
+
+    public func outline(id: NoteID) async throws -> [OutlineItem] { try await engine.outline(id: id) }
+    public func backlinks(id: NoteID) async throws -> [NoteBacklink] { try await engine.backlinks(id: id) }
+    public func outgoing(id: NoteID) async throws -> [OutgoingLink] { try await engine.outgoing(id: id) }
+    public func stats(id: NoteID, text: String?) async throws -> NoteStats { try await engine.stats(id: id, text: text) }
+    public func properties(id: NoteID) async throws -> [NoteProperty] { try await engine.properties(id: id) }
 }
 
 /// `ChangeSetStore` over the in-memory fixture world: records the writes of the `Fixture…` services

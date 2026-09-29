@@ -17,6 +17,12 @@ enum CapturedOperation: Sendable, Hashable {
 /// made, so the operation must not happen).
 protocol WriteCapture: Sendable {
     func willApply(_ operation: CapturedOperation) async throws
+
+    /// The operation announced last was refused before it changed anything (a version or
+    /// existence conflict), so it is not part of the transaction. Called only for `.conflict`
+    /// errors, which the store raises strictly before it applies an operation; an error that may
+    /// have happened after the change (I/O) is not reported here and stays recorded.
+    func didNotApply(_ operation: CapturedOperation) async
 }
 
 enum WriteCaptureContext {

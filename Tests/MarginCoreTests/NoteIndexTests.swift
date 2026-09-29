@@ -209,6 +209,7 @@ private func syntheticVault(count: Int, seed: UInt64 = 42) -> [(path: String, co
     return out
 }
 
+extension PerfSuites {
 @Suite struct NoteIndexPerformanceTests {
     #if DEBUG
     static let slack = 5.0   // debug builds in a Docker container are far slower than release
@@ -216,37 +217,42 @@ private func syntheticVault(count: Int, seed: UInt64 = 42) -> [(path: String, co
     static let slack = 1.0
     #endif
 
+    /// Each run builds a fresh index, reindexes one file and runs two queries; budgets are judged on
+    /// the median of `perfRuns` runs after a warm-up run.
     @Test func thousandNotesBuildAndReindexWithinBudget() async throws {
         let entries = syntheticVault(count: 1000)
-        let index = NoteIndex(clock: FixedClock())
+        var builds: [Double] = [], reindexes: [Double] = [], queries: [Double] = []
+        for run in 0...perfRuns {
+            let index = NoteIndex(clock: FixedClock())
 
-        let t0 = ContinuousClock.now
-        await index.build(entries: entries)
-        let build = ContinuousClock.now - t0
-        #expect(await index.count == 1000)
+            let t0 = ContinuousClock.now
+            await index.build(entries: entries)
+            let build = ContinuousClock.now - t0
+            #expect(await index.count == 1000)
 
-        // Reindex one changed file (worst case: it has links).
-        let target = entries[500]
-        let changed = target.content + "\n- [ ] Extra task [[Note 7]]\n"
-        let t1 = ContinuousClock.now
-        let didChange = await index.update(path: target.path, content: changed)
-        let reindex = ContinuousClock.now - t1
-        #expect(didChange)
+            // Reindex one changed file (worst case: it has links).
+            let target = entries[500]
+            let changed = target.content + "\n- [ ] Extra task [[Note 7]]\n"
+            let t1 = ContinuousClock.now
+            let didChange = await index.update(path: target.path, content: changed)
+            let reindex = ContinuousClock.now - t1
+            #expect(didChange)
 
-        // Queries on the built index.
-        let t2 = ContinuousClock.now
-        let backlinks = await index.backlinks(to: "n-7")
-        let unresolved = await index.unresolvedLinks()
-        let query = ContinuousClock.now - t2
-        #expect(!backlinks.isEmpty && !unresolved.isEmpty)
+            // Queries on the built index.
+            let t2 = ContinuousClock.now
+            let backlinks = await index.backlinks(to: "n-7")
+            let unresolved = await index.unresolvedLinks()
+            let query = ContinuousClock.now - t2
+            #expect(!backlinks.isEmpty && !unresolved.isEmpty)
+            if run > 0 { builds.append(perfMs(build)); reindexes.append(perfMs(reindex)); queries.append(perfMs(query)) }
+        }
 
-        let bs = Double(build.components.seconds) + Double(build.components.attoseconds) / 1e18
-        let rs = Double(reindex.components.seconds) + Double(reindex.components.attoseconds) / 1e18
-        let qs = Double(query.components.seconds) + Double(query.components.attoseconds) / 1e18
-        print("NoteIndex perf (slack x\(Self.slack)): build 1000 notes = \(Int(bs * 1000)) ms, "
-              + "reindex 1 file = \(String(format: "%.1f", rs * 1000)) ms, "
-              + "backlinks+unresolved = \(Int(qs * 1000)) ms")
-        #expect(bs < 1.0 * Self.slack, "build budget 1 s")
-        #expect(rs < 0.030 * Self.slack, "reindex budget 30 ms")
+        let bs = perfMedian(builds), rs = perfMedian(reindexes), qs = perfMedian(queries)
+        print("NoteIndex perf (slack x\(Self.slack), median of \(perfRuns) runs): build 1000 notes = \(Int(bs)) ms [\(perfList(builds))], "
+              + "reindex 1 file = \(String(format: "%.1f", rs)) ms [\(perfList(reindexes))], "
+              + "backlinks+unresolved = \(Int(qs)) ms [\(perfList(queries))]")
+        #expect(bs < 1000 * Self.slack, "build budget 1 s, median \(bs) ms")
+        #expect(rs < 30 * Self.slack, "reindex budget 30 ms, median \(rs) ms")
     }
+}
 }

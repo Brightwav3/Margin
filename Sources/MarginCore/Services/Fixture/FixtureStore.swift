@@ -27,13 +27,20 @@ actor FixtureStore {
         var summary: NoteSummary
         /// The title the file is named after; the heading may differ.
         var fileTitle: String
+        /// The frontmatter block as the vault sample would write it (`nil` for notes without one).
+        var frontmatter: Frontmatter?
         var body: String
+
+        /// The whole file: frontmatter followed by the body.
+        var content: String { (frontmatter?.render() ?? "") + body }
     }
 
     let semester: Semester
     let clock: any Clock
     private(set) var courses: [Course]
-    private var notes: [NoteID: StoredNote] = [:]
+    private var notes: [NoteID: StoredNote] = [:] { didSet { analysisIndex = nil } }
+    /// Index over the current notes for `FixtureNoteAnalysis`; dropped on every change.
+    private var analysisIndex: NoteIndex?
     private var changeSets: ChangeSetFactory
     private var idempotency = IdempotencyCache()
     private var versions = TextVersionCache()
@@ -44,6 +51,8 @@ actor FixtureStore {
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
+    nonisolated let taskChanges = Broadcaster<TaskUpdate>()
+    private var taskSnapshot: [NoteID: TaskSnapshotEntry] = [:]
 
     init(world: FixtureWorld, clock: any Clock, retention: ChangeSetRetention = .standard) {
         self.semester = world.semester
@@ -53,9 +62,14 @@ actor FixtureStore {
         self.changeSets = ChangeSetFactory(clock: clock)
         self.extractor = TaskExtractor(clock: clock)
         for summary in world.allNotes {
-            notes[summary.id] = StoredNote(summary: summary, fileTitle: summary.title,
-                                           body: world.markdownBody(of: summary.id) ?? "# \(summary.title)\n")
+            let body = world.markdownBody(of: summary.id) ?? "# \(summary.title)\n"
+            var frontmatter: Frontmatter?
+            if let course = world.courses.first(where: { $0.id == summary.courseID }) {
+                frontmatter = Frontmatter.parse(SampleVaultGenerator.noteFile(summary, course: course, body: body)).frontmatter
+            }
+            notes[summary.id] = StoredNote(summary: summary, fileTitle: summary.title, frontmatter: frontmatter, body: body)
         }
+        taskSnapshot = Self.snapshot(of: notes, extractor: extractor)
     }
 
     // MARK: Courses
@@ -84,8 +98,8 @@ actor FixtureStore {
 
     func open(id: NoteID) throws -> Note {
         guard let n = notes[id] else { throw MarginError.notFound("No note \(id)") }
-        let version = Self.version(of: n.body)
-        versions.remember(n.body, version: version)
+        let version = Self.version(of: n.content)
+        versions.remember(n.content, version: version)
         return Note(summary: n.summary, text: n.body, version: version)
     }
 
@@ -98,11 +112,11 @@ actor FixtureStore {
     }
 
     func today() -> [TaskItem] {
-        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), today: clock.today)
+        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
     }
 
     func upcoming() -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), today: clock.today)
+        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
     }
 
     func tasks(course id: CourseID) throws -> [TaskItem] {
@@ -111,8 +125,52 @@ actor FixtureStore {
         return ServiceRules.courseTasks(items, today: clock.today)
     }
 
+    private static func snapshot(of notes: [NoteID: StoredNote], extractor: TaskExtractor) -> [NoteID: TaskSnapshotEntry] {
+        var result: [NoteID: TaskSnapshotEntry] = [:]
+        for (id, note) in notes {
+            guard let course = note.summary.courseID else { continue }
+            let tasks = extractor.extract(from: note.body).map {
+                extractor.taskItem($0, noteID: id, courseID: course)
+            }
+            result[id] = TaskSnapshotEntry(noteID: id, courseID: course, tasks: tasks)
+        }
+        return result
+    }
+
+    /// Publishes the difference between the tasks now and at the last call. Called after every
+    /// mutation, so `TaskService.updates` follows writes and simulated outside edits alike.
+    private func publishTaskChanges() {
+        let now = Self.snapshot(of: notes, extractor: extractor)
+        let update = TaskDiff.update(old: taskSnapshot, new: now)
+        taskSnapshot = now
+        if let update { taskChanges.send(update) }
+    }
+
     private func allTasks() -> [TaskItem] {
         notes.values.filter { $0.summary.courseID != nil }.flatMap { extractTasks(of: $0) }
+    }
+
+    // MARK: Tasks (write)
+
+    func toggleTask(id taskID: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        var found: TaskItem?
+        for key in notes.keys.sorted() {
+            if let note = notes[key], let task = extractTasks(of: note).first(where: { $0.id == taskID }) { found = task; break }
+        }
+        guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+        // Same steps as `TaskWriteBack` in the vault: find the task again in the current text, flip it.
+        return try editContent(id: item.source.noteID, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                               idempotencyKey: idempotencyKey) { note in
+            guard let match = TaskLocator.resolve(TaskTarget(item: item), in: extractor.extract(from: note.body)) else {
+                throw MarginError.notFound("Task \"\(item.text)\" is no longer in \(item.source.noteID)")
+            }
+            guard let body = TaskWriteBack.setting(!match.task.done, in: note.body, task: match.task) else {
+                throw MarginError.invalid("Line \(match.task.line) is not a checkbox")
+            }
+            return (note.frontmatter?.render() ?? "") + body
+        }
     }
 
     // MARK: Notes (write)
@@ -122,16 +180,16 @@ actor FixtureStore {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
         let before = note
-        let current = Self.version(of: note.body)
+        let current = Self.version(of: note.content)
         var newText = text
         var merged = false
         if let base = baseVersion, base != current {
             // A stale base: merge when the two sides changed different lines, else conflict.
-            guard let baseText = versions.lookup(base) else {
+            guard let baseContent = versions.lookup(base) else {
                 throw MarginError.conflict("Note \(id) changed since version \(base.prefix(12)) (now \(current.prefix(12)))",
                                            ConflictDetail(path: path(of: note), currentVersion: current))
             }
-            let result = ThreeWayMerge.merge(base: baseText, ours: text, theirs: note.body,
+            let result = ThreeWayMerge.merge(base: Frontmatter.parse(baseContent).body, ours: text, theirs: note.body,
                                              oursLabel: "yours", theirsLabel: "stored")
             if result.hasConflicts {
                 throw MarginError.conflict(
@@ -148,11 +206,76 @@ actor FixtureStore {
             note.body = newText
             note.summary = summarize(note)
             entries = [.init(path: path(of: note), kind: .modified, noteID: id, beforeHash: current,
-                             afterHash: Self.version(of: newText), merged: merged ? true : nil)]
+                             afterHash: Self.version(of: note.content), merged: merged ? true : nil)]
             steps = [.modified(before: before, after: note)]
-            if !dryRun { notes[id] = note; versions.remember(newText, version: Self.version(of: newText)) }
+            if !dryRun { notes[id] = note; versions.remember(note.content, version: Self.version(of: note.content)) }
         }
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey, steps: steps)
+    }
+
+    /// Rewrites the whole file content of a note (frontmatter + body) through `transform`, which
+    /// returns `nil` for "nothing to change". Shared by the property and task write paths.
+    func editContent(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
+                     transform: (StoredNote) throws -> String?) throws -> ChangeSet {
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
+        let before = note
+        let current = Self.version(of: note.content)
+        try requireBaseVersion(baseVersion, matches: current, what: "Note \(id)", path: path(of: note))
+        var entries: [ChangeSet.Entry] = []
+        var steps: [Step] = []
+        if let newContent = try transform(note), !sameBytes(newContent, note.content) {
+            let parsed = Frontmatter.parse(newContent)
+            note.frontmatter = parsed.frontmatter
+            note.body = parsed.body
+            entries = [.init(path: path(of: note), kind: .modified, noteID: id, beforeHash: current,
+                             afterHash: Self.version(of: note.content))]
+            note.summary = summarize(note)
+            steps = [.modified(before: before, after: note)]
+            if !dryRun { notes[id] = note; versions.remember(note.content, version: Self.version(of: note.content)) }
+        }
+        return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey, steps: steps)
+    }
+
+    // MARK: Analysis
+
+    /// A `NoteIndex` over the current notes, built on first use after a change. The fixture answers
+    /// analysis queries from the same index code as the vault, so both agree by construction.
+    func noteIndex() async -> NoteIndex {
+        if let analysisIndex { return analysisIndex }
+        let index = NoteIndex(clock: clock)
+        await index.build(entries: notes.keys.sorted().compactMap { id in
+            notes[id].map { (path: path(of: $0), content: $0.content) }
+        })
+        // Another call may have built one (or a write invalidated the notes) while this one awaited.
+        if let analysisIndex { return analysisIndex }
+        analysisIndex = index
+        return index
+    }
+
+    // MARK: Properties
+
+    private func propertyRegistry() -> PropertyRegistry {
+        PropertyEditing.registry(inferredFrom: notes.keys.sorted().compactMap { id in
+            notes[id]?.frontmatter.map { fm in Dictionary(uniqueKeysWithValues: fm.keys.compactMap { k in fm.value(for: k).map { (k, $0) } }) }
+        })
+    }
+
+    func propertyTypes() -> [String: PropertyType] { propertyRegistry().types }
+
+    func setProperty(key: String, value: FrontmatterValue, on id: NoteID, actor: Actor, baseVersion: String?,
+                     dryRun: Bool, idempotencyKey: String?) throws -> ChangeSet {
+        let registry = propertyRegistry()
+        return try editContent(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey) {
+            try PropertyEditing.set(key: key, value: value, in: $0.content, registry: registry)
+        }
+    }
+
+    func removeProperty(key: String, on id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                        idempotencyKey: String?) throws -> ChangeSet {
+        try editContent(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey) {
+            try PropertyEditing.remove(key: key, in: $0.content)
+        }
     }
 
     func create(course courseID: CourseID, title: String, kind: NoteKind, text: String, actor: Actor,
@@ -167,10 +290,11 @@ actor FixtureStore {
         }
         var note = StoredNote(
             summary: NoteSummary(id: id, courseID: courseID, title: title, kind: kind),
-            fileTitle: title, body: ServiceRules.initialBody(title: title, text: text))
+            fileTitle: title, frontmatter: Self.newFrontmatter(id: id, course: course, kind: kind),
+            body: ServiceRules.initialBody(title: title, text: text))
         note.summary = summarize(note)
-        let entry = ChangeSet.Entry(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.body))
-        if !dryRun { notes[id] = note; versions.remember(note.body, version: Self.version(of: note.body)) }
+        let entry = ChangeSet.Entry(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.content))
+        if !dryRun { notes[id] = note; versions.remember(note.content, version: Self.version(of: note.content)) }
         return finish(actor: actor, entries: [entry], dryRun: dryRun, key: idempotencyKey, steps: [.created(after: note)])
     }
 
@@ -179,7 +303,7 @@ actor FixtureStore {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
         _ = try course(id: target)
-        let version = Self.version(of: note.body)
+        let version = Self.version(of: note.content)
         try requireBaseVersion(baseVersion, matches: version, what: "Note \(id)", path: path(of: note))
         var entries: [ChangeSet.Entry] = []
         var steps: [Step] = []
@@ -200,7 +324,7 @@ actor FixtureStore {
     func delete(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         guard let note = notes[id] else { throw MarginError.notFound("No note \(id)") }
-        let version = Self.version(of: note.body)
+        let version = Self.version(of: note.content)
         try requireBaseVersion(baseVersion, matches: version, what: "Note \(id)", path: path(of: note))
         let entry = ChangeSet.Entry(path: path(of: note), kind: .deleted, noteID: id, beforeHash: version)
         if !dryRun { notes[id] = nil }
@@ -240,48 +364,50 @@ actor FixtureStore {
                 guard let cur = work[before.summary.id] else {
                     throw undoConflict("\(before.summary.id) no longer exists", path: path(of: before), current: nil)
                 }
-                let curVersion = Self.version(of: cur.body)
-                if curVersion == Self.version(of: after.body) {
+                let curVersion = Self.version(of: cur.content)
+                if curVersion == Self.version(of: after.content) {
                     work[before.summary.id] = before
                     inverse.append(.modified(before: cur, after: before))
                     entries.append(.init(path: path(of: before), kind: .modified, noteID: before.summary.id,
-                                         beforeHash: curVersion, afterHash: Self.version(of: before.body)))
+                                         beforeHash: curVersion, afterHash: Self.version(of: before.content)))
                 } else if mode == .merge {
-                    let r = ThreeWayMerge.merge(base: after.body, ours: before.body, theirs: cur.body,
+                    let r = ThreeWayMerge.merge(base: after.content, ours: before.content, theirs: cur.content,
                                                 oursLabel: "undone", theirsLabel: "stored")
                     guard !r.hasConflicts else {
                         throw undoConflict("\(before.summary.id) was edited in the same place after this change",
                                            path: path(of: cur), current: curVersion, merged: r)
                     }
                     var restored = cur
-                    restored.body = r.text
+                    let parsed = Frontmatter.parse(r.text)
+                    restored.frontmatter = parsed.frontmatter
+                    restored.body = parsed.body
                     restored.summary = summarize(restored)
                     work[before.summary.id] = restored
                     inverse.append(.modified(before: cur, after: restored))
                     entries.append(.init(path: path(of: restored), kind: .modified, noteID: before.summary.id,
-                                         beforeHash: curVersion, afterHash: Self.version(of: r.text), merged: true))
+                                         beforeHash: curVersion, afterHash: Self.version(of: restored.content), merged: true))
                 } else {
                     throw undoConflict("\(before.summary.id) changed after this change", path: path(of: cur), current: curVersion)
                 }
             case .created(let after):
-                guard let cur = work[after.summary.id], Self.version(of: cur.body) == Self.version(of: after.body) else {
+                guard let cur = work[after.summary.id], Self.version(of: cur.content) == Self.version(of: after.content) else {
                     throw undoConflict("\(after.summary.id) changed or disappeared after it was created",
-                                       path: path(of: after), current: work[after.summary.id].map { Self.version(of: $0.body) })
+                                       path: path(of: after), current: work[after.summary.id].map { Self.version(of: $0.content) })
                 }
                 work[after.summary.id] = nil
                 inverse.append(.deleted(before: cur))
                 entries.append(.init(path: path(of: cur), kind: .deleted, noteID: cur.summary.id,
-                                     beforeHash: Self.version(of: cur.body)))
+                                     beforeHash: Self.version(of: cur.content)))
             case .deleted(let before):
                 guard work[before.summary.id] == nil,
                       !fileNameTaken(before.fileTitle, in: before.summary.courseID ?? "", except: nil, in: work) else {
                     throw undoConflict("\(before.summary.id) exists again, it cannot be restored over it",
-                                       path: path(of: before), current: work[before.summary.id].map { Self.version(of: $0.body) })
+                                       path: path(of: before), current: work[before.summary.id].map { Self.version(of: $0.content) })
                 }
                 work[before.summary.id] = before
                 inverse.append(.created(after: before))
                 entries.append(.init(path: path(of: before), kind: .created, noteID: before.summary.id,
-                                     afterHash: Self.version(of: before.body)))
+                                     afterHash: Self.version(of: before.content)))
             case .moved(let before, let after):
                 guard let cur = work[after.summary.id], cur.summary.courseID == after.summary.courseID else {
                     throw undoConflict("\(after.summary.id) is not where the move left it", path: path(of: after), current: nil)
@@ -294,7 +420,7 @@ actor FixtureStore {
                 back.summary.courseID = before.summary.courseID
                 work[after.summary.id] = back
                 inverse.append(.moved(before: cur, after: back))
-                let v = Self.version(of: cur.body)
+                let v = Self.version(of: cur.content)
                 entries.append(.init(path: path(of: back), kind: .moved, noteID: back.summary.id,
                                      fromPath: path(of: cur), beforeHash: v, afterHash: v))
             }
@@ -304,7 +430,7 @@ actor FixtureStore {
             for step in inverse {
                 switch step {
                 case .modified(_, let n), .created(let n), .deleted(let n), .moved(_, let n):
-                    versions.remember(n.body, version: Self.version(of: n.body))
+                    versions.remember(n.content, version: Self.version(of: n.content))
                 }
             }
         }
@@ -323,6 +449,12 @@ actor FixtureStore {
         if drop > 0 { recorded.removeFirst(drop) }
     }
 
+    /// The whole file content of a note (frontmatter + body), as the vault would store it.
+    func rawContent(id: NoteID) throws -> String {
+        guard let n = notes[id] else { throw MarginError.notFound("No note \(id)") }
+        return n.content
+    }
+
     // MARK: Simulated outside changes (tests, previews)
 
     /// Replaces a note's body as if another program had edited the file.
@@ -331,17 +463,20 @@ actor FixtureStore {
         note.body = text
         note.summary = summarize(note)
         notes[id] = note
-        versions.remember(text, version: Self.version(of: text))
+        versions.remember(note.content, version: Self.version(of: note.content))
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .modified)])
     }
 
     func simulateExternalCreate(course: CourseID, title: String, text: String) throws -> NoteID {
         _ = try self.course(id: course)
         let id = ServiceRules.noteID(course: course, title: title)
+        let owner = try self.course(id: course)
         var note = StoredNote(summary: NoteSummary(id: id, courseID: course, title: title), fileTitle: title,
-                              body: ServiceRules.initialBody(title: title, text: text))
+                              frontmatter: Self.newFrontmatter(id: id, course: owner, kind: .note), body: ServiceRules.initialBody(title: title, text: text))
         note.summary = summarize(note)
         notes[id] = note
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .created)])
         return id
     }
@@ -349,22 +484,32 @@ actor FixtureStore {
     func simulateExternalDelete(id: NoteID) throws {
         guard notes[id] != nil else { throw MarginError.notFound("No note \(id)") }
         notes[id] = nil
+        publishTaskChanges()
         noteChanges.send([NoteChange(noteID: id, kind: .deleted)])
     }
 
     /// Changes a course as if `_course.md` had been edited elsewhere.
     func simulateExternalCourseEdit(id: CourseID, _ change: @Sendable (inout Course) -> Void) throws {
         guard let i = courses.firstIndex(where: { $0.id == id }) else { throw MarginError.notFound("No course \(id)") }
+        let examsBefore = courses[i].exams
         change(&courses[i])
+        if courses[i].exams != examsBefore { taskChanges.send(TaskUpdate(noteIDs: [], courseIDs: [id])) }
         catalogUpdates.send(CatalogUpdate(courses: [id]))
     }
 
     // MARK: Helpers
 
+    /// The frontmatter a note created through the app gets (same keys as `VaultNoteRepository.create`).
+    private static func newFrontmatter(id: NoteID, course: Course, kind: NoteKind) -> Frontmatter? {
+        let text = "---\nid: \(SampleVaultGenerator.scalar(id))\nclass: \"[[\(course.name)]]\"\ntype: \(kind.rawValue)\n---\n"
+        return Frontmatter.parse(text).frontmatter
+    }
+
     static func version(of body: String) -> String { ContentHash(of: body).hex }
 
     private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?,
-                        steps: [Step], revertsID: String? = nil) -> ChangeSet {
+                        steps: [Step] = [], revertsID: String? = nil) -> ChangeSet {
+        publishTaskChanges()
         var cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         cs.revertsID = revertsID
         if !dryRun {

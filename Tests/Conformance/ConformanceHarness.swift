@@ -27,6 +27,8 @@ struct Harness: Sendable {
     let env: AppEnvironment
     /// Replaces the body of a note from outside.
     let editNote: @Sendable (NoteID, String) async throws -> Void
+    /// The whole file content of a note: frontmatter and body, byte for byte.
+    let rawContent: @Sendable (NoteID) async throws -> String
     /// Deletes a note from outside.
     let deleteNote: @Sendable (NoteID) async throws -> Void
     /// Changes the room of a course from outside.
@@ -36,20 +38,25 @@ struct Harness: Sendable {
     var courses: any CourseCatalog { env.courses }
     var notes: any NoteRepository { env.notes }
     var tasks: any TaskService { env.tasks }
+    var properties: any PropertyService { env.properties }
+    var analysis: any NoteAnalysis { env.analysis }
     var changes: any ChangeSetStore { env.changes }
     var clock: any Clock { env.clock }
 
-    static func make(_ kind: HarnessKind, clock: any Clock = FixedClock()) async throws -> Harness {
+    static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
+                     watchInterval: TimeInterval = 0.05) async throws -> Harness {
         switch kind {
         case .fixture:
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
-                tasks: FixtureTaskService(store: store), changes: FixtureChangeSetStore(store: store),
-                shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll() })
+                tasks: FixtureTaskService(store: store), properties: FixturePropertyService(store: store),
+                analysis: FixtureNoteAnalysis(store: store), changes: FixtureChangeSetStore(store: store),
+                shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env,
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
+                rawContent: { id in try await store.rawContent(id: id) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
                 editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
                 keepAlive: nil)
@@ -58,7 +65,7 @@ struct Harness: Sendable {
             // The sample vault of the same fixtures (M5-09), written before the environment opens it.
             let store = try await VaultStore.open(root: folder.url, clock: clock, createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
-            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: 0.05)
+            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: watchInterval)
             let root = folder.url
             return Harness(
                 kind: kind, env: env,
@@ -68,6 +75,7 @@ struct Harness: Sendable {
                     let fm = Frontmatter.parse(content).frontmatter
                     try Data(((fm?.render() ?? "") + text).utf8).write(to: file)
                 },
+                rawContent: { id in try String(contentsOf: try Self.file(ofNoteWithID: id, in: root), encoding: .utf8) },
                 deleteNote: { id in try FileManager.default.removeItem(at: try Self.file(ofNoteWithID: id, in: root)) },
                 editCourseRoom: { id, room in
                     let file = try Self.file(ofNoteWithID: nil, courseID: id, in: root)
@@ -96,9 +104,9 @@ struct Harness: Sendable {
 }
 
 /// Runs `body` against a fresh harness and always shuts it down.
-func withHarness(_ kind: HarnessKind, clock: any Clock = FixedClock(),
+func withHarness(_ kind: HarnessKind, clock: any Clock = FixedClock(), watchInterval: TimeInterval = 0.05,
                  _ body: (Harness) async throws -> Void) async throws {
-    let harness = try await Harness.make(kind, clock: clock)
+    let harness = try await Harness.make(kind, clock: clock, watchInterval: watchInterval)
     do { try await body(harness) } catch {
         await harness.shutdown()
         throw error

@@ -3,6 +3,7 @@ import Testing
 @testable import MarginCore
 
 /// The vault services end to end: real files, the index, link rewriting, restarts.
+extension HeavySuites {
 @Suite struct VaultChangeSetIntegrationTests {
     struct Rig {
         let dir: TempDir
@@ -185,7 +186,7 @@ import Testing
         func attempt(fault: FaultInjectingFileSystem.Fault?, calls: Int? = nil) async throws
             -> (dir: TempDir, original: [String: Data], moved: [String: Data], log: [String], threw: Bool, id: NoteID) {
             let dir = try await Self.vaultWithLinkers()
-            let fs = FaultInjectingFileSystem()
+            let fs = FaultInjectingFileSystem(base: NoSyncFileSystem())
             let rig = try await Rig.open(dir, fileSystem: fs)
             let (id, _, _) = try await linkedNote(in: dir, rig: rig)
             let current = try await rig.notes.open(id: id)
@@ -238,4 +239,5 @@ import Testing
         print("interrupted move: \(total) calls, \(runs) faulted runs")
         #expect(problems.isEmpty, "\(problems.prefix(8).joined(separator: "\n"))")
     }
+}
 }
