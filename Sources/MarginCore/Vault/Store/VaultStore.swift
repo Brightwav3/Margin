@@ -306,6 +306,9 @@ public actor VaultStore {
         }
 
         do { try fileSystem.syncDirectory(at: parent) } catch {
+            // The file is in place although the caller is told otherwise, so nobody updates the index
+            // for it: let the watcher report the change instead of swallowing it as an own write.
+            if let ownWrites, VaultStore.isWatched(path) { await ownWrites.forget(path: path.rawValue, hash: newHash) }
             throw MarginError.io("\(path) was written but syncing its folder failed: \(error)")
         }
         return newHash
