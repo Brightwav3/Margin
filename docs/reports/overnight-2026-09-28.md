@@ -6,7 +6,7 @@
 
 **Provisional assumptions:** see `docs/agents/overnight.md` §4 (Q1–Q13 defaults from STATUS.md). Every PR carries **PROVISIONAL**. Additional self-made decisions are listed below.
 
-**Summary:** started 36 / DONE 26 (by task id) / BLOCKED 0 / SKIPPED 0. Circuit breaker: no.
+**Summary:** all planned backend tasks except the deferred agent layer are DONE — about 75 task IDs, backend weight ≈ 219 of the 225 in scope (405 total minus 170 agent layer minus 10 impossible here). BLOCKED 0. SKIPPED: agent layer AG-01, AG-05…AG-36 (human decision), UI Phase 2 (human decision), M0-02 / M12-06 / M12-07 (need a Mac / Developer ID), M8-05 (Q2), M5-01 (human decision). Circuit breaker: never tripped. Final state: `feat/core-features` = 665+ core tests and 289 conformance tests green on Linux (Swift 6.4, Docker).
 
 | Task | Slice/branch | PR | State | Verified | Note |
 |---|---|---|---|---|---|
@@ -38,7 +38,7 @@
 | M10-01, M11-03.B, M10-03.B, M10-05.B | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE (FTS5 UNVERIFIED) | swift test (Docker) | no sqlite3.h in Linux image → in-memory BM25 index; SQLite FTS5 behind `#if canImport(SQLite3)` never compiled |
 | M8-04, M5-07 FSEvents | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE (UNVERIFIED on macOS) | Linux build + Shortcut tests | new macOS-only `MarginPlatform` target; M8-05 not done (Q2) |
 | M7-02 latency fix | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE | 5 green full runs; 0.4–0.5 s isolated | root cause: blocking I/O starved the cooperative pool; vault actors on `DedicatedExecutor` |
-| M12-03 | feat/core-robustness | | DONE, integrating (tests conflict with AG-03 journal, worker fixing) | swift test (Docker) | 8 real bugs found and fixed (stale index after ENOSPC, read-only notes overwritten, writes re-creating an unmounted vault, watcher treating missing root as mass delete, …); open: partial link rewrite on move is silent (needs ChangeSet warnings = api) |
+| M12-03 | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE | swift test (Docker) | 8 real bugs found and fixed (stale index after ENOSPC, read-only notes overwritten, writes re-creating an unmounted vault, watcher treating missing root as mass delete, …); open: partial link rewrite on move is silent (needs ChangeSet warnings = api) |
 | M7-02, M7-03, M7-05.B, M7-06.B, M7-09.B | feat/core-features | | DONE | swift test (Docker) | M7-02 1 s budget: 0.4–0.7 s measured, only 5 s asserted (container stalls); watch interval 0.2 s; Upcoming grouping provisional (Q4) |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
@@ -82,7 +82,17 @@ State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → 
 1. **Agent routines and triggers (out of plan, new task).** Human wants agents to feel like Grok Bot / Notion Custom Agents: named teammates that act on their own on a schedule (e.g. nightly inbox triage, Sunday weekly review) or on events (new inbox item, lecture ended, exam approaching), with per-identity memory, an activity feed, and hand-offs between identities. Current plan covers identities, scoped permissions, approvals, memory, skills (AG-31, AG-12, AG-13, AG-20, AG-21) but has no triggers/routines and runs agents only while the app runs (Q2/Q11). Proposal: new task `AG-37 Routines` (schedule + event triggers over `Clock` and vault events, each run = session under an identity with purpose, results via ReviewQueue/audit), weight ~8, depends on AG-31/AG-33/AG-13; background execution needs Q2/Q11 revisited. Meanwhile AG-31's identity model is designed to carry job description, per-identity memory and triggers as data so this needs no format change later.
 
 ## Recommended morning steps
-_(filled at the end)_
+1. **Merge (routine):** #24 (CI workflow fix; stops the "No jobs were run" emails). It is independent of everything else.
+2. **Decide / approve (`ask:required`), in stack order:** #23 (foundation + model types) → #26 (vault, parsers, index, app environment; base `feat/core-foundation`) → #27 (all feature services, undo, robustness; base `feat/core-vault`). Before merging, decide:
+   - vault format additions: optional `id:` (notes, `_course.md`), `overrides:` in `_course.md`, `"archived"` in `semesters.json`, `<course>/Tasks.md` for captured tasks, `.margin/settings.json`, `.margin/history/`, `.margin/changesets/` (full before-bytes, not inverse patches) → record as D-0NN and update `05-vault-spec.md`;
+   - contract additions (all service protocols in `Sources/MarginCore/API/Services/`) → review `09-contracts.md` alignment;
+   - open questions below (grade model, Lab 2 date, semester dates, Upcoming grouping Q4, graph 17 vs 23 nodes, `status:` placeholder key, ChangeSet warnings for partial link rewrites, nearest-lecture API entry, `InboxService.updates`).
+3. **Verify on a Mac (UNVERIFIED code):** `swift build && swift test` on arm64 / macOS 27 SDK; then the macOS-only paths: FSEvents watcher (also add the missing-root guard the polling watcher has), Carbon hotkey (`MarginPlatform` target), `SystemTrash`, `F_FULLFSYNC`, creation-date preservation on rename, UserNotifications reminders, SQLite3 FTS5 index + `.margin/index.sqlite` wiring, zlib history snapshots, PDF export (stub).
+4. **Small follow-ups:** wire `history.snapshot(.save)` into the save path; promote `CourseListQuery`/`BannerStore`/`CourseCard` into the API when the UI needs them; ChangeSet warnings for partial link rewrites.
+5. **Next:** UI on the Mac against `MarginCore/API` + `AppEnvironment.fixture`; agent layer later (door left open: every write takes `Actor`/`baseVersion`/`dryRun`/`idempotencyKey` and returns a `ChangeSet`; undo exists).
 
 ## Metrics
-_(filled at the end)_
+- Workers: ~30 Sonnet runs (plus 1 aborted Opus start); fix rounds per task mostly 0–1; merge-integration rounds were the main cost (shared `AppEnvironment`/harness files).
+- Test count on the final branch: ~665 core + 289 conformance (Linux, debug).
+- Real bugs found by tests during the run: ~12 (scanner code/BOM, filename hidden-file, CRLF capture append, cooperative-pool starvation, 8 robustness bugs, move re-read after journal).
+- Credits: not observable from the session.
