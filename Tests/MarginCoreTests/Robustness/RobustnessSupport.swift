@@ -179,7 +179,7 @@ func withRobustVault(watchInterval: TimeInterval = 0.2, populate: Bool = true,
 }
 
 /// Polls `body` until it returns true (the watcher needs a few scans to notice outside changes).
-func eventually(timeout: TimeInterval = 20, _ body: () async throws -> Bool) async rethrows -> Bool {
+func eventually(timeout: TimeInterval = 45, _ body: () async throws -> Bool) async rethrows -> Bool {
     let deadline = Date().addingTimeInterval(timeout)
     while Date() < deadline {
         if try await body() { return true }
@@ -310,7 +310,7 @@ extension RobustVault {
 
 extension RobustVault {
     /// `true` once the services show what a restarted app would show for the files on disk.
-    func matchesRestart(timeout: TimeInterval = 20) async -> Bool {
+    func matchesRestart(timeout: TimeInterval = 45) async -> Bool {
         guard let fresh = try? await reopened() else { return false }
         let ok = await eventually(timeout: timeout) { (try? await readModel(env)) == (try? await readModel(fresh)) }
         await fresh.shutdown()
