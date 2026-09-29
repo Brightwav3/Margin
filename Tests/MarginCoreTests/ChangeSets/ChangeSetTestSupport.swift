@@ -2,10 +2,8 @@ import Foundation
 import Testing
 @testable import MarginCore
 
-/// Parent suite of the long-running change-set tests (fault sweeps, stress). `.serialized` is inherited
-/// by the nested suites, so no two of them run at the same time and they do not starve the timing
-/// tests of other suites.
-@Suite(.serialized) enum HeavySuites {}
+// The long-running change-set tests (fault sweeps, stress) are nested in `PerfSuites`: that parent is
+// `.serialized`, so they never run at the same time as a timing test and cannot distort its budget.
 
 /// The real file system without the durability flushes. A simulated crash (`FaultInjectingFileSystem`)
 /// does not need fsync to be observable, and the sweeps make thousands of writes.

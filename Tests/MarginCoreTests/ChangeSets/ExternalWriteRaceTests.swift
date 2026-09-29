@@ -9,7 +9,7 @@ import Testing
 /// made conditional, so a write that lands after the store's last version check and before its
 /// rename is replaced (the store verifies the version twice, the second time immediately before the
 /// rename, to keep that window to a single system call).
-extension HeavySuites {
+extension PerfSuites {
     @Suite struct ExternalWriteRaceTests {
         typealias Rig = VaultChangeSetIntegrationTests.Rig
 

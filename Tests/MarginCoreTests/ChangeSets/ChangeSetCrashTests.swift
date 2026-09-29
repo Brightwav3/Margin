@@ -6,7 +6,7 @@ import Testing
 /// undo) is failed in turn, before and after it executes, both as a survivable error and as a
 /// simulated kill (nothing can clean up afterwards). After a restart the group is either completely
 /// there or completely absent, and the journal agrees with the files.
-extension HeavySuites {
+extension PerfSuites {
 @Suite struct ChangeSetCrashTests {
     typealias Files = [String: Data]
 

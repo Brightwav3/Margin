@@ -5,7 +5,7 @@ import Testing
 /// AG-04 acceptance: "two writers x 1000 writes without loss". Every write is a read-modify-write
 /// with `baseVersion` through the public `NoteRepository`; a `.conflict` is answered by reading the
 /// note again and repeating the edit.
-extension HeavySuites {
+extension PerfSuites {
     @Suite struct ConcurrentWriterStressTests {
         typealias Rig = VaultChangeSetIntegrationTests.Rig
 

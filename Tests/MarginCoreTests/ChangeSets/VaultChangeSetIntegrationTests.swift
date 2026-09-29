@@ -3,7 +3,7 @@ import Testing
 @testable import MarginCore
 
 /// The vault services end to end: real files, the index, link rewriting, restarts.
-extension HeavySuites {
+extension PerfSuites {
 @Suite struct VaultChangeSetIntegrationTests {
     struct Rig {
         let dir: TempDir
