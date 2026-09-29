@@ -73,6 +73,8 @@ enum GraphRules {
 /// Remembers the last layout of the vault graph so that filtering or asking again does not lay
 /// out again and nodes keep their places until the vault's graph changes.
 actor GraphLayoutCache {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.graph-layout-cache")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     private var key: Graph?
     private var placed: Graph?
 

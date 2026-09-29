@@ -41,6 +41,8 @@ enum TaskDiff {
 /// notes with what it saw before and publishes a `TaskUpdate` on `updates` when they differ. The
 /// chain for an edit made by another program is: file watcher → index → `reconcile` → `updates`.
 actor TasksStore {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.tasks-store")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     private let index: NoteIndex
     private var snapshot: [String: TaskSnapshotEntry] = [:]
 

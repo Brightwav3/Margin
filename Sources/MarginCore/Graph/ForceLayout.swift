@@ -239,7 +239,7 @@ public struct ForceLayout: Sendable {
         let start = self
         let interval = max(1, every)
         return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
-            let task = Task.detached {
+            let task = Task(executorPreference: DedicatedExecutor(label: "margin.force-layout")) {
                 var copy = start
                 var taken = 0
                 while !Task.isCancelled {

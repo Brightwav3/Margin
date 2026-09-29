@@ -33,6 +33,8 @@ public struct TaskWriteResult: Sendable, Hashable {
 /// `TaskService.toggle` (M6-11) is built on `setDone`. The caller applies the returned entry to a
 /// `ChangeSet` and tells the `TasksStore` that the note changed.
 public actor TaskWriteBack {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.task-write-back")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     /// Test seam: runs after each read, before the write (attempt number, 1-based).
     typealias Hook = @Sendable (Int) async -> Void
 

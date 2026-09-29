@@ -25,9 +25,15 @@ actor FixtureStore {
     var inbox: [InboxItem]
     /// File name stem (`2026-09-28 0912 …`) of each inbox item by id.
     var inboxStems: [String: String] = [:]
-    private(set) var semester: Semester
+    var semester: Semester
+    /// Semesters created through `SemesterStore`; they have no courses. `semester` is the one with the fixture's courses.
+    var extraSemesters: [Semester] = []
     let clock: any Clock
     var courses: [Course]
+    /// Graded items of all courses (`GradeService`), in file order per course.
+    var grades: [Grade]
+    /// Snapshot files of `HistoryService`: note id, then file name.
+    var historyFiles: [NoteID: [String: Data]] = [:]
     /// Overrides of single classes (`CourseCatalogWriter.override`), sorted by day, then id.
     var overrides: [SessionOverride] = []
     var notes: [NoteID: StoredNote] = [:] { didSet { analysisIndex = nil } }
@@ -47,6 +53,7 @@ actor FixtureStore {
         self.semester = world.semester
         self.clock = clock
         self.courses = world.courses
+        self.grades = world.grades
         self.inbox = world.inbox
         for item in world.inbox { inboxStems[item.id] = CaptureRules.inboxStem(captured: item.captured, text: item.text) }
         self.changeSets = ChangeSetFactory(clock: clock)
@@ -64,11 +71,14 @@ actor FixtureStore {
 
     // MARK: Courses
 
-    func semesters() -> [Semester] { [semester] }
+    func semesters() -> [Semester] { SemesterRules.sorted([semester] + extraSemesters) }
+
+    /// The semester that is "now" (never an archived one), like the vault's.
+    func currentSemester() -> Semester? { SemesterRules.current(semesters(), today: clock.today) }
 
     func courses(query: String?) -> [Course] {
         // Like the vault: an archived semester is not "the current one".
-        guard !semester.isArchived else { return [] }
+        guard let current = currentSemester(), current.id == semester.id else { return [] }
         return ServiceRules.sortCourses(courses.filter { ServiceRules.matches($0, query: query) })
     }
 
@@ -78,8 +88,10 @@ actor FixtureStore {
     }
 
     func sessions(week: Int) throws -> [SessionOccurrence] {
-        guard !semester.isArchived else { throw MarginError.notFound("This vault has no semester") }
-        return try ServiceRules.occurrences(week: week, semester: semester, courses: courses, overrides: overrides)
+        guard let current = currentSemester() else { throw MarginError.notFound("This vault has no semester") }
+        let own = current.id == semester.id
+        return try ServiceRules.occurrences(week: week, semester: current, courses: own ? courses : [],
+                                            overrides: own ? overrides : [])
     }
 
     /// Courses whose exams are due: none in an archived semester.

@@ -17,6 +17,8 @@ import Foundation
 /// macOS the creation date, extended attributes (Finder tags) and hard links of the original are
 /// not carried over. Permission bits are preserved.
 public actor VaultStore {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.vault-store")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     /// Vault root as given (location is provisional: configurable path, see Q1).
     public nonisolated let root: URL
     /// Temporary files found and removed by `open`.
@@ -183,6 +185,21 @@ public actor VaultStore {
         try await atomicWrite(Data(content.utf8), to: path, expectedVersion: nil, mustNotExist: true)
     }
 
+    /// Creates a folder (and missing parents). Nothing happens when the folder already exists;
+    /// `.conflict` when a file is in the way. Files are made by `create`/`write`, which create their
+    /// folders; this is for folders that must exist empty (`_inbox/`, a new semester).
+    public func createFolder(_ path: VaultPath) async throws {
+        do {
+            if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            let target = try checkedURL(path, followFinal: false)
+            if let existing = try fileSystem.attributes(at: target) {
+                guard existing.kind == .directory else { throw MarginError.conflict("\(path) exists and is not a folder") }
+                return
+            }
+            try fileSystem.createDirectories(at: target)
+        } catch { throw VaultStore.map(error, "create folder \(path)") }
+    }
+
     /// Renames or moves a file or folder, creating missing target folders. `MarginError.conflict`
     /// when the target exists (nothing is overwritten), `.notFound` when the source is missing.
     /// Registered `RenameObserver`s run after the move.
@@ -260,6 +277,37 @@ public actor VaultStore {
             if let ownWrites { for p in announced { await ownWrites.forget(path: p, hash: OwnWriteRegistry.deletedHash) } }
             throw VaultStore.map(error, "trash \(path)")
         }
+    }
+
+    // MARK: - App data (`.margin/`)
+
+    /// Names of the files (not folders) directly inside a folder below `.margin/`, sorted; empty when
+    /// the folder does not exist. For app data such as `.margin/history/<note>/`.
+    public func listInternalFiles(in folder: VaultPath) throws -> [String] {
+        guard folder.isInternal, folder != VaultPath.internalRoot else { throw MarginError.invalid("\(folder) is not app data") }
+        do {
+            let url = try checkedURL(folder, followFinal: true)
+            guard let attrs = try fileSystem.attributes(at: url) else { return [] }
+            guard attrs.kind == .directory else { throw MarginError.invalid("\(folder) is not a folder") }
+            return try fileSystem.contentsOfDirectory(at: url)
+                .filter { $0.kind == .file && !$0.name.hasPrefix(".") }.map(\.name).sorted()
+        } catch { throw VaultStore.map(error, "list \(folder)") }
+    }
+
+    /// Permanently removes one file of app data that the app itself derived and may drop, such as an
+    /// expired history snapshot. Only paths below `.margin/history/` are accepted: user files go to
+    /// the trash (`trash`), never through here.
+    public func removeInternalFile(_ path: VaultPath) throws {
+        guard path.isInside(VaultPath.internalHistory), path != VaultPath.internalHistory else {
+            throw MarginError.invalid("\(path) is not an expirable app data file")
+        }
+        do {
+            let url = try checkedURL(path, followFinal: false)
+            guard let attrs = try fileSystem.attributes(at: url) else { return }
+            guard attrs.kind == .file else { throw MarginError.invalid("\(path) is not a file") }
+            try fileSystem.removeFile(at: url)
+            try? fileSystem.syncDirectory(at: url.deletingLastPathComponent())
+        } catch { throw VaultStore.map(error, "remove \(path)") }
     }
 
     // MARK: - Atomic write pipeline
@@ -470,6 +518,7 @@ public actor VaultStore {
 extension VaultPath {
     /// `.margin`
     static let internalRoot = VaultPath(unchecked: [internalFolderName])
+    static let internalHistory = VaultPath(unchecked: [internalFolderName, "history"])
     /// `.margin/trash`
     static let internalTrash = VaultPath(unchecked: [internalFolderName, PortableTrash.folderName])
 }
