@@ -10,9 +10,9 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 
 | M | Název | BE váha | UI váha | Σ | Kol kontroly | Kalendářně | Stav | Kontrola | Tag | Poznámka |
 |---|---|---|---|---|---|---|---|---|---|---|
-| M0 | Kostra, tokeny, komponenty, galerie | 5 | 18 | 23 | — | — | ⬜ | `checks/M0.md` | |  |
+| M0 | Kostra, tokeny, komponenty, galerie | 5 | 18 | 23 | — | — | 🟦 | `checks/M0.md` | |  |
 | M1 | Shell | 0 | 28 | 28 | — | — | ⬜ | `checks/M1.md` | | CP0 |
-| M2 | Model a fixtures | 12 | 2 | 14 | — | — | ⬜ | (testy) | |  |
+| M2 | Model a fixtures | 12 | 2 | 14 | — | — | 🟦 | (testy) | |  |
 | M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | — | — | ⬜ | `checks/M3.md` | |  |
 | M4 | Detail předmětu (2c) | 3 | 27 | 30 | — | — | ⬜ | `checks/M4.md` | | CP1 |
 | M5 | Vault a index | 35 | 1 | 36 | — | — | ⬜ | `checks/M5.md` | | před startem odsouhlasit spec (§12) |
