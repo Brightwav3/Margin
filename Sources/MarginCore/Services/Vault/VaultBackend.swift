@@ -28,6 +28,9 @@ actor VaultBackend {
     /// Writes task checkboxes to note files (used by `TaskService.toggle`).
     let taskWriteBack: TaskWriteBack
 
+    /// Version history: the service and the automatic snapshot after a save share this engine.
+    nonisolated let history: HistoryEngine
+
     private(set) var model = VaultCourseModel()
     var changeSets: ChangeSetFactory
     var idempotency = IdempotencyCache()
@@ -53,6 +56,9 @@ actor VaultBackend {
         self.tasksStore = TasksStore(index: index)
         self.taskWriteBack = TaskWriteBack(store: store, index: index, clock: clock)
         self.changeSets = ChangeSetFactory(clock: clock)
+        let owner = WeakOwner<VaultBackend>()
+        self.history = VaultHistoryService.makeEngine(store: store, clock: clock, owner: owner)
+        owner.value = self
     }
 
     /// Opens the vault, builds the index and starts watching.
@@ -435,8 +441,24 @@ actor VaultBackend {
         }
     }
 
+    /// Writes the body of a note. A real change also takes an automatic `.save` snapshot
+    /// (`autoSnapshot`; `HistoryService.restore` turns it off because it records its own versions).
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
-              idempotencyKey: String?) async throws -> ChangeSet {
+              idempotencyKey: String?, autoSnapshot: Bool = true) async throws -> ChangeSet {
+        let changes = try await saveUnrecorded(id: id, text: text, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                               idempotencyKey: idempotencyKey)
+        if autoSnapshot, !dryRun, !changes.entries.isEmpty { await snapshotAfterWrite(id) }
+        return changes
+    }
+
+    /// Stores the current text of `id` as a `.save` version. Never throws: the write it follows is done.
+    private func snapshotAfterWrite(_ id: NoteID) async {
+        guard let note = try? await open(id: id) else { return }
+        await history.autoSnapshot(note: id, text: note.text)
+    }
+
+    private func saveUnrecorded(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                                idempotencyKey: String?) async throws -> ChangeSet {
         try await writeGate.withLock {
             if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
             var attempt = 0
