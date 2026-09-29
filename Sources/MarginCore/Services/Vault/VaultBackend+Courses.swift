@@ -157,7 +157,12 @@ extension VaultBackend {
     func createCourse(_ new: NewCourse, actor: Actor, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let plan = try CourseFactory.plan(new, semesters: model.semesters, entries: model.entries)
-        if await store.exists(plan.folder) { throw MarginError.conflict("\(plan.folder) already exists") }
+        if await store.exists(plan.folder) {
+            // An empty folder is what an interrupted earlier create leaves behind (the store makes the
+            // folder before the file, e.g. when the disk fills up): a retry must not trip over it.
+            let files = (try? await store.list(under: plan.folder)) ?? [plan.path]
+            if !files.isEmpty { throw MarginError.conflict("\(plan.folder) already exists") }
+        }
         let entry = ChangeSet.Entry(path: plan.path.rawValue, kind: .created, afterHash: ContentHash(of: plan.text).hex)
         if !dryRun {
             try await store.create(plan.path, content: plan.text)
