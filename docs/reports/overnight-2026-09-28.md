@@ -28,7 +28,7 @@
 | M7-08.B, M11-01.B, M10-09.B, M10-02.B, M10-04.B | feat/core-features | | DONE | swift test (Docker) | grade: group weights from `_course.md` (Bio = 90.0 % vs fixture 91) |
 | AG-02 | feat/core-features | | DONE | swift test (Docker), 61 new tests | `n-`/`t-` base32 ids, idempotent migration pass; foreign `^block` ids kept as task id |
 | M6-05.B, M6-08.B, M6-09.B, M6-11 + scanner fix | feat/core-features | | DONE | swift test (Docker) | new API: PropertyService, NoteAnalysis, TaskService.toggle (ask) |
-| AG-03, AG-04 | feat/core-changesets | | in progress (long-running) | | |
+| AG-03, AG-04 | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE | swift test (Docker), 665 + 289 | write-ahead journal with full before-bytes (not inverse patches, spec §12 → needs D-0NN); crash sweeps 1000+ faulted runs; 2×1000 writers, 0 lost |
 | M8-06, M8-08.B, M8-09.B | feat/core-features | | DONE | swift test (Docker) | capture tasks go to `<course>/Tasks.md`; open: API entry for nearest-lecture capture, `InboxService.updates` |
 | M9-01, M9-08.B, GraphService, M3-04, M3-05.B, M4-08 | feat/core-features | | DONE | swift test (Docker) | vault graph 17 nodes vs mockup 23 (6 mockup-only nodes); CourseListQuery/BannerStore/CourseCard not in API; vault lacks a placeholder marker |
 | M10-10.B, M10-12.B, M10-13.B, M10-14.B, M10-16.B, M11-04.B | feat/core-features | | DONE | swift test (Docker), 529 + 154 | vault format additions: `overrides:` in `_course.md`, `archived` in semesters.json (ask) |
@@ -38,7 +38,7 @@
 | M10-01, M11-03.B, M10-03.B, M10-05.B | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE (FTS5 UNVERIFIED) | swift test (Docker) | no sqlite3.h in Linux image → in-memory BM25 index; SQLite FTS5 behind `#if canImport(SQLite3)` never compiled |
 | M8-04, M5-07 FSEvents | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE (UNVERIFIED on macOS) | Linux build + Shortcut tests | new macOS-only `MarginPlatform` target; M8-05 not done (Q2) |
 | M7-02 latency fix | feat/core-features | [#27](https://github.com/Brightwav3/Margin/pull/27) | DONE | 5 green full runs; 0.4–0.5 s isolated | root cause: blocking I/O starved the cooperative pool; vault actors on `DedicatedExecutor` |
-| M12-03 | test/core-robustness | | in progress | | |
+| M12-03 | feat/core-robustness | | DONE, integrating (tests conflict with AG-03 journal, worker fixing) | swift test (Docker) | 8 real bugs found and fixed (stale index after ENOSPC, read-only notes overwritten, writes re-creating an unmounted vault, watcher treating missing root as mass delete, …); open: partial link rewrite on move is silent (needs ChangeSet warnings = api) |
 | M7-02, M7-03, M7-05.B, M7-06.B, M7-09.B | feat/core-features | | DONE | swift test (Docker) | M7-02 1 s budget: 0.4–0.7 s measured, only 5 s asserted (container stalls); watch interval 0.2 s; Upcoming grouping provisional (Q4) |
 | AG-01..AG-04 | S3 feat/agent-foundations | | todo | | |
 | M6-*.B | S4 feat/editor-core | | todo | | |
@@ -67,6 +67,7 @@ State lives entirely in git: slice branches `feat/core-foundation` (PR #23) → 
 - Infra: server-side auto-mode classifier outage (~several minutes) blocked all Bash/MCP calls; one worker ended BLOCKED without changes and was relaunched. Not counted.
 - Integration: parallel workers kept conflicting in `AppEnvironment`/`FixtureStore`/`VaultBackend`/conformance harness; brief now requires each worker to merge `origin/feat/core-features` before reporting. Orchestrator resolved two small conflicts by hand (init parameters, visibility).
 - Task class (M7-02): latency tests failed at 8–10 s in full runs, blocking pushes of `feat/core-features`. Root-caused with lldb (cooperative pool starved by fsync/index builds), fixed in Sources, not by relaxing limits.
+- Infra: a worker ran `docker kill` on all swift containers once, killing sibling builds (no file damage).
 - Flaky `FileWatcherTests` under load (timing): hardened with settle-waits, no test weakened or skipped; 12 consecutive green full runs.
 
 ## Questions for the human
