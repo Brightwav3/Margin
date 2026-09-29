@@ -381,6 +381,21 @@ actor VaultBackend {
         return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: dryRun, key: idempotencyKey)
     }
 
+    /// Sets or removes a task's due date through `TaskWriteBack` (same steps as `toggleTask`).
+    func setTaskDue(id taskID: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        var found: TaskItem?
+        for record in await noteRecords() {
+            if let task = record.tasks.first(where: { $0.id == taskID }) { found = task; break }
+        }
+        guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+        let result = try await taskWriteBack.setDue(due, task: item, baseVersion: baseVersion, dryRun: dryRun)
+        if !dryRun, result.entry != nil { await tasksMayHaveChanged(paths: [result.path]) }
+        return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: dryRun, key: idempotencyKey)
+    }
+
     // MARK: Properties
 
     func propertyRegistry() async -> PropertyRegistry {

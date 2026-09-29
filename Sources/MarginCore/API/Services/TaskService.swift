@@ -1,5 +1,5 @@
-/// Tasks found in notes (`- [ ] text @date ^id`) and exams. Reading, `updates` and `toggle`; M7 adds
-/// `setDue` and the rest of the write side.
+/// Tasks found in notes (`- [ ] text @date ^id`) and exams. Reading, `updates`, `toggle` and `setDue`; M7
+/// adds the rest of the write side.
 ///
 /// Implementations: `FixtureTaskService` and `VaultTaskService`. Rules both obey (checked by
 /// `Tests/Conformance/TaskServiceConformanceTests.swift`):
@@ -22,9 +22,15 @@
 ///   is the note's `Note.version`); the `ChangeSet` has one `.modified` entry for the note. The task is
 ///   found again in the current text (`^id`, then text), so a stale line number cannot flip the wrong
 ///   line, and `updates` reports the change.
+/// - **Set due:** `setDue` writes the task's due date into its line as an ISO token (`@2026-10-02`),
+///   replacing an existing `@…` token in place or appending one before the `^id`, which stays at the end
+///   of the line; `nil` removes the token. Text, checkbox, indentation and the rest of the file stay byte
+///   for byte. Same write context, task lookup, `ChangeSet` (one `.modified` entry, empty when the task
+///   already has that date) and `updates` as `toggle`.
 /// - **Errors:** `tasks(course:)` throws `MarginError.notFound` for an unknown course. `toggle` throws
-///   `.notFound` for an unknown task id or one that is no longer in its note, `.invalid` for an exam,
-///   `.conflict` for a stale `baseVersion`.
+///   `.notFound` for an unknown task id or one that is no longer in its note, `.invalid` for an exam
+///   (and, for `setDue`, when removing the date would leave a task without text), `.conflict` for a stale
+///   `baseVersion`.
 public protocol TaskService: Sendable {
     /// Open tasks due today or overdue, plus exams dated today.
     func today() async throws -> [TaskItem]
@@ -41,5 +47,9 @@ public protocol TaskService: Sendable {
 
     /// Flips a task between open and done. `id` is `TaskItem.id`.
     func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
+
+    /// Sets (`due`) or removes (`nil`) the due date of a task. `id` is `TaskItem.id`.
+    func setDue(id: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
                 idempotencyKey: String?) async throws -> ChangeSet
 }

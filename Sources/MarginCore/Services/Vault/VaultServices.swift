@@ -71,6 +71,12 @@ public struct VaultTaskService: TaskService {
                                      idempotencyKey: idempotencyKey)
     }
 
+    public func setDue(id: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.setTaskDue(id: id, due: due, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey)
+    }
+
     public var updates: AsyncStream<TaskUpdate> { backend.tasksStore.updates.subscribe() }
 }
 

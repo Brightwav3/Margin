@@ -66,15 +66,43 @@ public actor TaskWriteBack {
     ///   `baseVersion` is stale, `.io` on disk errors.
     public func setDone(_ done: Bool, task: TaskItem, baseVersion: String? = nil,
                         dryRun: Bool = false) async throws -> TaskWriteResult {
+        try await apply(task: task, baseVersion: baseVersion, dryRun: dryRun,
+                        edit: { content, match in
+                            guard let edited = Self.setting(done, in: content, task: match) else {
+                                throw MarginError.invalid("Line \(match.line) of \(task.source.noteID) is not a checkbox")
+                            }
+                            return edited
+                        },
+                        adjust: { $0.done = done })
+    }
+
+    /// Sets or removes the due date of `task` (`DueDateWriter`): the `@…` token of the line is
+    /// replaced or added, the `^id` stays at the end, nothing else in the file changes. Same safety
+    /// as `setDone`: the task is found again in the current text, conflicts are retried.
+    ///
+    /// - Throws: as `setDone`, and `.invalid` when removing the date would leave the task without text.
+    public func setDue(_ due: LocalDate?, task: TaskItem, baseVersion: String? = nil,
+                       dryRun: Bool = false) async throws -> TaskWriteResult {
+        let today = extractor.resolver.clock.today
+        return try await apply(task: task, baseVersion: baseVersion, dryRun: dryRun,
+                               edit: { content, match in try DueDateWriter.setting(due, in: content, task: match) },
+                               adjust: { $0.due = due; $0.label = due.map { DueLabel.make(due: $0, today: today) } })
+    }
+
+    private func apply(task: TaskItem, baseVersion: String?, dryRun: Bool,
+                       edit: (String, ExtractedTask) throws -> String,
+                       adjust: (inout TaskItem) -> Void) async throws -> TaskWriteResult {
         guard task.kind == .task else { throw MarginError.invalid("\(task.text) is an exam, not a checkbox task") }
         let noteID = task.source.noteID
         guard let first = await index.note(byID: noteID) else { throw MarginError.notFound("No note \(noteID)") }
         await acquire(first.path)
         defer { release(first.path) }
-        return try await attempt(done, task: task, baseVersion: baseVersion, dryRun: dryRun)
+        return try await attempt(task: task, baseVersion: baseVersion, dryRun: dryRun, edit: edit, adjust: adjust)
     }
 
-    private func attempt(_ done: Bool, task: TaskItem, baseVersion: String?, dryRun: Bool) async throws -> TaskWriteResult {
+    private func attempt(task: TaskItem, baseVersion: String?, dryRun: Bool,
+                         edit: (String, ExtractedTask) throws -> String,
+                         adjust: (inout TaskItem) -> Void) async throws -> TaskWriteResult {
         let target = TaskTarget(item: task)
         let noteID = task.source.noteID
         for round in 1...maxAttempts {
@@ -90,10 +118,8 @@ public actor TaskWriteBack {
                 throw MarginError.notFound("Task \"\(task.text)\" is no longer in \(noteID)")
             }
             var found = extractor.taskItem(match.task, noteID: noteID, courseID: task.source.courseID)
-            found.done = done
-            guard let edited = Self.setting(done, in: content, task: match.task) else {
-                throw MarginError.invalid("Line \(match.task.line) of \(noteID) is not a checkbox")
-            }
+            let edited = try edit(content, match.task)
+            adjust(&found)
             if edited == content {
                 return TaskWriteResult(entry: nil, task: found, path: record.path, method: match.method, attempts: round)
             }

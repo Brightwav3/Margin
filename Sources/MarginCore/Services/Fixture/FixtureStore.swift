@@ -168,6 +168,23 @@ actor FixtureStore {
         }
     }
 
+    func setTaskDue(id taskID: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        var found: TaskItem?
+        for key in notes.keys.sorted() {
+            if let note = notes[key], let task = extractTasks(of: note).first(where: { $0.id == taskID }) { found = task; break }
+        }
+        guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+        return try editContent(id: item.source.noteID, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                               idempotencyKey: idempotencyKey) { note in
+            guard let match = TaskLocator.resolve(TaskTarget(item: item), in: extractor.extract(from: note.body)) else {
+                throw MarginError.notFound("Task \"\(item.text)\" is no longer in \(item.source.noteID)")
+            }
+            return (note.frontmatter?.render() ?? "") + (try DueDateWriter.setting(due, in: note.body, task: match.task))
+        }
+    }
+
     // MARK: Notes (write)
 
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
@@ -198,7 +215,7 @@ actor FixtureStore {
         let current = Self.version(of: note.content)
         try requireBaseVersion(baseVersion, matches: current, what: "Note \(id)")
         var entries: [ChangeSet.Entry] = []
-        if let newContent = try transform(note) {
+        if let newContent = try transform(note), newContent != note.content {
             let parsed = Frontmatter.parse(newContent)
             note.frontmatter = parsed.frontmatter
             note.body = parsed.body
