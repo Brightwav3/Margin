@@ -23,6 +23,11 @@ actor VaultBackend {
     var idempotency = IdempotencyCache()
     let rewriter = WikilinkRewriter()
     private var watchTask: Task<Void, Never>?
+    private var retryTask: Task<Void, Never>?
+    /// Notes the index could not read (permission denied, I/O error). Making a file readable again
+    /// does not change its modification time, so the watcher never mentions it: these are read
+    /// again on a timer until they can be, then indexed like any new note.
+    private var unreadable: Set<String> = []
 
     private init(store: VaultStore, index: NoteIndex, clock: any Clock) {
         self.store = store; self.index = index; self.clock = clock
@@ -41,14 +46,15 @@ actor VaultBackend {
         let ownWrites = OwnWriteRegistry(ttl: 60)
         let store = try await VaultStore.open(root: url, fileSystem: fileSystem, clock: clock, ownWrites: ownWrites)
         let index = NoteIndex(clock: clock)
-        try await index.build(from: VaultNoteSource(store: store))
+        let unreadable = try await index.build(from: VaultNoteSource(store: store))
         let backend = VaultBackend(store: store, index: index, clock: clock)
+        await backend.track(failures: unreadable, succeeded: [])
         await store.addRenameObserver(backend.rewriter)
         await backend.reloadModel()
         await backend.primeTasks()
         // The watcher compares file times, which are real time, so it always uses the system clock.
         let watcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
-        await backend.startWatching(watcher)
+        await backend.startWatching(watcher, retryEvery: max(watchInterval * 5, 0.1))
         return backend
     }
 
@@ -56,6 +62,8 @@ actor VaultBackend {
     func shutdown() {
         watchTask?.cancel()
         watchTask = nil
+        retryTask?.cancel()
+        retryTask = nil
         noteChanges.finishAll()
         catalogUpdates.finishAll()
         tasksStore.updates.finishAll()
@@ -63,7 +71,7 @@ actor VaultBackend {
 
     // MARK: Watching
 
-    private func startWatching(_ watcher: any FileWatcher) {
+    private func startWatching(_ watcher: any FileWatcher, retryEvery: TimeInterval) {
         let changes = watcher.changes()   // the baseline is taken here, before any later change
         watchTask = Task { [weak self] in
             for await batch in changes {
@@ -71,13 +79,47 @@ actor VaultBackend {
                 await self.handle(batch)
             }
         }
+        retryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(retryEvery * 1_000_000_000))
+                guard !Task.isCancelled, let self else { return }
+                await self.retryUnreadable()
+            }
+        }
+    }
+
+    /// Remembers which notes could not be read (only failures a later read may cure) and forgets
+    /// the ones that could.
+    private func track(failures: [String: MarginError], succeeded: [String]) {
+        for path in succeeded { unreadable.remove(path) }
+        for (path, error) in failures {
+            if error.code == "io" { unreadable.insert(path) } else { unreadable.remove(path) }
+        }
+    }
+
+    private func retryUnreadable() async {
+        for path in unreadable.sorted() {
+            let idsBefore = await index.note(byPath: path).map { [path: $0.id] } ?? [:]
+            do {
+                let changed = try await index.update(path: path)
+                unreadable.remove(path)
+                if changed { await announce([FileChange(path: path, kind: .created)], idsBefore: idsBefore) }
+            } catch let error as MarginError {
+                if error.code != "io" { unreadable.remove(path) }
+            } catch { continue }
+        }
     }
 
     private func handle(_ batch: [FileChange]) async {
         var idsBefore: [String: NoteID] = [:]
         for change in batch { if let r = await index.note(byPath: change.path) { idsBefore[change.path] = r.id } }
-        await index.apply(batch)
+        let failures = await index.apply(batch)
+        track(failures: failures, succeeded: batch.map(\.path).filter { failures[$0] == nil })
+        await announce(batch, idsBefore: idsBefore)
+    }
 
+    /// Follow-up of changes the index has taken in: course model, tasks and the update streams.
+    private func announce(_ batch: [FileChange], idsBefore: [String: NoteID]) async {
         var notes: [NoteChange] = []
         for change in batch where Self.isNotePath(change.path) {
             switch change.kind {
