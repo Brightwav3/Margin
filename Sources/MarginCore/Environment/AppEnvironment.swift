@@ -13,12 +13,15 @@ public struct AppEnvironment: Sendable {
     public let tasks: any TaskService
     public let properties: any PropertyService
     public let analysis: any NoteAnalysis
+    public let graph: any GraphService
 
     private let onShutdown: @Sendable () async -> Void
 
     public init(clock: any Clock, courses: any CourseCatalog, notes: any NoteRepository, tasks: any TaskService,
-                properties: any PropertyService, analysis: any NoteAnalysis, shutdown: @escaping @Sendable () async -> Void = {}) {
+                properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
+                shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks; self.properties = properties; self.analysis = analysis
+        self.graph = graph
         self.onShutdown = shutdown
     }
 
@@ -37,6 +40,7 @@ public struct AppEnvironment: Sendable {
             tasks: FixtureTaskService(store: store),
             properties: FixturePropertyService(store: store),
             analysis: FixtureNoteAnalysis(store: store),
+            graph: FixtureGraphService(world: Fixtures.week5),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }
 }

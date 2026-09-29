@@ -1,12 +1,5 @@
 import Foundation
 
-/// A 2D position in canvas units.
-public struct LayoutPoint: Codable, Sendable, Hashable {
-    public var x: Double
-    public var y: Double
-    public init(x: Double, y: Double) { self.x = x; self.y = y }
-}
-
 /// Why `ForceLayout.run` stopped.
 public enum LayoutStopReason: String, Codable, Sendable, Hashable {
     /// Kinetic energy per node fell to the requested threshold.

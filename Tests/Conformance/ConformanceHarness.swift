@@ -42,6 +42,7 @@ struct Harness: Sendable {
     var tasks: any TaskService { env.tasks }
     var properties: any PropertyService { env.properties }
     var analysis: any NoteAnalysis { env.analysis }
+    var graph: any GraphService { env.graph }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
@@ -52,7 +53,7 @@ struct Harness: Sendable {
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
                 tasks: FixtureTaskService(store: store), properties: FixturePropertyService(store: store),
-                analysis: FixtureNoteAnalysis(store: store),
+                analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
