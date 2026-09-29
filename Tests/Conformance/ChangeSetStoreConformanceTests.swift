@@ -551,4 +551,61 @@ import Testing
             #expect(try await h.notes.open(id: "bio/glossary").version == v0.version)
         }
     }
+
+    // MARK: Other writers of the services (tasks, properties)
+
+    @Test(arguments: HarnessKind.allCases)
+    func undoingATaskToggleRestoresTheFileByteForByte(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let note = "bio/assignments"
+            let before = try await h.rawContent(note)
+            let cs = try await h.tasks.toggle(id: "task-bio-read-chapter-6", actor: testActor, baseVersion: nil, dryRun: false,
+                                              idempotencyKey: nil)
+            #expect(try await h.rawContent(note) != before)
+            let undo = try await h.changes.undo(id: cs.id, actor: .user)
+            #expect(try await h.rawContent(note) == before)
+            #expect(undo.entries.first?.noteID == note)
+            // The task list follows: the task is done again.
+            let item = try #require(try await h.tasks.tasks(course: "bio").first { $0.id == "task-bio-read-chapter-6" })
+            #expect(item.done)
+            // Redo.
+            _ = try await h.changes.undo(id: undo.id, actor: .user)
+            #expect(try await h.rawContent(note) != before)
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func undoingAPropertyChangeRestoresTheFrontmatterByteForByte(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let note = "bio/lecture-8"
+            let before = try await h.rawContent(note)
+            let cs = try await h.properties.set(key: "difficulty", value: .number(3), on: note, actor: testActor,
+                                                baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(try await h.rawContent(note) != before)
+            #expect(try await h.changes.changes().first == cs)
+            _ = try await h.changes.undo(id: cs.id, actor: .user)
+            #expect(try await h.rawContent(note) == before)
+            let removal = try await h.properties.remove(key: "type", on: note, actor: .user, baseVersion: nil, dryRun: false,
+                                                        idempotencyKey: nil)
+            #expect(try await h.rawContent(note) != before)
+            _ = try await h.changes.undo(id: removal.id, actor: .user)
+            #expect(try await h.rawContent(note) == before)
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func aTaskToggleAndADryRunToggleAreRecordedCorrectly(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            _ = try await h.tasks.toggle(id: "task-bio-read-chapter-6", actor: .user, baseVersion: nil, dryRun: true, idempotencyKey: nil)
+            let none = try await changeIDs(h)
+            #expect(none.isEmpty)
+            let first = try await h.tasks.toggle(id: "task-bio-read-chapter-6", actor: .user, baseVersion: nil, dryRun: false,
+                                                 idempotencyKey: "t-1")
+            let again = try await h.tasks.toggle(id: "task-bio-read-chapter-6", actor: .user, baseVersion: nil, dryRun: false,
+                                                 idempotencyKey: "t-1")
+            #expect(first == again)
+            let listed = try await changeIDs(h)
+            #expect(listed == [first.id])
+        }
+    }
 }
