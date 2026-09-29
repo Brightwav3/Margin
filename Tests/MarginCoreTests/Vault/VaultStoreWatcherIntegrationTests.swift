@@ -51,7 +51,8 @@ import Testing
     }
 
     @Test func noFeedbackLoopAfterManyOwnWrites() async throws {
-        let (_, store, watcher, _) = try await setUp()
+        let (dir, store, watcher, _) = try await setUp()
+        defer { withExtendedLifetime(dir) {} }   // the folder must outlive the writes below
         let c = Collector(watcher.changes())
         defer { c.stop() }
         for i in 0..<20 { try await store.write(vp("Fall/loop.md"), content: "rev \(i)") }
@@ -60,7 +61,8 @@ import Testing
     }
 
     @Test func failedWriteLeavesNoRegistration() async throws {
-        let (_, store, _, registry) = try await setUp()
+        let (dir, store, _, registry) = try await setUp()
+        defer { withExtendedLifetime(dir) {} }
         await #expect(throws: MarginError.self) {
             try await store.write(vp("Fall/a.md"), content: "x", expectedVersion: ContentHash(of: "stale"))
         }

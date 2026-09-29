@@ -22,8 +22,18 @@ extension AppEnvironment {
                              reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
                              retention: ChangeSetRetention = .standard,
                              progress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> AppEnvironment {
+        try await vault(at: url, clock: clock, watchInterval: watchInterval, reminderCenter: reminderCenter,
+                        retention: retention, progress: progress, fileSystem: POSIXFileSystem())
+    }
+
+    /// `vault(at:)` over a given file system (tests inject faults here).
+    static func vault(at url: URL, clock: any Clock, watchInterval: TimeInterval,
+                      reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
+                      retention: ChangeSetRetention = .standard,
+                      progress: (@Sendable (IndexProgress) -> Void)? = nil,
+                      fileSystem: any FileSystem) async throws -> AppEnvironment {
         let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval,
-                                                  retention: retention, onProgress: progress)
+                                                  retention: retention, fileSystem: fileSystem, onProgress: progress)
         let settings = VaultSettingsStore(store: backend.store)
         return AppEnvironment(
             clock: clock,

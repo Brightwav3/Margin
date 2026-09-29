@@ -3,7 +3,11 @@ import Foundation
 /// `InboxService` on a vault. The layout rules are in `CaptureRules`, the behaviour in `InboxService`.
 extension VaultBackend {
     func inboxItems() async throws -> [InboxItem] {
-        let files = ((try? await store.list(under: VaultPath(CaptureRules.inboxFolder))) ?? [])
+        // No vault folder is an error to show; no `_inbox` folder (yet) is an empty inbox.
+        guard await store.isAvailable() else { throw MarginError.notFound("The vault folder is not available") }
+        let listed: [VaultPath]
+        do { listed = try await store.list(under: VaultPath(CaptureRules.inboxFolder)) } catch MarginError.notFound { listed = [] }
+        let files = listed
             .filter { $0.components.count == 2 && $0.lastComponent.lowercased().hasSuffix(".md") && !$0.lastComponent.hasPrefix(".") }
         var items: [InboxItem] = []
         for path in files {

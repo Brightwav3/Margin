@@ -136,7 +136,14 @@ public actor VaultStore {
             }
             while let dir = stack.popLast() {
                 let dirURL = url(forComponents: dir)
-                for entry in try fileSystem.contentsOfDirectory(at: dirURL) {
+                let entries: [DirectoryEntry]
+                do { entries = try fileSystem.contentsOfDirectory(at: dirURL) } catch {
+                    // A subfolder that may not be read hides its own notes, not the rest of the vault.
+                    // The folder asked for (or the vault root) must be readable, or the caller is told.
+                    if dir.count > (folder?.components.count ?? 0), let e = error as? FileSystemError, e.isPermissionDenied { continue }
+                    throw error
+                }
+                for entry in entries {
                     if entry.name.hasPrefix(".") { continue }
                     switch entry.kind {
                     case .directory:
@@ -190,6 +197,7 @@ public actor VaultStore {
     public func createFolder(_ path: VaultPath) async throws {
         do {
             if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            try requireRootAvailable()
             let target = try checkedURL(path, followFinal: false)
             if let existing = try fileSystem.attributes(at: target) {
                 guard existing.kind == .directory else { throw MarginError.conflict("\(path) exists and is not a folder") }
@@ -354,6 +362,7 @@ public actor VaultStore {
         var captured: CapturedOperation?
         do {
             if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            try requireRootAvailable()
             let target = try checkedURL(path, followFinal: false)
             let existing = try fileSystem.attributes(at: target)
             if let existing {
@@ -368,6 +377,11 @@ public actor VaultStore {
             if let expectedVersion {
                 guard existing != nil else { throw MarginError.conflict("\(path) no longer exists (expected version \(expectedVersion))") }
                 try verify(version: expectedVersion, of: target, path: path)
+            }
+            // A file the user made read-only stays as it is. (Replacing it by rename would sidestep
+            // the permission bits, which is exactly what they are there to prevent.)
+            if let existing, existing.permissions & 0o200 == 0 {
+                throw MarginError.readOnly("\(path) is read-only; make it writable to change it")
             }
 
             if let capture = WriteCaptureContext.current {
@@ -415,6 +429,9 @@ public actor VaultStore {
         }
 
         do { try fileSystem.syncDirectory(at: parent) } catch {
+            // The file is in place although the caller is told otherwise, so nobody updates the index
+            // for it: let the watcher report the change instead of swallowing it as an own write.
+            if let ownWrites, VaultStore.isWatched(path) { await ownWrites.forget(path: path.rawValue, hash: newHash) }
             throw MarginError.io("\(path) was written but syncing its folder failed: \(error)")
         }
         return newHash
@@ -429,6 +446,25 @@ public actor VaultStore {
         guard actual == expected else {
             throw MarginError.conflict("\(path) changed on disk (expected \(expected.hex.prefix(12)), found \(actual.hex.prefix(12)))",
                                        ConflictDetail(path: path.rawValue, currentVersion: actual.hex))
+        }
+    }
+
+    // MARK: - Availability
+
+    /// `true` while the vault folder is there. False when a drive was unplugged or the folder was
+    /// moved or removed while the app runs.
+    public func isAvailable() -> Bool {
+        ((try? fileSystem.attributes(at: URL(fileURLWithPath: rootReal)))??.kind) == .directory
+    }
+
+    /// Fails with `.notFound` when the vault folder is gone. Writes call this first: creating the
+    /// missing folders on the way would silently re-create the vault (on the wrong disk, at the
+    /// mount point of the one that was unplugged) and put new notes there.
+    private func requireRootAvailable() throws {
+        let attrs: FileAttributes?
+        do { attrs = try fileSystem.attributes(at: URL(fileURLWithPath: rootReal)) } catch { throw VaultStore.map(error, "vault folder") }
+        guard attrs?.kind == .directory else {
+            throw MarginError.notFound("The vault folder is not available: \(root.lastPathComponent)")
         }
     }
 

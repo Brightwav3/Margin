@@ -42,6 +42,14 @@ public enum FileSystemError: Error, Sendable, Hashable {
     case failed(String)
 }
 
+extension FileSystemError {
+    /// `true` for a failure caused by `EACCES` or `EPERM` (the message carries the errno).
+    public var isPermissionDenied: Bool {
+        guard case .failed(let message) = self else { return false }
+        return message.contains("(errno \(EACCES))") || message.contains("(errno \(EPERM))")
+    }
+}
+
 /// The narrow file-system surface `VaultStore` is built on. Every step of an atomic write is a
 /// separate call so tests can inject a fault (or a simulated crash) between any two of them.
 ///
