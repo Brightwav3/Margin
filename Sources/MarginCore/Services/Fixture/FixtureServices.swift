@@ -203,3 +203,22 @@ public struct FixtureGradeService: GradeService {
         try await store.addGrade(grade, actor: actor, baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 }
+
+/// `SyllabusService` over `Fixtures.week5`, in memory.
+public struct FixtureSyllabusService: SyllabusService {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func draft(course: CourseID) async throws -> SyllabusDraft { SyllabusDraft(course: try await store.course(id: course)) }
+
+    public func apply(_ draft: SyllabusDraft, to course: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                      idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.editCourse(id: course, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                   idempotencyKey: idempotencyKey) { $0 = try SyllabusRules.apply(draft, to: $0) }
+    }
+}

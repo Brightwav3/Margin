@@ -32,6 +32,7 @@ extension AppEnvironment {
             grades: VaultGradeService(backend: backend),
             history: VaultHistoryService(backend: backend),
             reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
+            syllabus: VaultSyllabusService(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }
