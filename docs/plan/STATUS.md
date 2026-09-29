@@ -15,7 +15,7 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 | M2 | Model a fixtures | 12 | 2 | 14 | — | — | 🟦 | (testy) | |  |
 | M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | — | — | ⬜ | `checks/M3.md` | |  |
 | M4 | Detail předmětu (2c) | 3 | 27 | 30 | — | — | ⬜ | `checks/M4.md` | | CP1 |
-| M5 | Vault a index | 35 | 1 | 36 | — | — | ⬜ | `checks/M5.md` | | před startem odsouhlasit spec (§12) |
+| M5 | Vault a index | 35 | 1 | 36 | — | — | 🟦 | `checks/M5.md` | | před startem odsouhlasit spec (§12) |
 | MA0 | Agent: základy (provenance, ID, undo, souběh) | 32 | 0 | 32 | — | — | ⬜ | (testy) | | brána před M6 |
 | M6a | Editor: source + reading | 11 | 33 | 44 | — | — | ⬜ | `checks/M6a.md` | | CP2 |
 | M6b | Editor: live | 5 | 25 | 30 | — | — | ⬜ | `checks/M6b.md` | |  |
