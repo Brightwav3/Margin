@@ -14,7 +14,13 @@ extension AppEnvironment {
     ///   same until the FSEvents backend lands). Defaults to `defaultWatchInterval`.
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
                              watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval) async throws -> AppEnvironment {
-        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval)
+        try await vault(at: url, clock: clock, watchInterval: watchInterval, fileSystem: POSIXFileSystem())
+    }
+
+    /// `vault(at:)` over a given file system (tests inject faults here).
+    static func vault(at url: URL, clock: any Clock, watchInterval: TimeInterval,
+                      fileSystem: any FileSystem) async throws -> AppEnvironment {
+        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval, fileSystem: fileSystem)
         return AppEnvironment(
             clock: clock,
             courses: VaultCourseCatalog(backend: backend),

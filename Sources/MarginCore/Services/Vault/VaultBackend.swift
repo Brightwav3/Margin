@@ -34,10 +34,12 @@ actor VaultBackend {
     /// Opens the vault, builds the index and starts watching.
     ///
     /// - Parameter watchInterval: seconds between scans of the portable watcher.
-    static func open(at url: URL, clock: any Clock, watchInterval: TimeInterval = 0.3) async throws -> VaultBackend {
+    /// - Parameter fileSystem: the file system the store works through (tests inject faults here).
+    static func open(at url: URL, clock: any Clock, watchInterval: TimeInterval = 0.3,
+                     fileSystem: any FileSystem = POSIXFileSystem()) async throws -> VaultBackend {
         // A generous TTL: on a busy machine the poller may lag far behind the app's own writes.
         let ownWrites = OwnWriteRegistry(ttl: 60)
-        let store = try await VaultStore.open(root: url, clock: clock, ownWrites: ownWrites)
+        let store = try await VaultStore.open(root: url, fileSystem: fileSystem, clock: clock, ownWrites: ownWrites)
         let index = NoteIndex(clock: clock)
         try await index.build(from: VaultNoteSource(store: store))
         let backend = VaultBackend(store: store, index: index, clock: clock)
