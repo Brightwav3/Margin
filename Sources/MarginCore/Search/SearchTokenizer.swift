@@ -24,24 +24,28 @@ enum SearchTokenizer {
 
     static func tokens(in text: String) -> [SearchToken] {
         var out: [SearchToken] = []
+        scan(text) { out.append($0); return false }
+        return out
+    }
+
+    /// Calls `visit` with each word in order until it returns `true` (stop) or the text ends.
+    static func scan(_ text: String, _ visit: (SearchToken) -> Bool) {
         var cache: [Character: String] = [:]
         var start: String.Index?
         var term = ""
         var i = text.startIndex
         while i < text.endIndex {
             let ch = text[i]
-            let next = text.index(after: i)
             if ch.isLetter || ch.isNumber {
                 if start == nil { start = i }
                 term += fold(ch, cache: &cache)
             } else if let s = start {
-                out.append(SearchToken(term: term, range: s..<i))
+                if visit(SearchToken(term: term, range: s..<i)) { return }
                 start = nil; term = ""
             }
-            i = next
+            i = text.index(after: i)
         }
-        if let s = start { out.append(SearchToken(term: term, range: s..<text.endIndex)) }
-        return out
+        if let s = start { _ = visit(SearchToken(term: term, range: s..<text.endIndex)) }
     }
 
     static func terms(in text: String) -> [String] { tokens(in: text).map(\.term) }
