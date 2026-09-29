@@ -14,11 +14,16 @@ import Foundation
 ///
 /// Use it as `unownedExecutor` of an actor, or as `Task(executorPreference:)`.
 final class DedicatedExecutor: SerialExecutor, TaskExecutor, @unchecked Sendable {
+    private static let marker = DispatchSpecificKey<ObjectIdentifier>()
     private let queue: DispatchQueue
 
     init(label: String) {
         queue = DispatchQueue(label: label, qos: .userInitiated)
+        queue.setSpecific(key: Self.marker, value: ObjectIdentifier(self))
     }
+
+    /// Whether the caller runs on this executor's own thread (for tests).
+    var isCurrentThread: Bool { DispatchQueue.getSpecific(key: Self.marker) == ObjectIdentifier(self) }
 
     func enqueue(_ job: consuming ExecutorJob) {
         let unowned = UnownedJob(job)
