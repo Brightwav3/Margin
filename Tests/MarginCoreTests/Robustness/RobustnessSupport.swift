@@ -233,6 +233,10 @@ struct WriteOp: Sendable, CustomTestStringConvertible {
         WriteOp(name: "courseWriter.rename", run: plain { try await $0.courseWriter.rename(id: "bio", to: "Biology Two", renameFolder: true, actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
         WriteOp(name: "courseWriter.setStyle", run: plain { try await $0.courseWriter.setStyle(id: "bio", icon: "science", color: "econ", actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
         WriteOp(name: "courseWriter.setArchived", run: plain { try await $0.courseWriter.setArchived(semester: "fall-2026", true, actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
+        WriteOp(name: "grades.add", run: plain { try await $0.grades.add(Grade(id: "ignored", courseID: "bio", item: "Robust quiz", group: "Problem sets", weightPercent: 5, score: 5, max: 10, date: .literal(2026, 9, 25)), actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
+        WriteOp(name: "semesters.create", run: plain { try await $0.semesters.create(NewSemester(name: "Spring 2027", start: .literal(2027, 2, 15), end: .literal(2027, 5, 30), breakWeeks: [8]), actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
+        WriteOp(name: "syllabus.apply", run: plain { try await $0.syllabus.apply(SyllabusDraft(exams: []), to: "bio", actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
+        WriteOp(name: "history.snapshot", run: { env in _ = try await env.history.snapshot(note: "bio/lecture-8", reason: .save) }),
         WriteOp(name: "courseWriter.override", run: plain { try await $0.courseWriter.override(session: SessionOverride(sessionID: "bio-tue-1000", courseID: "bio", originalDate: LocalDate(year: 2026, month: 9, day: 29)!, cancelled: true), actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
     ]
 }

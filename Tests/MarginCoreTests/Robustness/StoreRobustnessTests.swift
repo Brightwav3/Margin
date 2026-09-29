@@ -22,6 +22,7 @@ extension Robustness {
             { _ = try await store.write(vp("A/n.md"), content: "new") },
             { _ = try await store.write(vp("B/new.md"), content: "new") },
             { _ = try await store.create(vp("C/created.md"), content: "new") },
+            { try await store.createFolder(vp("E/F")) },
             { try await store.rename(vp("A/n.md"), to: vp("D/n.md")) },
             { _ = try await store.trash(vp("A/n.md")) },
             { _ = try await store.read(vp("A/n.md")) },

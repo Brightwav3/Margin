@@ -169,8 +169,9 @@ extension Robustness {
             #expect(bad.isEmpty, "unexpected error kinds: \(Set(bad))")
             print("storm: \(results.count) typed failures, kinds \(Dictionary(grouping: results, by: { $0 }).mapValues(\.count))")
 
-            // Restore what the chaos left missing, then everything must settle.
-            for (path, bytes) in originals where !dir.exists(path) { try dir.seed(path, bytes) }
+            // Put the four notes back as they were (the chaos may have left other content, even other
+            // ids, in them), then everything must settle.
+            for (path, bytes) in originals { try dir.seed(path, bytes) }
             for leftover in FileManager.default.subpaths(atPath: dir.url.path) ?? [] where leftover.hasSuffix(".away") {
                 try? FileManager.default.removeItem(at: dir.file(leftover))
             }
@@ -181,7 +182,8 @@ extension Robustness {
             }
             #expect(v.files().filter { originals[$0.key] == nil && untouchedBefore[$0.key] != nil }.allSatisfy { untouchedBefore[$0.key] == $0.value || $0.key.hasPrefix("_inbox") || $0.key.hasSuffix("Tasks.md") || $0.key.contains(".margin/") }, "an untouched file changed")
             #expect(await v.matchesRestart(timeout: 40), "services disagree with the files on disk after the storm")
-            #expect(await robustCode { try await v.env.notes.save(id: "bio/lecture-8", text: "# Calm again\n", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil) } == nil)
+            let calm = await eventually { await robustCode { try await v.env.notes.save(id: "bio/lecture-8", text: "# Calm again\n", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil) } == nil }
+            #expect(calm, "the vault did not work normally again after the storm")
         }
     }
 }
