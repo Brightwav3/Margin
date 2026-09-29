@@ -40,7 +40,7 @@ Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone 
 | # | Otázka | Blokuje | Stav | Výchozí předpoklad |
 |---|---|---|---|---|
 | Q1 | Umístění vaultu a kompatibilita s Obsidianem | M5 | ✅ | **schváleno 2026-09-29**: `~/Documents/Margin`, kompatibilní; D-017 |
-| Q2 | Rychlý zápis i bez okna aplikace | M8 | ⬜ | ano, přes menu bar agenta |
+| Q2 | Rychlý zápis i bez okna aplikace | M8 | ✅ | **schváleno 2026-09-29**: ano, přes menu bar; D-019 |
 | Q3 | Rozsah stubů (sdílení, PDF sylabus, sync); Agent už stub není | M10–M11 | ⬜ | jen UI, funkce později |
 | Q4 | Vzhled Today/Upcoming a záložek předmětu | M4, M7 | ⬜ | návrh v M4/M7, schválení v CP1 |
 | Q5 | Identita úkolu: hash vs. `^id` | M5 | ✅ | **rozhodnuto: stabilní `^id`** (D-012) |
@@ -65,3 +65,5 @@ _(žádné)_
 - 2026-09-28: Převzat git workflow uživatele (D-016): `docs/git-workflow.md`, `.github/` (CI, šablony, ruleset), `scripts/lint-commit.py`, `scripts/land.sh`; nové hooky čekají v `docs/proposed-hooks/` na aplikaci člověkem.
 - 2026-09-28: Vytvořeno soukromé repo Brightwav3/Margin a 53 štítků. Ruleset nelze na free plánu soukromého repa (403) — viz `docs/git-workflow.md`. První push `main` čeká na člověka.
 - 2026-09-29: Uživatel schválil doporučený formát vaultu (D-017) a aktuální backend/UI smlouvu (D-018) pro postupnou integraci do `main`.
+- 2026-09-29: Dokončeno M0-02: Xcode projekt pro arm64, sandbox a hardened runtime; ověřen build na macOS 27.
+- 2026-09-29: Uživatel rozhodl Q2: rychlý zápis bude dostupný bez okna aplikace přes menu bar; implementace M8-05 zůstává samostatným úkolem (D-019).

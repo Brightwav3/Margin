@@ -103,6 +103,12 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** odložit integraci nebo před ní změnit protokoly.
 **Důsledky:** je možné pokračovat v postupném slučování větví, které tuto smlouvu používají; žádná další změna API z tohoto rozhodnutí automaticky nevyplývá.
 
+### D-019 · 2026-09-29 · Přijato — Rychlý zápis bez otevřeného okna
+**Rozhodnutí:** rychlý zápis bude fungovat i bez otevřeného okna aplikace, přes menu bar.
+**Důvod:** uživatel potvrdil výchozí předpoklad Q2 v `STATUS.md`.
+**Alternativy:** rychlý zápis dostupný jen při otevřeném okně aplikace.
+**Důsledky:** M8-05 se implementuje jako menu bar povrch; toto rozhodnutí samo o sobě jeho implementaci nedokončuje.
+
 ---
 
 ## Šablona
