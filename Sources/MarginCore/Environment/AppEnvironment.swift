@@ -16,16 +16,18 @@ public struct AppEnvironment: Sendable {
     public let properties: any PropertyService
     public let analysis: any NoteAnalysis
     public let graph: any GraphService
+    public let courseWriter: any CourseCatalogWriter
 
     private let onShutdown: @Sendable () async -> Void
 
     public init(clock: any Clock, courses: any CourseCatalog, notes: any NoteRepository, tasks: any TaskService,
                 capture: any CaptureService, inbox: any InboxService,
                 properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
+                courseWriter: any CourseCatalogWriter,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
         self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
-        self.graph = graph
+        self.graph = graph; self.courseWriter = courseWriter
         self.onShutdown = shutdown
     }
 
@@ -47,6 +49,7 @@ public struct AppEnvironment: Sendable {
             properties: FixturePropertyService(store: store),
             analysis: FixtureNoteAnalysis(store: store),
             graph: FixtureGraphService(world: Fixtures.week5),
+            courseWriter: FixtureCourseCatalogWriter(store: store),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }
 }

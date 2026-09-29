@@ -65,6 +65,7 @@ struct Harness: Sendable {
                 tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
                 inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
+                courseWriter: FixtureCourseCatalogWriter(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
@@ -85,6 +86,7 @@ struct Harness: Sendable {
                 tasks: VaultTaskService(backend: backend), capture: VaultCaptureService(backend: backend),
                 inbox: VaultInboxService(backend: backend), properties: VaultPropertyService(backend: backend),
                 analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
+                courseWriter: VaultCourseCatalogWriter(backend: backend),
                 shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(
