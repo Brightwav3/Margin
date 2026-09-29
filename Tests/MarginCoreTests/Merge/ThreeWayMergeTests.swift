@@ -218,4 +218,37 @@ import Testing
             #expect(r.text == expected.joined())
         }
     }
+
+    /// The optimization (skip the lines all three texts share at both ends) must not change any result.
+    /// Lines are unique here: with repeated lines several alignments are equally good and the two
+    /// variants may legitimately pick different ones (both are valid merges).
+    @Test func trimmingTheCommonEdgesGivesTheSameResultAsDiffingEverything() {
+        var rng = SplitMix64(seed: 0xED6E5)
+        func pick(_ n: Int) -> Int { Int(rng.next() % UInt64(max(n, 1))) }
+        var fresh = 0
+        for round in 0..<800 {
+            func line() -> String { fresh += 1; return round % 7 == 0 ? "é\(fresh)\r\n" : "x\(fresh)\n" }
+            let base = (0..<pick(16)).map { _ in line() }
+            func edit(_ l: [String]) -> [String] {
+                var l = l
+                for _ in 0..<pick(4) {
+                    switch pick(3) {
+                    case 0 where !l.isEmpty: l[pick(l.count)] = line()
+                    case 1: l.insert(line(), at: pick(l.count + 1))
+                    case 2 where !l.isEmpty: l.remove(at: pick(l.count))
+                    default: break
+                    }
+                }
+                return l
+            }
+            var ours = edit(base), theirs = edit(base)
+            if round % 5 == 0, !ours.isEmpty, !theirs.isEmpty { theirs[0] = ours[0] }            // some identical changes
+            if round % 11 == 0 { ours = ours.map { $0.hasSuffix("\n") ? $0 : $0 + "\n" } ; if let last = ours.last { ours[ours.count - 1] = String(last.dropLast()) } }   // no final newline
+            let b = base.joined(), o = ours.joined(), t = theirs.joined()
+            let fast = ThreeWayMerge.merge(base: b, ours: o, theirs: t, oursLabel: "o", theirsLabel: "t", trimEdges: true)
+            let full = ThreeWayMerge.merge(base: b, ours: o, theirs: t, oursLabel: "o", theirsLabel: "t", trimEdges: false)
+            #expect(Array(fast.text.utf8) == Array(full.text.utf8), "base \(b.debugDescription) ours \(o.debugDescription) theirs \(t.debugDescription)")
+            #expect(fast.conflictCount == full.conflictCount)
+        }
+    }
 }

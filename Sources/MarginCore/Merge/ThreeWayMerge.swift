@@ -13,6 +13,9 @@ import Foundation
 ///   canonical string equality, so a text that differs only in Unicode normalization or line
 ///   endings is a change, not "the same". Line terminators (`\n`, `\r\n`) stay part of their line.
 /// - **Nothing is dropped:** on a conflict both versions of the region are kept between markers.
+/// - **Deterministic:** the same three texts always give the same result. When lines repeat, several
+///   alignments of two texts are equally good; one is chosen (the same one every time), so which of
+///   two equally valid merges you get is unspecified, but none loses text.
 /// - **Bounded cost:** diffs of extremely different texts are refused (`Result.gaveUp`) and yield
 ///   one conflict over the whole text instead of exhausting memory.
 public enum ThreeWayMerge {
@@ -38,31 +41,35 @@ public enum ThreeWayMerge {
     ///   - oursLabel/theirsLabel: text after `<<<<<<<` and `>>>>>>>` in conflict markers.
     public static func merge(base: String, ours: String, theirs: String,
                              oursLabel: String = "ours", theirsLabel: String = "theirs") -> Result {
+        merge(base: base, ours: ours, theirs: theirs, oursLabel: oursLabel, theirsLabel: theirsLabel, trimEdges: true)
+    }
+
+    /// `trimEdges: false` diffs the whole texts (the reference the optimization is tested against).
+    static func merge(base: String, ours: String, theirs: String, oursLabel: String, theirsLabel: String,
+                      trimEdges: Bool) -> Result {
         let b = Array(base.utf8), o = Array(ours.utf8), t = Array(theirs.utf8)
         // Fast paths, byte-exact.
         if o == t { return Result(text: ours, conflictCount: 0, gaveUp: false) }
         if b == o { return Result(text: theirs, conflictCount: 0, gaveUp: false) }
         if b == t { return Result(text: ours, conflictCount: 0, gaveUp: false) }
 
-        let baseLines = splitLines(b), oursLines = splitLines(o), theirsLines = splitLines(t)
+        // Lines all three texts share at the start and at the end are stable by definition; only
+        // the middle needs diffing. (Byte-exact, aligned to line starts in all three texts.)
+        let (prefix, suffix) = trimEdges ? commonEdges(b, o, t) : (0, 0)
+        let bm = Array(b[prefix..<(b.count - suffix)]), om = Array(o[prefix..<(o.count - suffix)]), tm = Array(t[prefix..<(t.count - suffix)])
+        let head = Array(b[..<prefix]), tail = Array(b[(b.count - suffix)...])
+
+        let baseLines = splitLines(bm), oursLines = splitLines(om), theirsLines = splitLines(tm)
         // Intern lines to integers so comparisons are cheap and byte-exact.
-        var table: [ArraySlice<UInt8>: Int] = [:]
-        func ids(_ lines: [ArraySlice<UInt8>]) -> [Int] {
-            lines.map { line in
-                if let id = table[line] { return id }
-                let id = table.count
-                table[line] = id
-                return id
-            }
-        }
-        let bi = ids(baseLines), oi = ids(oursLines), ti = ids(theirsLines)
+        var table = LineTable()
+        let bi = baseLines.map { table.id(of: $0) }, oi = oursLines.map { table.id(of: $0) }, ti = theirsLines.map { table.id(of: $0) }
 
         guard let matchO = matching(bi, oi), let matchT = matching(bi, ti) else {
             let text = conflictBlock(ours: o[...], theirs: t[...], oursLabel: oursLabel, theirsLabel: theirsLabel)
             return Result(text: String(decoding: text, as: UTF8.self), conflictCount: 1, gaveUp: true)
         }
 
-        var out: [UInt8] = []
+        var out: [UInt8] = head
         out.reserveCapacity(max(o.count, t.count) + 64)
         var conflicts = 0
 
@@ -91,7 +98,48 @@ public enum ThreeWayMerge {
             nb = i + 1; no = matchO[i] + 1; nt = matchT[i] + 1
         }
         chunk(nb..<bi.count, no..<oi.count, nt..<ti.count)
+        out.append(contentsOf: tail)
         return Result(text: String(decoding: out, as: UTF8.self), conflictCount: conflicts, gaveUp: false)
+    }
+
+    // MARK: Common edges
+
+    /// Lengths in bytes of the prefix and the suffix that base, ours and theirs share, both made of
+    /// whole lines and not overlapping in any of the three texts.
+    static func commonEdges(_ b: [UInt8], _ o: [UInt8], _ t: [UInt8]) -> (prefix: Int, suffix: Int) {
+        let shortest = min(b.count, o.count, t.count)
+        return b.withUnsafeBufferPointer { bp in o.withUnsafeBufferPointer { op in t.withUnsafeBufferPointer { tp in
+            var p = 0
+            while p < shortest, bp[p] == op[p], bp[p] == tp[p] { p += 1 }
+            // Back up to just after a newline: the prefix must consist of whole lines.
+            while p > 0, bp[p - 1] != 0x0A { p -= 1 }
+            var s = 0
+            while s < shortest - p, bp[b.count - 1 - s] == op[o.count - 1 - s], bp[b.count - 1 - s] == tp[t.count - 1 - s] { s += 1 }
+            // The suffix must start at a line start in all three texts (or at the end of the prefix).
+            func startsLine(_ buf: UnsafeBufferPointer<UInt8>, _ count: Int, _ s: Int) -> Bool {
+                let start = count - s
+                return start == p || buf[start - 1] == 0x0A
+            }
+            while s > 0, !(startsLine(bp, b.count, s) && startsLine(op, o.count, s) && startsLine(tp, t.count, s)) { s -= 1 }
+            return (p, s)
+        } } }
+    }
+
+    /// Interns lines: equal byte sequences get the same integer. Uses a cheap FNV-1a hash and
+    /// confirms every hit byte by byte, so a collision can never merge two different lines.
+    private struct LineTable {
+        private var buckets: [UInt64: [(line: ArraySlice<UInt8>, id: Int)]] = [:]
+        private var next = 0
+
+        mutating func id(of line: ArraySlice<UInt8>) -> Int {
+            var h: UInt64 = 0xcbf29ce484222325
+            line.withUnsafeBufferPointer { p in for byte in p { h = (h ^ UInt64(byte)) &* 0x100000001b3 } }
+            if let candidates = buckets[h], let hit = candidates.first(where: { $0.line.elementsEqual(line) }) { return hit.id }
+            let id = next
+            next += 1
+            buckets[h, default: []].append((line, id))
+            return id
+        }
     }
 
     // MARK: Conflict markers
