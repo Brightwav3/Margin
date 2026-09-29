@@ -31,6 +31,7 @@ extension AppEnvironment {
             graph: VaultGraphService(backend: backend),
             courseWriter: VaultCourseCatalogWriter(backend: backend), settings: settings, semesters: VaultSemesterStore(backend: backend),
             indexStatus: VaultIndexStatus(backend: backend),
+            search: VaultSearchService(backend: backend),
             shutdown: { settings.finish(); await backend.shutdown() })
     }
 }

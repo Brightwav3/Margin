@@ -142,7 +142,7 @@ actor VaultBackend {
         return !first.hasPrefix("_") && !first.hasPrefix(".") && !last.hasPrefix("_")
     }
 
-    private func courseID(of record: NoteRecord) -> CourseID? {
+    func courseID(of record: NoteRecord) -> CourseID? {
         if let archived = archivedEntry(forNotePath: record.path) { return archived.course.id }
         return model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
     }

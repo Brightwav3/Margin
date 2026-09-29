@@ -256,6 +256,18 @@ actor FixtureStore {
         return index
     }
 
+    /// The notes with their course ids, for the search engine (the folders of the fixture paths
+    /// carry course names, so the course id comes from the note, not from the index record).
+    func searchSources() async -> [SearchSource] {
+        let index = await noteIndex()
+        var out: [SearchSource] = []
+        for id in notes.keys.sorted() {
+            guard let note = notes[id], let record = await index.note(byPath: path(of: note)) else { continue }
+            out.append(SearchSource(record: record, courseID: note.summary.courseID))
+        }
+        return out
+    }
+
     // MARK: Properties
 
     private func propertyRegistry() -> PropertyRegistry {
