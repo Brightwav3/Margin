@@ -9,6 +9,7 @@ private final class Once: @unchecked Sendable {
     var fired: Bool { lock.withLock { done } }
 }
 
+extension Robustness {
 /// M12-03, concurrent external deletion: another program (Finder, a sync client, `git checkout`)
 /// removes, replaces or moves a note or its folder at the worst moment of a service write. The
 /// timing is exact through `ScriptedFileSystem.onCall`, plus a seeded random storm of writers
@@ -183,4 +184,5 @@ private final class Once: @unchecked Sendable {
             #expect(await robustCode { try await v.env.notes.save(id: "bio/lecture-8", text: "# Calm again\n", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil) } == nil)
         }
     }
+}
 }

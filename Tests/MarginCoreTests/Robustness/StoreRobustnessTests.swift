@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+extension Robustness {
 /// M12-03 at the store level: the rules the services above rely on.
 @Suite struct StoreRobustnessTests {
     private func open(_ d: TempDir, _ fs: any FileSystem = POSIXFileSystem()) async throws -> VaultStore {
@@ -86,4 +87,5 @@ import Testing
         // The write is not announced as the app's own: the watcher must report it.
         #expect(await registry.consume(path: "n.md", hash: ContentHash(of: Data("new".utf8)).hex) == false)
     }
+}
 }

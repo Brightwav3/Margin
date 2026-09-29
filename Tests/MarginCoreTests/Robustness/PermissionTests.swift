@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+extension Robustness {
 /// M12-03, permission denied: a read-only note, a read-only folder, an unreadable note, an
 /// unreadable subfolder and an unreadable vault. A real `chmod` is used where it can deny anything;
 /// the tests usually run as root (Docker), which ignores permission bits, so folder and read
@@ -177,4 +178,5 @@ import Testing
         let env = try await AppEnvironment.vault(at: dir.url, clock: FixedClock(), watchInterval: 0.05, fileSystem: fs)
         await env.shutdown()
     }
+}
 }

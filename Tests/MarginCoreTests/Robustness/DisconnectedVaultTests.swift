@@ -8,6 +8,7 @@ private actor BatchLog<T: Sendable> {
     func add(_ item: T) { items.append(item) }
 }
 
+extension Robustness {
 /// M12-03, disconnected vault: the vault folder disappears while the app runs (unplugged drive,
 /// unmounted share, moved or deleted folder) and comes back. Disappearing is simulated by renaming
 /// the folder (an unmounted volume looks the same to the app: the path stops existing) and by
@@ -144,4 +145,5 @@ private actor BatchLog<T: Sendable> {
         #expect(!FileManager.default.fileExists(atPath: target.url.path))
         await env.shutdown()
     }
+}
 }

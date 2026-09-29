@@ -2,6 +2,11 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+/// Every robustness suite lives in here so that they run one at a time: each opens whole vaults with
+/// their own watchers, and side by side they starve the timing-sensitive watcher tests of the rest of
+/// the package on a small machine.
+@Suite(.serialized) enum Robustness {}
+
 /// A `FileSystem` that fails on demand, the way a real disk does: `ENOSPC` while writing, `EACCES`
 /// on a folder, `EIO` when a volume disappears. Unlike `FaultInjectingFileSystem` (fail the n-th
 /// call) a rule here names the operations and paths to fail and stays in force until `clear()`, so
@@ -132,7 +137,7 @@ struct RobustVault: @unchecked Sendable {
     let env: AppEnvironment
     let clock: any Clock
 
-    static func make(watchInterval: TimeInterval = 0.05, populate: Bool = true, clock: any Clock = FixedClock(),
+    static func make(watchInterval: TimeInterval = 0.2, populate: Bool = true, clock: any Clock = FixedClock(),
                      seed: (TempDir) throws -> Void = { _ in },
                      prepare: (TempDir, ScriptedFileSystem) throws -> Void = { _, _ in }) async throws -> RobustVault {
         let dir = TempDir()
@@ -149,7 +154,7 @@ struct RobustVault: @unchecked Sendable {
 
     /// A second, fault-free environment over the same folder: what the app would show after a restart.
     func reopened() async throws -> AppEnvironment {
-        try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: 0.05, fileSystem: POSIXFileSystem())
+        try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: 1, fileSystem: POSIXFileSystem())
     }
 
     func shutdown() async { await env.shutdown() }
@@ -161,7 +166,7 @@ struct RobustVault: @unchecked Sendable {
 }
 
 /// Runs `body` against a fresh vault and always shuts the environment down.
-func withRobustVault(watchInterval: TimeInterval = 0.05, populate: Bool = true,
+func withRobustVault(watchInterval: TimeInterval = 0.2, populate: Bool = true,
                      seed: (TempDir) throws -> Void = { _ in },
                      prepare: (TempDir, ScriptedFileSystem) throws -> Void = { _, _ in },
                      _ body: (RobustVault) async throws -> Void) async throws {

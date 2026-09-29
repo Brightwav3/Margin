@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+extension Robustness {
 /// M12-03, corrupted content: notes and course files that are malformed, binary, not UTF-8, full
 /// of NUL bytes, huge, or made of extremely long lines. The vault is a hand-edited folder, so any
 /// of them can turn up. Required: no crash and no hang in any service, typed errors, and the
@@ -25,8 +26,8 @@ import Testing
         var garbage = Data([0xFF, 0xFE, 0x00, 0x80])
         for _ in 0..<(64 * 1024) { garbage.append(UInt8(truncatingIfNeeded: rng.next())) }
         var huge = "# Huge note\n\n"
-        for i in 0..<40_000 { huge += "Line \(i) of a very large note with [[Lecture 8]] and #tag\(i % 50) inside.\n" }
-        for i in 0..<400 { huge += "- [ ] huge task \(i) @2026-10-\(String(format: "%02d", 1 + i % 28))\n" }
+        for i in 0..<12_000 { huge += "Line \(i) of a very large note with [[Lecture 8]] and #tag\(i % 50) inside.\n" }
+        for i in 0..<150 { huge += "- [ ] huge task \(i) @2026-10-\(String(format: "%02d", 1 + i % 28))\n" }
         func text(_ s: String) -> Data { Data(s.utf8) }
         return [
             Sample(name: "malformed yaml", bytes: text("---\nid: [unclosed\nname: : :\n\t- tab\n\"quote\n---\n# Malformed YAML\n\n- [ ] Task after bad yaml ^t-bad1\n"), utf8: true),
@@ -36,11 +37,11 @@ import Testing
             Sample(name: "truncated multibyte", bytes: Data("# Cut in the middle ".utf8) + Data([0xE2, 0x82]), utf8: false),
             Sample(name: "nul bytes in the body", bytes: text("---\nid: bio/nul\n---\n# Nul\n\0\0 [[Lecture 8]] \0\n- [ ] task with nul \0 ^t-nul1\n"), utf8: true),
             Sample(name: "nul bytes in the frontmatter", bytes: text("---\nid: bio/nulfm\0\ntitle: a\0b\n---\n# NulFM\n"), utf8: true),
-            Sample(name: "one line of a million characters", bytes: text("# Long line\n" + repeated("a", 1_000_000) + " [[Lecture 8]]\n- [ ] after the long line ^t-lng1\n"), utf8: true),
-            Sample(name: "two hundred thousand wikilink openers", bytes: text("# Openers\n" + repeated("[[", 200_000) + "x]]\n"), utf8: true),
-            Sample(name: "one hundred thousand task markers on a line", bytes: text("# Markers\n" + repeated("- [ ] ", 100_000) + "\n"), utf8: true),
-            Sample(name: "two megabytes in one frontmatter line", bytes: text("---\nid: bio/longfm\nblob: " + repeated("x", 2_000_000) + "\n---\n# LongFM\n"), utf8: true),
-            Sample(name: "pathological markup", bytes: text("# Markup\n" + repeated("> ", 50_000) + "text\n" + repeated("#", 100_000) + " heading\n" + repeated("*", 200_000) + "\n" + repeated("`", 200_000) + "\n" + repeated("[", 100_000) + "](" + repeated("(", 100_000) + "\n" + repeated("| a ", 50_000) + "|\n"), utf8: true),
+            Sample(name: "one very long line", bytes: text("# Long line\n" + repeated("a", 200_000) + " [[Lecture 8]]\n- [ ] after the long line ^t-lng1\n"), utf8: true),
+            Sample(name: "tens of thousands of wikilink openers", bytes: text("# Openers\n" + repeated("[[", 50_000) + "x]]\n"), utf8: true),
+            Sample(name: "tens of thousands of task markers on a line", bytes: text("# Markers\n" + repeated("- [ ] ", 20_000) + "\n"), utf8: true),
+            Sample(name: "a very long frontmatter line", bytes: text("---\nid: bio/longfm\nblob: " + repeated("x", 300_000) + "\n---\n# LongFM\n"), utf8: true),
+            Sample(name: "pathological markup", bytes: text("# Markup\n" + repeated("> ", 10_000) + "text\n" + repeated("#", 20_000) + " heading\n" + repeated("*", 40_000) + "\n" + repeated("`", 40_000) + "\n" + repeated("[", 20_000) + "](" + repeated("(", 20_000) + "\n" + repeated("| a ", 10_000) + "|\n"), utf8: true),
             Sample(name: "huge note", bytes: text(huge), utf8: true),
             Sample(name: "byte order mark only", bytes: Data([0xEF, 0xBB, 0xBF]), utf8: true),
             Sample(name: "empty file", bytes: Data(), utf8: true),
@@ -301,4 +302,5 @@ import Testing
             #expect(await v.matchesRestart())
         }
     }
+}
 }

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+extension Robustness {
 /// M12-03, full disk. Every service that writes is run while `ENOSPC` hits each step of the atomic
 /// write (temp file create, half-written temp file, fsync, rename, folder creation, folder fsync).
 /// The disk cannot be filled safely inside the test container, so the error is simulated at the
@@ -131,4 +132,5 @@ import Testing
             #expect(try await v.env.notes.open(id: "bio/lecture-8").text == "retry me")
         }
     }
+}
 }
