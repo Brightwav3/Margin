@@ -35,16 +35,22 @@ public actor NoteIndex {
 
     /// Replaces the index with the notes of `source` and keeps it for later `update`/`apply`.
     /// Unreadable files are skipped and returned as errors.
+    ///
+    /// - Parameter progress: called with `(files read, files in all)`: once with `0` after listing,
+    ///   then after every file (also an unreadable one), so the last call has both equal.
     @discardableResult
-    public func build(from source: any NoteContentSource) async throws -> [String: MarginError] {
+    public func build(from source: any NoteContentSource,
+                      progress: (@Sendable (_ done: Int, _ total: Int) -> Void)? = nil) async throws -> [String: MarginError] {
         self.source = source
         let paths = try await source.listMarkdown()
         var entries: [(path: String, content: String)] = []
         entries.reserveCapacity(paths.count)
         var failures: [String: MarginError] = [:]
-        for p in paths {
+        progress?(0, paths.count)
+        for (i, p) in paths.enumerated() {
             do { entries.append((p, try await source.read(p))) }
             catch { failures[p] = (error as? MarginError) ?? .io("\(error)") }
+            progress?(i + 1, paths.count)
         }
         build(entries: entries)
         return failures

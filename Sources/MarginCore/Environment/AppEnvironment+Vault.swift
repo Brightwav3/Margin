@@ -12,9 +12,12 @@ extension AppEnvironment {
     ///
     /// - Parameter watchInterval: seconds between file scans (the portable watcher; macOS uses the
     ///   same until the FSEvents backend lands). Defaults to `defaultWatchInterval`.
+    /// - Parameter progress: called while the index is built (0 … 100 %, the last element complete),
+    ///   for a loading screen. `AppEnvironment.indexStatus` gives the same to a late subscriber.
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
-                             watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval) async throws -> AppEnvironment {
-        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval)
+                             watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval,
+                             progress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> AppEnvironment {
+        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval, onProgress: progress)
         let settings = VaultSettingsStore(store: backend.store)
         return AppEnvironment(
             clock: clock,
@@ -27,6 +30,7 @@ extension AppEnvironment {
             analysis: VaultNoteAnalysis(backend: backend),
             graph: VaultGraphService(backend: backend),
             courseWriter: VaultCourseCatalogWriter(backend: backend), settings: settings, semesters: VaultSemesterStore(backend: backend),
+            indexStatus: VaultIndexStatus(backend: backend),
             shutdown: { settings.finish(); await backend.shutdown() })
     }
 }
