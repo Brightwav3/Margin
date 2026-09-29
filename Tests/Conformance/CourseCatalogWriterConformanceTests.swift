@@ -6,7 +6,7 @@ import Testing
 // task (M10-16.B create, M10-12.B rename/style, M10-13.B archive, M10-14.B overrides); a group is
 // widened to `HarnessKind.allCases` in the commit that implements it.
 private let createKinds = HarnessKind.allCases
-private let editKinds: [HarnessKind] = [.fixture]
+private let editKinds = HarnessKind.allCases
 private let archiveKinds: [HarnessKind] = [.fixture]
 private let overrideKinds: [HarnessKind] = [.fixture]
 

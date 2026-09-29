@@ -16,12 +16,14 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
 
     public func rename(id: CourseID, to name: String, renameFolder: Bool, actor: Actor, baseVersion: String?,
                        dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        throw MarginError.invalid("Renaming courses is not implemented yet (TODO(M10-12.B))")
+        try await backend.renameCourse(id: id, to: name, renameFolder: renameFolder, actor: actor,
+                                       baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 
     public func setStyle(id: CourseID, icon: String?, color: String?, actor: Actor, baseVersion: String?,
                          dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        throw MarginError.invalid("Course styles are not implemented yet (TODO(M10-12.B))")
+        try await backend.setCourseStyle(id: id, icon: icon, color: color, actor: actor, baseVersion: baseVersion,
+                                         dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,
