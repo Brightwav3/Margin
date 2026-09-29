@@ -255,6 +255,37 @@ public actor VaultStore {
         }
     }
 
+    // MARK: - App data (`.margin/`)
+
+    /// Names of the files (not folders) directly inside a folder below `.margin/`, sorted; empty when
+    /// the folder does not exist. For app data such as `.margin/history/<note>/`.
+    public func listInternalFiles(in folder: VaultPath) throws -> [String] {
+        guard folder.isInternal, folder != VaultPath.internalRoot else { throw MarginError.invalid("\(folder) is not app data") }
+        do {
+            let url = try checkedURL(folder, followFinal: true)
+            guard let attrs = try fileSystem.attributes(at: url) else { return [] }
+            guard attrs.kind == .directory else { throw MarginError.invalid("\(folder) is not a folder") }
+            return try fileSystem.contentsOfDirectory(at: url)
+                .filter { $0.kind == .file && !$0.name.hasPrefix(".") }.map(\.name).sorted()
+        } catch { throw VaultStore.map(error, "list \(folder)") }
+    }
+
+    /// Permanently removes one file of app data that the app itself derived and may drop, such as an
+    /// expired history snapshot. Only paths below `.margin/history/` are accepted: user files go to
+    /// the trash (`trash`), never through here.
+    public func removeInternalFile(_ path: VaultPath) throws {
+        guard path.isInside(VaultPath.internalHistory), path != VaultPath.internalHistory else {
+            throw MarginError.invalid("\(path) is not an expirable app data file")
+        }
+        do {
+            let url = try checkedURL(path, followFinal: false)
+            guard let attrs = try fileSystem.attributes(at: url) else { return }
+            guard attrs.kind == .file else { throw MarginError.invalid("\(path) is not a file") }
+            try fileSystem.removeFile(at: url)
+            try? fileSystem.syncDirectory(at: url.deletingLastPathComponent())
+        } catch { throw VaultStore.map(error, "remove \(path)") }
+    }
+
     // MARK: - Atomic write pipeline
 
     private func atomicWrite(_ data: Data, to path: VaultPath, expectedVersion: ContentHash?, mustNotExist: Bool) async throws -> ContentHash {
@@ -435,6 +466,7 @@ public actor VaultStore {
 extension VaultPath {
     /// `.margin`
     static let internalRoot = VaultPath(unchecked: [internalFolderName])
+    static let internalHistory = VaultPath(unchecked: [internalFolderName, "history"])
     /// `.margin/trash`
     static let internalTrash = VaultPath(unchecked: [internalFolderName, PortableTrash.folderName])
 }

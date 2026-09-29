@@ -54,6 +54,7 @@ struct Harness: Sendable {
     var analysis: any NoteAnalysis { env.analysis }
     var graph: any GraphService { env.graph }
     var grades: any GradeService { env.grades }
+    var history: any HistoryService { env.history }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
@@ -67,6 +68,7 @@ struct Harness: Sendable {
                 inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
                 courseWriter: FixtureCourseCatalogWriter(store: store), grades: FixtureGradeService(store: store),
+                history: FixtureHistoryService(store: store, clock: clock),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
@@ -88,6 +90,7 @@ struct Harness: Sendable {
                 inbox: VaultInboxService(backend: backend), properties: VaultPropertyService(backend: backend),
                 analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
                 courseWriter: VaultCourseCatalogWriter(backend: backend), grades: VaultGradeService(backend: backend),
+                history: VaultHistoryService(backend: backend),
                 shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(

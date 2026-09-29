@@ -27,6 +27,7 @@ extension AppEnvironment {
             graph: VaultGraphService(backend: backend),
             courseWriter: VaultCourseCatalogWriter(backend: backend),
             grades: VaultGradeService(backend: backend),
+            history: VaultHistoryService(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }

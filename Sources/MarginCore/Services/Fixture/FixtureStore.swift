@@ -30,6 +30,8 @@ actor FixtureStore {
     var courses: [Course]
     /// Graded items of all courses (`GradeService`), in file order per course.
     var grades: [Grade]
+    /// Snapshot files of `HistoryService`: note id, then file name.
+    var historyFiles: [NoteID: [String: Data]] = [:]
     /// Overrides of single classes (`CourseCatalogWriter.override`), sorted by day, then id.
     var overrides: [SessionOverride] = []
     var notes: [NoteID: StoredNote] = [:] { didSet { analysisIndex = nil } }
