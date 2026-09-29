@@ -163,13 +163,13 @@ public struct FSEventsFileWatcher: FileWatcher {
                 // coalesces all of it into one batch. Same rule as `PollingFileWatcher`.
                 let sameContent = o.hash != nil ? o.hash == e.hash : true
                 if sameContent, o.mtime == e.mtime, o.size == e.size { continue }
-                if let ownWrites, let h = e.hash, await ownWrites.consume(path: path, hash: h) { continue }
+                if let ownWrites, let h = e.hash, await ownWrites.consumeLatest(path: path, hash: h) { continue }
                 out.append(FileChange(path: path, kind: .modified))
             case let (nil, e?):
-                if let ownWrites, let h = e.hash, await ownWrites.consume(path: path, hash: h) { continue }
+                if let ownWrites, let h = e.hash, await ownWrites.consumeLatest(path: path, hash: h) { continue }
                 out.append(FileChange(path: path, kind: .created))
             case (_?, nil):
-                if let ownWrites, await ownWrites.consume(path: path, hash: OwnWriteRegistry.deletedHash) { continue }
+                if let ownWrites, await ownWrites.consumeLatest(path: path, hash: OwnWriteRegistry.deletedHash) { continue }
                 out.append(FileChange(path: path, kind: .deleted))
             case (nil, nil):
                 continue

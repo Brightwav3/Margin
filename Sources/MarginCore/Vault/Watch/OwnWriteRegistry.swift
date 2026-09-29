@@ -2,8 +2,8 @@ import Foundation
 
 /// Remembers writes the app made itself so the watcher does not report them back as external
 /// changes (no feedback loop). The store calls `register(path:hash:)` right before writing; the
-/// watcher calls `consume(path:hash:)` when it sees the resulting content. A match is swallowed
-/// exactly once; entries expire after `ttl` seconds (measured with the injected `Clock`).
+/// watcher calls `consume(path:hash:)` when it sees the resulting content. Entries expire after
+/// `ttl` seconds (measured with the injected `Clock`).
 public actor OwnWriteRegistry {
     /// Hash (hex string) to register for a deletion the app performs itself.
     public static let deletedHash = "<deleted>"
@@ -41,6 +41,16 @@ public actor OwnWriteRegistry {
         guard var list = entries[path], let i = list.firstIndex(where: { $0.hash == hash }) else { return false }
         list.remove(at: i)
         entries[path] = list.isEmpty ? nil : list
+        return true
+    }
+
+    /// `true` when the observed hash matches the latest announced write for `path`. Event-driven
+    /// watchers may coalesce several writes and only read the final bytes, so an older matching
+    /// registration cannot prove that the final edit came from this process.
+    func consumeLatest(path: String, hash: String) -> Bool {
+        prune()
+        guard let latest = entries[path]?.last, latest.hash == hash else { return false }
+        entries[path] = nil
         return true
     }
 

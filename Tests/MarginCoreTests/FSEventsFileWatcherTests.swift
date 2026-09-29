@@ -85,6 +85,29 @@ import Testing
         #expect(await c.wait(timeout: 5) { $0.contains(FileChange(path: "Course/n.md", kind: .modified)) })
     }
 
+    /// A coalesced batch sees only the last file content, so an older announced app write must not
+    /// hide an external write that restores that older version after a newer app write.
+    @Test func anOlderOwnWriteHashCannotHideARevertedExternalWrite() async throws {
+        let root = try makeVault()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = "original"
+        try write(original, "Course/n.md", in: root)
+        let registry = OwnWriteRegistry(ttl: 60)
+        let c = Collector(FSEventsFileWatcher(root: root, latency: 1, ownWrites: registry).changes())
+        defer { c.stop() }
+        try await Task.sleep(nanoseconds: 300_000_000)
+
+        let earlier = "first app write"
+        await registry.register(path: "Course/n.md", hash: ContentHash(of: earlier))
+        try write(earlier, "Course/n.md", in: root)
+        let latest = "second app write"
+        await registry.register(path: "Course/n.md", hash: ContentHash(of: latest))
+        try write(latest, "Course/n.md", in: root)
+        try write(earlier, "Course/n.md", in: root) // external restore of a superseded app write
+
+        #expect(await c.wait(timeout: 5) { $0.contains(FileChange(path: "Course/n.md", kind: .modified)) })
+    }
+
     /// The store registers a write before making it. A batch that arrives in between sees the file
     /// untouched: that is not an undone write, and the registration must survive for the real write.
     @Test func aRegistrationBeforeTheWriteIsKeptWhenTheFileIsUntouched() async throws {
