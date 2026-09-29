@@ -53,6 +53,9 @@ struct Harness: Sendable {
     var properties: any PropertyService { env.properties }
     var analysis: any NoteAnalysis { env.analysis }
     var graph: any GraphService { env.graph }
+    var settings: any SettingsStore { env.settings }
+    var semesters: any SemesterStore { env.semesters }
+    var indexStatus: any IndexStatus { env.indexStatus }
     var grades: any GradeService { env.grades }
     var history: any HistoryService { env.history }
     var reminders: any ReminderService { env.reminders }
@@ -72,7 +75,9 @@ struct Harness: Sendable {
                 tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
                 inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
-                courseWriter: FixtureCourseCatalogWriter(store: store), grades: FixtureGradeService(store: store),
+                courseWriter: FixtureCourseCatalogWriter(store: store), settings: FixtureSettingsStore(),
+                semesters: FixtureSemesterStore(store: store), indexStatus: FixtureIndexStatus(),
+                grades: FixtureGradeService(store: store),
                 history: FixtureHistoryService(store: store, clock: clock),
                 reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
                 syllabus: FixtureSyllabusService(store: store), export: FixtureExportService(store: store), search: FixtureSearchService(store: store),
@@ -96,7 +101,9 @@ struct Harness: Sendable {
                 tasks: VaultTaskService(backend: backend), capture: VaultCaptureService(backend: backend),
                 inbox: VaultInboxService(backend: backend), properties: VaultPropertyService(backend: backend),
                 analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
-                courseWriter: VaultCourseCatalogWriter(backend: backend), grades: VaultGradeService(backend: backend),
+                courseWriter: VaultCourseCatalogWriter(backend: backend),
+                settings: VaultSettingsStore(store: await backend.store), semesters: VaultSemesterStore(backend: backend),
+                indexStatus: VaultIndexStatus(backend: backend), grades: VaultGradeService(backend: backend),
                 history: VaultHistoryService(backend: backend),
                 reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
                 syllabus: VaultSyllabusService(backend: backend), export: VaultExportService(backend: backend), search: VaultSearchService(backend: backend),

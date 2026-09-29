@@ -17,6 +17,9 @@ public struct AppEnvironment: Sendable {
     public let analysis: any NoteAnalysis
     public let graph: any GraphService
     public let courseWriter: any CourseCatalogWriter
+    public let settings: any SettingsStore
+    public let semesters: any SemesterStore
+    public let indexStatus: any IndexStatus
     public let grades: any GradeService
     public let history: any HistoryService
     public let reminders: any ReminderService
@@ -29,13 +32,15 @@ public struct AppEnvironment: Sendable {
     public init(clock: any Clock, courses: any CourseCatalog, notes: any NoteRepository, tasks: any TaskService,
                 capture: any CaptureService, inbox: any InboxService,
                 properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
-                courseWriter: any CourseCatalogWriter, grades: any GradeService,
+                courseWriter: any CourseCatalogWriter, settings: any SettingsStore, semesters: any SemesterStore,
+                indexStatus: any IndexStatus, grades: any GradeService,
                 history: any HistoryService, reminders: any ReminderService,
                 syllabus: any SyllabusService, export: any ExportService, search: any SearchService,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
         self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
         self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history
+        self.settings = settings; self.semesters = semesters; self.indexStatus = indexStatus
         self.reminders = reminders; self.syllabus = syllabus; self.export = export; self.search = search
         self.onShutdown = shutdown
     }
@@ -49,6 +54,7 @@ public struct AppEnvironment: Sendable {
     public static func fixture(clock: any Clock = FixedClock(),
                                reminderCenter: any ReminderCenter = InMemoryReminderCenter()) -> AppEnvironment {
         let store = FixtureStore(world: Fixtures.week5, clock: clock)
+        let settings = FixtureSettingsStore()
         return AppEnvironment(
             clock: clock,
             courses: FixtureCourseCatalog(store: store),
@@ -60,12 +66,15 @@ public struct AppEnvironment: Sendable {
             analysis: FixtureNoteAnalysis(store: store),
             graph: FixtureGraphService(world: Fixtures.week5),
             courseWriter: FixtureCourseCatalogWriter(store: store),
+            settings: settings, semesters: FixtureSemesterStore(store: store),
+            indexStatus: FixtureIndexStatus(),
             grades: FixtureGradeService(store: store),
             history: FixtureHistoryService(store: store, clock: clock),
             reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
             syllabus: FixtureSyllabusService(store: store),
             export: FixtureExportService(store: store),
             search: FixtureSearchService(store: store),
-            shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
+            shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll()
+                settings.finish() })
     }
 }

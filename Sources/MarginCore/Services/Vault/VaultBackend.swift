@@ -12,6 +12,8 @@ actor VaultBackend {
     let store: VaultStore
     let index: NoteIndex
     let clock: any Clock
+    /// Progress of the index build (`IndexStatus`).
+    nonisolated let indexProgress: IndexProgressTracker
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
@@ -26,8 +28,8 @@ actor VaultBackend {
     let rewriter = WikilinkRewriter()
     private var watchTask: Task<Void, Never>?
 
-    private init(store: VaultStore, index: NoteIndex, clock: any Clock) {
-        self.store = store; self.index = index; self.clock = clock
+    private init(store: VaultStore, index: NoteIndex, clock: any Clock, indexProgress: IndexProgressTracker) {
+        self.store = store; self.index = index; self.clock = clock; self.indexProgress = indexProgress
         self.tasksStore = TasksStore(index: index)
         self.taskWriteBack = TaskWriteBack(store: store, index: index, clock: clock)
         self.changeSets = ChangeSetFactory(clock: clock)
@@ -36,13 +38,20 @@ actor VaultBackend {
     /// Opens the vault, builds the index and starts watching.
     ///
     /// - Parameter watchInterval: seconds between scans of the portable watcher.
-    static func open(at url: URL, clock: any Clock, watchInterval: TimeInterval = 0.3) async throws -> VaultBackend {
+    /// - Parameter onProgress: called while the index is built (`IndexProgress`, whole-percent steps,
+    ///   the last one complete), from whatever thread the build runs on.
+    static func open(at url: URL, clock: any Clock, watchInterval: TimeInterval = 0.3,
+                     onProgress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> VaultBackend {
         // A generous TTL: on a busy machine the poller may lag far behind the app's own writes.
         let ownWrites = OwnWriteRegistry(ttl: 60)
         let store = try await VaultStore.open(root: url, clock: clock, ownWrites: ownWrites)
         let index = NoteIndex(clock: clock)
-        try await index.build(from: VaultNoteSource(store: store))
-        let backend = VaultBackend(store: store, index: index, clock: clock)
+        let tracker = IndexProgressTracker(observer: onProgress)
+        try await index.build(from: VaultNoteSource(store: store)) { done, total in
+            tracker.report(done: done, total: total)
+        }
+        tracker.finish()
+        let backend = VaultBackend(store: store, index: index, clock: clock, indexProgress: tracker)
         await store.addRenameObserver(backend.rewriter)
         await backend.reloadModel()
         await backend.primeTasks()
@@ -59,6 +68,7 @@ actor VaultBackend {
         noteChanges.finishAll()
         catalogUpdates.finishAll()
         tasksStore.updates.finishAll()
+        indexProgress.finishAll()
     }
 
     // MARK: Watching

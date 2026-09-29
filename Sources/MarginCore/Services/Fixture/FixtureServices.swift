@@ -240,3 +240,36 @@ public struct FixtureExportService: ExportService {
         try await store.export(note: note, format: format, options: options, engine: engine)
     }
 }
+
+/// `SemesterStore` in memory. Shares its state with `FixtureCourseCatalog` when built from the same store.
+public struct FixtureSemesterStore: SemesterStore {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func semesters() async throws -> [Semester] { await store.semesters() }
+    public func current() async throws -> Semester? { await store.currentSemester() }
+    public func version() async throws -> String { await store.semesterVersion() }
+
+    public func create(_ semester: NewSemester, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.createSemester(semester, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+
+    public func update(id: SemesterID, _ update: SemesterUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.updateSemester(id: id, update, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+
+    public func delete(id: SemesterID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.deleteSemester(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+}
