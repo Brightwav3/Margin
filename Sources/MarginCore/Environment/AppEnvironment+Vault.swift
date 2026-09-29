@@ -12,8 +12,11 @@ extension AppEnvironment {
     ///
     /// - Parameter watchInterval: seconds between file scans (the portable watcher; macOS uses the
     ///   same until the FSEvents backend lands). Defaults to `defaultWatchInterval`.
+    /// - Parameter reminderCenter: where class reminders are shown; the macOS app passes
+    ///   `UserNotificationCenter`, the default keeps them in memory.
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
-                             watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval) async throws -> AppEnvironment {
+                             watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval,
+                             reminderCenter: any ReminderCenter = InMemoryReminderCenter()) async throws -> AppEnvironment {
         let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval)
         return AppEnvironment(
             clock: clock,
@@ -28,6 +31,7 @@ extension AppEnvironment {
             courseWriter: VaultCourseCatalogWriter(backend: backend),
             grades: VaultGradeService(backend: backend),
             history: VaultHistoryService(backend: backend),
+            reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
             shutdown: { await backend.shutdown() })
     }
 }

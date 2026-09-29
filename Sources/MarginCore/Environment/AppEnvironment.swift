@@ -19,6 +19,7 @@ public struct AppEnvironment: Sendable {
     public let courseWriter: any CourseCatalogWriter
     public let grades: any GradeService
     public let history: any HistoryService
+    public let reminders: any ReminderService
 
     private let onShutdown: @Sendable () async -> Void
 
@@ -26,11 +27,11 @@ public struct AppEnvironment: Sendable {
                 capture: any CaptureService, inbox: any InboxService,
                 properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
                 courseWriter: any CourseCatalogWriter, grades: any GradeService,
-                history: any HistoryService,
+                history: any HistoryService, reminders: any ReminderService,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
         self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
-        self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history
+        self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history; self.reminders = reminders
         self.onShutdown = shutdown
     }
 
@@ -40,7 +41,8 @@ public struct AppEnvironment: Sendable {
 
     /// In-memory services over `Fixtures.week5`. Writes change memory only. The default clock is
     /// the fixture clock (Monday 28 Sep 2026, 13:24).
-    public static func fixture(clock: any Clock = FixedClock()) -> AppEnvironment {
+    public static func fixture(clock: any Clock = FixedClock(),
+                               reminderCenter: any ReminderCenter = InMemoryReminderCenter()) -> AppEnvironment {
         let store = FixtureStore(world: Fixtures.week5, clock: clock)
         return AppEnvironment(
             clock: clock,
@@ -55,6 +57,7 @@ public struct AppEnvironment: Sendable {
             courseWriter: FixtureCourseCatalogWriter(store: store),
             grades: FixtureGradeService(store: store),
             history: FixtureHistoryService(store: store, clock: clock),
+            reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }
 }
