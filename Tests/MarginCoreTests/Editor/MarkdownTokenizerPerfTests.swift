@@ -6,6 +6,7 @@ import Testing
 /// The budget is asserted strictly only in optimized builds; in debug builds (unoptimized, often
 /// inside a Docker container) it is asserted with generous slack and the measured numbers are
 /// printed so they can be compared with the budget.
+extension PerfSuites {
 @Suite struct MarkdownTokenizerPerfTests {
     /// About 10 000 words of realistic notes: headings, prose with inline markup, lists, tasks,
     /// tables, quotes and code fences.
@@ -62,36 +63,46 @@ import Testing
         #expect(wordCount >= 10_000)
 
         let clock = ContinuousClock()
-        let full = clock.measure { _ = MarkdownTokenizer(text: doc) }
-
-        var tk = MarkdownTokenizer(text: doc)
-        var rng = SplitMix64(seed: 7)
-        var typing: [Double] = [], newlines: [Double] = [], deletes: [Double] = []
         func ms(_ d: Duration) -> Double {
             Double(d.components.seconds) * 1000 + Double(d.components.attoseconds) / 1e15
         }
-        for i in 0..<300 {
-            let loc = Int.random(in: 0..<tk.utf16Count, using: &rng)
-            switch i % 3 {
-            case 0: typing.append(ms(clock.measure { tk.update(edit: TextRange(location: loc, length: 0), replacement: "x") }))
-            case 1: newlines.append(ms(clock.measure { tk.update(edit: TextRange(location: loc, length: 0), replacement: "\n") }))
-            default: deletes.append(ms(clock.measure { tk.update(edit: TextRange(location: loc, length: 1), replacement: "") }))
+        // One run = 300 random edits on a fresh tokenizer. The budget is judged on the median of
+        // `perfRuns` runs (after one warm-up run) for both the mean and the p95 of the edit times.
+        var tk = MarkdownTokenizer(text: doc)
+        var full = Duration.zero
+        var means: [Double] = [], p95s: [Double] = []
+        var typing: [Double] = [], newlines: [Double] = [], deletes: [Double] = []
+        var fenceEdit = 0.0
+        for run in 0...perfRuns {
+            full = clock.measure { _ = MarkdownTokenizer(text: doc) }
+            tk = MarkdownTokenizer(text: doc)
+            var rng = SplitMix64(seed: 7)
+            typing = []; newlines = []; deletes = []
+            for i in 0..<300 {
+                let loc = Int.random(in: 0..<tk.utf16Count, using: &rng)
+                switch i % 3 {
+                case 0: typing.append(ms(clock.measure { tk.update(edit: TextRange(location: loc, length: 0), replacement: "x") }))
+                case 1: newlines.append(ms(clock.measure { tk.update(edit: TextRange(location: loc, length: 0), replacement: "\n") }))
+                default: deletes.append(ms(clock.measure { tk.update(edit: TextRange(location: loc, length: 1), replacement: "") }))
+                }
             }
+            // Editing inside frontmatter and around a fence, the costly-looking cases.
+            fenceEdit = ms(clock.measure {
+                tk.update(edit: TextRange(location: NSStringLikeOffset(tk.string, "```swift"), length: 1), replacement: "")
+            })
+            let st = Self.stats(typing + newlines + deletes)
+            if run > 0 { means.append(st.mean); p95s.append(st.p95) }
         }
-        // Editing inside frontmatter and around a fence, the costly-looking cases.
-        let fenceEdit = ms(clock.measure {
-            tk.update(edit: TextRange(location: NSStringLikeOffset(tk.string, "```swift"), length: 1), replacement: "")
-        })
-        let all = typing + newlines + deletes
-        let s = Self.stats(all)
+        let s = Stats(mean: perfMedian(means), p95: perfMedian(p95s), max: 0)
         let t = Self.stats(typing), n = Self.stats(newlines), d = Self.stats(deletes)
         print("""
-            tokenizer perf, \(wordCount) words, \(doc.utf16.count) UTF-16 units, \(tk.lineCount) lines
+            tokenizer perf, \(wordCount) words, \(doc.utf16.count) UTF-16 units, \(tk.lineCount) lines (last of \(perfRuns) runs)
               full tokenization:   \(ms(full)) ms
               incremental typing:  mean \(t.mean) ms, p95 \(t.p95) ms, max \(t.max) ms
               incremental newline: mean \(n.mean) ms, p95 \(n.p95) ms, max \(n.max) ms
               incremental delete:  mean \(d.mean) ms, p95 \(d.p95) ms, max \(d.max) ms
               fence marker edit:   \(fenceEdit) ms
+              median of run means [\(perfList(means))] ms, median of run p95 [\(perfList(p95s))] ms
             """)
         #expect(tk.tokens == MarkdownTokenizer(text: tk.string).tokens)
 
@@ -100,9 +111,10 @@ import Testing
         #else
         let budget = 3.0
         #endif
-        #expect(s.mean < budget, "mean \(s.mean) ms")
-        #expect(s.p95 < budget * 2, "p95 \(s.p95) ms")
+        #expect(s.mean < budget, "median mean \(s.mean) ms")
+        #expect(s.p95 < budget * 2, "median p95 \(s.p95) ms")
     }
+}
 }
 
 func NSStringLikeOffset(_ text: String, _ needle: String) -> Int {
