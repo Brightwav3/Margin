@@ -172,7 +172,8 @@ extension Robustness {
                 let after = v.files()
                 if code == nil {
                     toggled += 1
-                    let changed = after.filter { before[$0.key] != $0.value }
+                    // (The change-set journal under .margin/changesets/ records every write; it is app data, not a note.)
+                    let changed = after.filter { !$0.key.hasPrefix(".margin/") && before[$0.key] != $0.value }
                     #expect(changed.count == 1, "\(task.id): \(changed.keys)")
                     if let (path, data) = changed.first, let old = before[path] {
                         let diff = zip(old, data).filter { $0 != $1 }.count
@@ -290,13 +291,13 @@ extension Robustness {
             #expect(code == nil || ["invalid", "conflict", "io"].contains(code ?? ""), "\(code ?? "")")
             let escaped = ((try? FileManager.default.contentsOfDirectory(atPath: parent.path)) ?? []).filter { $0.hasPrefix("escape") }
             #expect(escaped.isEmpty, "a title walked out of the vault: \(escaped)")
-            let added = v.files().keys.filter { before[$0] == nil }
+            let added = v.files().keys.filter { before[$0] == nil && !$0.hasPrefix(".margin/") }   // (not the change-set journal)
             #expect(added.allSatisfy { $0.hasPrefix("Fall 2026/Cell Biology/") }, "\(added)")
             #expect(code != nil || added.count == 1, "\(added)")
             // Capture with the same text goes to the inbox or a course, never elsewhere.
             let cap = await robustCode { try await v.env.capture.commit(CaptureDraft(text: title, kind: .note), actor: robustActor, dryRun: false, idempotencyKey: nil) }
             #expect(cap == nil || ["invalid", "io"].contains(cap ?? ""), "\(cap ?? "")")
-            let capAdded = v.files().keys.filter { before[$0] == nil && !added.contains($0) }
+            let capAdded = v.files().keys.filter { before[$0] == nil && !added.contains($0) && !$0.hasPrefix(".margin/") }
             #expect(capAdded.allSatisfy { $0.hasPrefix("_inbox/") }, "\(capAdded)")
             await exerciseReads(v.env)
             #expect(await v.matchesRestart())
