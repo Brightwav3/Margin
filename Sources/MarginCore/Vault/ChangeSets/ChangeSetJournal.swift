@@ -69,7 +69,7 @@ actor ChangeSetJournal {
     /// records and applies retention.
     static func open(store: VaultStore, clock: any Clock, retention: ChangeSetRetention = .standard) async throws -> ChangeSetJournal {
         let journal = ChangeSetJournal(store: store, clock: clock, retention: retention)
-        try await journal.load()
+        await journal.load()
         return journal
     }
 
@@ -97,8 +97,15 @@ actor ChangeSetJournal {
 
     // MARK: Loading and recovery
 
-    private func load() async throws {
-        let names = try await store.appDataFileNames(in: VaultPath.internalChangeSets)
+    private func load() async {
+        let names: [String]
+        do { names = try await store.appDataFileNames(in: VaultPath.internalChangeSets) } catch {
+            // A broken journal folder must not keep the user out of their vault. Nothing can be
+            // recovered or recorded then: every write fails (its write-ahead record cannot be made)
+            // until the folder is repaired, and reads keep working.
+            recovery.problems.append("journal folder unreadable: \(error)")
+            return
+        }
         var groups: [String: (seq: Int, id: String, parts: [String])] = [:]
         for name in names {
             guard let p = Self.parse(name) else { continue }

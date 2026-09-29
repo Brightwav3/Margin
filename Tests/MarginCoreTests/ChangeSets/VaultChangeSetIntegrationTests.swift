@@ -159,6 +159,26 @@ extension HeavySuites {
         await rig.close()
     }
 
+    // MARK: A broken journal folder
+
+    @Test func aBrokenJournalFolderKeepsReadsWorkingAndRefusesWritesInsteadOfWritingUnrecorded() async throws {
+        let dir = try await Self.vaultWithTrickyNote()
+        try dir.seed(".margin/changesets", Data("not a folder".utf8))           // a file where the journal folder should be
+        let original = dir.userFiles()
+        let rig = try await Rig.open(dir)
+        let id = try await Self.trickyID(rig)
+        let note = try await rig.notes.open(id: id)                              // reading works
+        #expect(note.version == ContentHash(of: Data(Self.tricky.utf8)).hex)
+        #expect(await rig.backend.journal.recovery.problems.count == 1)
+        do {
+            _ = try await rig.notes.save(id: id, text: "x", actor: .user, baseVersion: note.version, dryRun: false, idempotencyKey: nil)
+            Issue.record("a write that cannot be journaled must not happen")
+        } catch let e as MarginError { #expect(e.code == "io" || e.code == "invalid", "\(e)") }
+        #expect(dir.userFiles() == original)                                     // and nothing was written
+        #expect(try await rig.changes.changes(limit: nil).isEmpty)
+        await rig.close()
+    }
+
     // MARK: Restart
 
     @Test func undoWorksAfterTheAppWasRestarted() async throws {
