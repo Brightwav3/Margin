@@ -32,8 +32,8 @@ public struct FixtureNoteRepository: NoteRepository {
 
     public func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
                      idempotencyKey: String?) async throws -> ChangeSet {
-        try await store.save(id: id, text: text, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
-                             idempotencyKey: idempotencyKey)
+        try await store.saveRecordingHistory(id: id, text: text, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                             idempotencyKey: idempotencyKey)
     }
 
     public func create(course: CourseID, title: String, kind: NoteKind, text: String, actor: Actor,
