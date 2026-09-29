@@ -347,6 +347,9 @@ actor VaultBackend {
                 guard let from = op.fromPath else { break }
                 if op.path.lowercased().hasSuffix(".md") {
                     await index.rename(from: from, to: op.path)
+                    // Another program may have changed the file between the read and the move; the move
+                    // carried the new bytes along, and the watcher does not report a move of our own.
+                    _ = try? await index.update(path: op.path)
                 } else {
                     // A folder: every note below it follows.
                     courseFiles = true
