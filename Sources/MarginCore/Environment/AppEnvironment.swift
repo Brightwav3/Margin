@@ -17,6 +17,11 @@ public struct AppEnvironment: Sendable {
     public let analysis: any NoteAnalysis
     public let graph: any GraphService
     public let courseWriter: any CourseCatalogWriter
+    public let grades: any GradeService
+    public let history: any HistoryService
+    public let reminders: any ReminderService
+    public let syllabus: any SyllabusService
+    public let export: any ExportService
     public let search: any SearchService
 
     private let onShutdown: @Sendable () async -> Void
@@ -24,11 +29,14 @@ public struct AppEnvironment: Sendable {
     public init(clock: any Clock, courses: any CourseCatalog, notes: any NoteRepository, tasks: any TaskService,
                 capture: any CaptureService, inbox: any InboxService,
                 properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
-                courseWriter: any CourseCatalogWriter, search: any SearchService,
+                courseWriter: any CourseCatalogWriter, grades: any GradeService,
+                history: any HistoryService, reminders: any ReminderService,
+                syllabus: any SyllabusService, export: any ExportService, search: any SearchService,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
         self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
-        self.graph = graph; self.courseWriter = courseWriter; self.search = search
+        self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history
+        self.reminders = reminders; self.syllabus = syllabus; self.export = export; self.search = search
         self.onShutdown = shutdown
     }
 
@@ -38,7 +46,8 @@ public struct AppEnvironment: Sendable {
 
     /// In-memory services over `Fixtures.week5`. Writes change memory only. The default clock is
     /// the fixture clock (Monday 28 Sep 2026, 13:24).
-    public static func fixture(clock: any Clock = FixedClock()) -> AppEnvironment {
+    public static func fixture(clock: any Clock = FixedClock(),
+                               reminderCenter: any ReminderCenter = InMemoryReminderCenter()) -> AppEnvironment {
         let store = FixtureStore(world: Fixtures.week5, clock: clock)
         return AppEnvironment(
             clock: clock,
@@ -51,6 +60,11 @@ public struct AppEnvironment: Sendable {
             analysis: FixtureNoteAnalysis(store: store),
             graph: FixtureGraphService(world: Fixtures.week5),
             courseWriter: FixtureCourseCatalogWriter(store: store),
+            grades: FixtureGradeService(store: store),
+            history: FixtureHistoryService(store: store, clock: clock),
+            reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
+            syllabus: FixtureSyllabusService(store: store),
+            export: FixtureExportService(store: store),
             search: FixtureSearchService(store: store),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }

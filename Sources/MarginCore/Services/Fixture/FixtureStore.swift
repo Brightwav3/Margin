@@ -28,6 +28,10 @@ actor FixtureStore {
     private(set) var semester: Semester
     let clock: any Clock
     var courses: [Course]
+    /// Graded items of all courses (`GradeService`), in file order per course.
+    var grades: [Grade]
+    /// Snapshot files of `HistoryService`: note id, then file name.
+    var historyFiles: [NoteID: [String: Data]] = [:]
     /// Overrides of single classes (`CourseCatalogWriter.override`), sorted by day, then id.
     var overrides: [SessionOverride] = []
     var notes: [NoteID: StoredNote] = [:] { didSet { analysisIndex = nil } }
@@ -47,6 +51,7 @@ actor FixtureStore {
         self.semester = world.semester
         self.clock = clock
         self.courses = world.courses
+        self.grades = world.grades
         self.inbox = world.inbox
         for item in world.inbox { inboxStems[item.id] = CaptureRules.inboxStem(captured: item.captured, text: item.text) }
         self.changeSets = ChangeSetFactory(clock: clock)
