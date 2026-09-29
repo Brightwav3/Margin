@@ -48,7 +48,7 @@ extension FixtureStore {
     // MARK: Edit
 
     /// Applies `change` to the course; an unchanged course is an empty `ChangeSet`.
-    private func editCourse(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
+    func editCourse(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
                             moved: Bool = false, change: (inout Course) throws -> Void) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let old = try course(id: id)

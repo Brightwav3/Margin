@@ -14,8 +14,11 @@ extension AppEnvironment {
     ///   same until the FSEvents backend lands). Defaults to `defaultWatchInterval`.
     /// - Parameter progress: called while the index is built (0 … 100 %, the last element complete),
     ///   for a loading screen. `AppEnvironment.indexStatus` gives the same to a late subscriber.
+    /// - Parameter reminderCenter: where class reminders are shown; the macOS app passes
+    ///   `UserNotificationCenter`, the default keeps them in memory.
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
                              watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval,
+                             reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
                              progress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> AppEnvironment {
         let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval, onProgress: progress)
         let settings = VaultSettingsStore(store: backend.store)
@@ -29,8 +32,14 @@ extension AppEnvironment {
             properties: VaultPropertyService(backend: backend),
             analysis: VaultNoteAnalysis(backend: backend),
             graph: VaultGraphService(backend: backend),
-            courseWriter: VaultCourseCatalogWriter(backend: backend), settings: settings, semesters: VaultSemesterStore(backend: backend),
+            courseWriter: VaultCourseCatalogWriter(backend: backend),
+            settings: settings, semesters: VaultSemesterStore(backend: backend),
             indexStatus: VaultIndexStatus(backend: backend),
+            grades: VaultGradeService(backend: backend),
+            history: VaultHistoryService(backend: backend),
+            reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
+            syllabus: VaultSyllabusService(backend: backend),
+            export: VaultExportService(backend: backend),
             search: VaultSearchService(backend: backend),
             shutdown: { settings.finish(); await backend.shutdown() })
     }

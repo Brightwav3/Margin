@@ -56,11 +56,17 @@ struct Harness: Sendable {
     var settings: any SettingsStore { env.settings }
     var semesters: any SemesterStore { env.semesters }
     var indexStatus: any IndexStatus { env.indexStatus }
+    var grades: any GradeService { env.grades }
+    var history: any HistoryService { env.history }
+    var reminders: any ReminderService { env.reminders }
+    var syllabus: any SyllabusService { env.syllabus }
+    var exporter: any ExportService { env.export }
     var search: any SearchService { env.search }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
-                     watchInterval: TimeInterval = 0.05) async throws -> Harness {
+                     watchInterval: TimeInterval = 0.05,
+                     reminderCenter: any ReminderCenter = InMemoryReminderCenter()) async throws -> Harness {
         switch kind {
         case .fixture:
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
@@ -71,7 +77,10 @@ struct Harness: Sendable {
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
                 courseWriter: FixtureCourseCatalogWriter(store: store), settings: FixtureSettingsStore(),
                 semesters: FixtureSemesterStore(store: store), indexStatus: FixtureIndexStatus(),
-                search: FixtureSearchService(store: store),
+                grades: FixtureGradeService(store: store),
+                history: FixtureHistoryService(store: store, clock: clock),
+                reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
+                syllabus: FixtureSyllabusService(store: store), export: FixtureExportService(store: store), search: FixtureSearchService(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
@@ -94,7 +103,10 @@ struct Harness: Sendable {
                 analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
                 courseWriter: VaultCourseCatalogWriter(backend: backend),
                 settings: VaultSettingsStore(store: await backend.store), semesters: VaultSemesterStore(backend: backend),
-                indexStatus: VaultIndexStatus(backend: backend), search: VaultSearchService(backend: backend),
+                indexStatus: VaultIndexStatus(backend: backend), grades: VaultGradeService(backend: backend),
+                history: VaultHistoryService(backend: backend),
+                reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
+                syllabus: VaultSyllabusService(backend: backend), export: VaultExportService(backend: backend), search: VaultSearchService(backend: backend),
                 shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(
@@ -146,8 +158,9 @@ struct Harness: Sendable {
 
 /// Runs `body` against a fresh harness and always shuts it down.
 func withHarness(_ kind: HarnessKind, clock: any Clock = FixedClock(), watchInterval: TimeInterval = 0.05,
+                 reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
                  _ body: (Harness) async throws -> Void) async throws {
-    let harness = try await Harness.make(kind, clock: clock, watchInterval: watchInterval)
+    let harness = try await Harness.make(kind, clock: clock, watchInterval: watchInterval, reminderCenter: reminderCenter)
     do { try await body(harness) } catch {
         await harness.shutdown()
         throw error
