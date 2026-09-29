@@ -5,7 +5,9 @@ import Testing
 /// AG-03 / AG-04 through the public services only: one suite, run against the fixture and the vault
 /// implementation (contract §5). The vault-only guarantees (bit-for-bit bytes, crash safety,
 /// multi-file groups) are in `Tests/MarginCoreTests/ChangeSets/`.
-@Suite struct ChangeSetStoreConformanceTests {
+/// Serialized on purpose: every case opens a vault with a file watcher, and dozens of them at once
+/// would starve the timing tests of the other suites.
+@Suite(.serialized) struct ChangeSetStoreConformanceTests {
     // MARK: Helpers
 
     private static let lines = (1...12).map { "line \($0)\n" }.joined()

@@ -5,7 +5,9 @@ import Testing
 /// Every write that returns a `ChangeSet` is recorded and can be undone, not only `NoteRepository`'s:
 /// capture, inbox triage, task due dates and the course writer. Same suite for the fixture and the
 /// vault implementation; state is compared through the services, so both must agree.
-@Suite struct ChangeSetStoreWritersConformanceTests {
+/// Serialized on purpose: every case opens a vault with a file watcher, and dozens of them at once
+/// would starve the timing tests of the other suites.
+@Suite(.serialized) struct ChangeSetStoreWritersConformanceTests {
     /// What a user can see of the world: courses, notes per course, inbox, tasks, timetable.
     struct View: Equatable {
         var courses: [Course]
