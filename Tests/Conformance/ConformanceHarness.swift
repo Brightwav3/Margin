@@ -33,11 +33,21 @@ struct Harness: Sendable {
     let deleteNote: @Sendable (NoteID) async throws -> Void
     /// Changes the room of a course from outside.
     let editCourseRoom: @Sendable (CourseID, String) async throws -> Void
+    /// The text of a vault file by vault-relative path (`nil` when it does not exist, and always
+    /// for the fixture, which has no files). For checking the exact file format.
+    let readFile: @Sendable (String) -> String?
+    /// Names of the files (not folders) below a vault-relative folder, sorted; empty for the
+    /// fixture and for a missing folder. For checking that files were trashed, not destroyed.
+    let listFiles: @Sendable (String) -> [String]
+    /// Writes a vault file from outside (vault only; the fixture ignores it).
+    let writeFile: @Sendable (String, String) throws -> Void
     fileprivate let keepAlive: TempFolder?
 
     var courses: any CourseCatalog { env.courses }
     var notes: any NoteRepository { env.notes }
     var tasks: any TaskService { env.tasks }
+    var capture: any CaptureService { env.capture }
+    var inbox: any InboxService { env.inbox }
     var properties: any PropertyService { env.properties }
     var analysis: any NoteAnalysis { env.analysis }
     var graph: any GraphService { env.graph }
@@ -50,7 +60,8 @@ struct Harness: Sendable {
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
-                tasks: FixtureTaskService(store: store), properties: FixturePropertyService(store: store),
+                tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
+                inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
@@ -59,6 +70,7 @@ struct Harness: Sendable {
                 rawContent: { id in try await store.rawContent(id: id) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
                 editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
+                readFile: { _ in nil }, listFiles: { _ in [] }, writeFile: { _, _ in },
                 keepAlive: nil)
         case .vault:
             let folder = TempFolder()
@@ -83,6 +95,17 @@ struct Harness: Sendable {
                     var (fm, body) = Frontmatter.parse(content)
                     fm?.set("room", .string(room))
                     try Data(((fm?.render() ?? "") + body).utf8).write(to: file)
+                },
+                readFile: { try? String(contentsOf: root.appendingPathComponent($0), encoding: .utf8) },
+                listFiles: { folder in
+                    let url = root.appendingPathComponent(folder, isDirectory: true)
+                    let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+                    return names.filter { !$0.hasPrefix(".") }.sorted()
+                },
+                writeFile: { path, text in
+                    let url = root.appendingPathComponent(path)
+                    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try Data(text.utf8).write(to: url)
                 },
                 keepAlive: folder)
         }

@@ -20,6 +20,8 @@ extension AppEnvironment {
             courses: VaultCourseCatalog(backend: backend),
             notes: VaultNoteRepository(backend: backend),
             tasks: VaultTaskService(backend: backend),
+            capture: VaultCaptureService(backend: backend),
+            inbox: VaultInboxService(backend: backend),
             properties: VaultPropertyService(backend: backend),
             analysis: VaultNoteAnalysis(backend: backend),
             graph: VaultGraphService(backend: backend),
