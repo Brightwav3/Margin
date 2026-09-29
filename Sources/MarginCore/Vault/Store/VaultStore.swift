@@ -191,6 +191,7 @@ public actor VaultStore {
     public func createFolder(_ path: VaultPath) async throws {
         do {
             if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            try requireRootAvailable()
             let target = try checkedURL(path, followFinal: false)
             if let existing = try fileSystem.attributes(at: target) {
                 guard existing.kind == .directory else { throw MarginError.conflict("\(path) exists and is not a folder") }
