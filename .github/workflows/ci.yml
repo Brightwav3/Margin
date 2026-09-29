@@ -39,7 +39,7 @@ jobs:
   # Build a testy Swiftu běží na macOS (hostované macOS minuty jsou na soukromém repu dražší, proto až když existuje Package.swift)
   # hashFiles() is not allowed in a job-level `if` (it made the whole workflow invalid), so the check is a step.
   build:
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
       - name: Build and test
