@@ -56,7 +56,11 @@ actor VaultBackend {
         await backend.reloadModel()
         await backend.primeTasks()
         // The watcher compares file times, which are real time, so it always uses the system clock.
-        let watcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
+        #if os(macOS)
+        let watcher: any FileWatcher = FSEventsFileWatcher(root: store.root, ownWrites: ownWrites)
+        #else
+        let watcher: any FileWatcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
+        #endif
         await backend.startWatching(watcher)
         return backend
     }
