@@ -7,13 +7,11 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
 
     init(backend: VaultBackend) { self.backend = backend }
 
-    public func courseVersion(id: CourseID) async throws -> String { 
-        throw MarginError.invalid("Course versions are not implemented yet (TODO(M10-12.B))")
-    }
+    public func courseVersion(id: CourseID) async throws -> String { try await backend.courseVersion(id: id) }
 
     public func create(_ course: NewCourse, actor: Actor, baseVersion: String?, dryRun: Bool,
                        idempotencyKey: String?) async throws -> ChangeSet {
-        throw MarginError.invalid("Creating courses is not implemented yet (TODO(M10-16.B))")
+        try await backend.createCourse(course, actor: actor, dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 
     public func rename(id: CourseID, to name: String, renameFolder: Bool, actor: Actor, baseVersion: String?,

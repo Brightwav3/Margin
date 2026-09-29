@@ -5,10 +5,14 @@ import Testing
 // Which implementations each group of tests runs against. The vault implementation arrives task by
 // task (M10-16.B create, M10-12.B rename/style, M10-13.B archive, M10-14.B overrides); a group is
 // widened to `HarnessKind.allCases` in the commit that implements it.
-private let createKinds: [HarnessKind] = [.fixture]
+private let createKinds = HarnessKind.allCases
 private let editKinds: [HarnessKind] = [.fixture]
 private let archiveKinds: [HarnessKind] = [.fixture]
 private let overrideKinds: [HarnessKind] = [.fixture]
+
+private func codeOf<T>(_ body: () async throws -> T) async -> String? {
+    do { _ = try await body(); return nil } catch let e as MarginError { return e.code } catch { return "other" }
+}
 
 private let stats = NewCourse(name: "Statistics", semester: "fall-2026", code: "STA 101", professor: "Dr. Novak", room: "Hall C")
 
@@ -166,9 +170,7 @@ private let stats = NewCourse(name: "Statistics", semester: "fall-2026", code: "
             _ = try await h.writer.rename(id: "math", to: "Calculus", renameFolder: false, actor: .user,
                                           baseVersion: version, dryRun: false, idempotencyKey: nil)
             // The version moved on: the old one is stale.
-            func code(_ body: () async throws -> ChangeSet) async -> String? {
-                do { _ = try await body(); return nil } catch let e as MarginError { return e.code } catch { return "other" }
-            }
+            func code(_ body: () async throws -> ChangeSet) async -> String? { await codeOf(body) }
             #expect(await code { try await h.writer.rename(id: "math", to: "Analysis", renameFolder: false, actor: .user,
                                                            baseVersion: version, dryRun: false, idempotencyKey: nil) } == "conflict")
             #expect(await code { try await h.writer.rename(id: "nope", to: "X", renameFolder: false, actor: .user,
@@ -199,9 +201,7 @@ private let stats = NewCourse(name: "Statistics", semester: "fall-2026", code: "
             #expect(try await h.courses.courses(query: nil).isEmpty)          // no current semester any more
             #expect(try await h.courses.course(id: "bio").name == "Cell Biology")   // still readable
 
-            func code(_ body: () async throws -> ChangeSet) async -> String? {
-                do { _ = try await body(); return nil } catch let e as MarginError { return e.code } catch { return "other" }
-            }
+            func code(_ body: () async throws -> ChangeSet) async -> String? { await codeOf(body) }
             #expect(await code { try await h.notes.create(course: "bio", title: "New", kind: .note, text: "", actor: .user,
                                                           baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "readOnly")
             #expect(await code { try await h.writer.rename(id: "bio", to: "X", renameFolder: false, actor: .user,

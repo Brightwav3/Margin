@@ -10,6 +10,15 @@ struct VaultCourseModel: Sendable {
         /// Semester folder (`Fall 2026`) and course folder (`Cell Biology`).
         var semesterFolder: String
         var folder: String
+        /// The course lives in `_archive/<semester>/` (read-only).
+        var archived = false
+
+        /// `[_archive/]<semester>/<course>/_course.md`. Components come from folder names that exist,
+        /// so they are valid.
+        var filePath: VaultPath {
+            let parts = (archived ? ["_archive"] : []) + [semesterFolder, folder, "_course.md"]
+            return (try? VaultPath(components: parts)) ?? VaultPath(unchecked: ["_course.md"])
+        }
     }
 
     var semesters: [Semester] = []

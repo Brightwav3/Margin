@@ -19,9 +19,9 @@ actor VaultBackend {
     let taskWriteBack: TaskWriteBack
 
     private(set) var model = VaultCourseModel()
-    private var changeSets: ChangeSetFactory
-    private var idempotency = IdempotencyCache()
-    private let rewriter = WikilinkRewriter()
+    var changeSets: ChangeSetFactory
+    var idempotency = IdempotencyCache()
+    let rewriter = WikilinkRewriter()
     private var watchTask: Task<Void, Never>?
 
     private init(store: VaultStore, index: NoteIndex, clock: any Clock) {
@@ -101,13 +101,13 @@ actor VaultBackend {
         if !notes.isEmpty { noteChanges.send(notes.sorted { ($0.noteID, $0.kind.rawValue) < ($1.noteID, $1.kind.rawValue) }) }
     }
 
-    private static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
+    static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
         let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0.exams) })
         let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0.exams) })
         return Set(before.keys).union(after.keys).filter { (before[$0] ?? []) != (after[$0] ?? []) }.sorted()
     }
 
-    private static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
+    static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
         let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
         let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0) })
         return Set(before.keys).union(after.keys).filter { before[$0] != after[$0] }.sorted()
@@ -150,7 +150,10 @@ actor VaultBackend {
 
     func semesters() -> [Semester] { model.semesters }
 
-    private func currentSemester() -> Semester? { ServiceRules.currentSemester(model.semesters, today: clock.today) }
+    /// The semester that is "now": archived ones never are.
+    func currentSemester() -> Semester? {
+        ServiceRules.currentSemester(model.semesters.filter { !$0.isArchived }, today: clock.today)
+    }
 
     func courses(query: String?) -> [Course] {
         guard let current = currentSemester() else { return [] }
@@ -377,7 +380,7 @@ actor VaultBackend {
         }
     }
 
-    private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+    func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
         return cs
