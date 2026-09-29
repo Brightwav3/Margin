@@ -78,6 +78,12 @@ public struct FixtureTaskService: TaskService {
                                    idempotencyKey: idempotencyKey)
     }
 
+    public func setDue(id: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setTaskDue(id: id, due: due, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                   idempotencyKey: idempotencyKey)
+    }
+
     public var updates: AsyncStream<TaskUpdate> { store.taskChanges.subscribe() }
 }
 
@@ -127,6 +133,55 @@ public struct FixtureNoteAnalysis: NoteAnalysis {
     public func outgoing(id: NoteID) async throws -> [OutgoingLink] { try await engine.outgoing(id: id) }
     public func stats(id: NoteID, text: String?) async throws -> NoteStats { try await engine.stats(id: id, text: text) }
     public func properties(id: NoteID) async throws -> [NoteProperty] { try await engine.properties(id: id) }
+}
+
+/// `CourseCatalogWriter` over `Fixtures.week5`, in memory. Writes change memory only and show up in
+/// `FixtureCourseCatalog` when both share a store (`AppEnvironment.fixture`).
+public struct FixtureCourseCatalogWriter: CourseCatalogWriter {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func courseVersion(id: CourseID) async throws -> String { try await store.courseVersion(id: id) }
+
+    public func create(_ course: NewCourse, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.createCourse(course, actor: actor, dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func rename(id: CourseID, to name: String, renameFolder: Bool, actor: Actor, baseVersion: String?,
+                       dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.renameCourse(id: id, to: name, renameFolder: renameFolder, actor: actor,
+                                     baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func setStyle(id: CourseID, icon: String?, color: String?, actor: Actor, baseVersion: String?,
+                         dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setCourseStyle(id: id, icon: icon, color: color, actor: actor, baseVersion: baseVersion,
+                                       dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,
+                            dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setArchived(semester: semester, archived, actor: actor, dryRun: dryRun,
+                                    idempotencyKey: idempotencyKey)
+    }
+
+    public func override(session: SessionOverride, actor: Actor, baseVersion: String?, dryRun: Bool,
+                         idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setOverride(session, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                    idempotencyKey: idempotencyKey)
+    }
+
+    public func clearOverride(sessionID: String, course: CourseID, originalDate: LocalDate, actor: Actor,
+                              baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.removeOverride(sessionID: sessionID, course: course, originalDate: originalDate, actor: actor,
+                                       baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
 }
 
 /// `ChangeSetStore` over the in-memory fixture world: records the writes of the `Fixture…` services

@@ -54,6 +54,8 @@ actor ChangeSetJournal {
     let clock: any Clock
     let retention: ChangeSetRetention
     private(set) var recovery = RecoveryReport()
+    /// Operations of the last transaction that failed and was rolled back (see `takeFailedOperations`).
+    private var failedOperations: [RecordedOperation] = []
 
     private var slots: [Slot] = []          // committed, oldest first
     private var nextSeq = 1
@@ -124,9 +126,9 @@ actor ChangeSetJournal {
                 }
             } else {
                 // No commit point: an interrupted transaction. Roll it back.
-                let problems = await rollback(base: base)
+                let outcome = await rollback(base: base)
                 recovery.rolledBack.append(group.id)
-                recovery.problems += problems
+                recovery.problems += outcome.problems
             }
         }
         slots.sort { $0.seq < $1.seq }
@@ -179,6 +181,8 @@ actor ChangeSetJournal {
     ///     can describe (with note ids); files it touched that it did not describe (for example
     ///     notes rewritten by a rename observer) are added automatically.
     ///   - noteID: resolves the note id of such an automatically added file.
+    ///   - describeAllFiles: `false` keeps the entries exactly as `body` returned them (for writes whose
+    ///     `ChangeSet` shape is fixed by their own contract); the operations are recorded either way.
     /// - Returns: the committed change set. When `body` performed no operation nothing is recorded
     ///   and the change set is not stored (`operations` is empty).
     func transaction(
@@ -186,6 +190,7 @@ actor ChangeSetJournal {
         idempotencyKey: String?,
         revertsID: String? = nil,
         noteID: @escaping @Sendable (String) async -> NoteID? = { _ in nil },
+        describeAllFiles: Bool = true,
         body: @Sendable () async throws -> [ChangeSet.Entry]
     ) async throws -> Committed {
         await gate.lock()
@@ -203,7 +208,7 @@ actor ChangeSetJournal {
         do {
             entries = try await WriteCaptureContext.$current.withValue(capture) { try await body() }
         } catch {
-            _ = await rollback(base: base)
+            failedOperations = await rollback(base: base).operations
             throw error
         }
         let ops = capture.operations
@@ -214,7 +219,7 @@ actor ChangeSetJournal {
         }
         // Files touched but not described by the caller.
         var covered = Set(entries.flatMap { [$0.path] + ($0.fromPath.map { [$0] } ?? []) })
-        for op in ops {
+        for op in ops where describeAllFiles {
             let paths = [op.path] + (op.fromPath.map { [$0] } ?? [])
             if paths.contains(where: covered.contains) { continue }
             entries.append(op.derivedEntry(noteID: await noteID(op.path)))
@@ -235,7 +240,7 @@ actor ChangeSetJournal {
             // The commit point may still have been reached (for example only the folder sync
             // failed). If the record is on disk and valid, the group is committed.
             if !(await recordExists(base: base, id: id)) {
-                _ = await rollback(base: base)
+                failedOperations = await rollback(base: base).operations
                 throw error
             }
         }
@@ -279,8 +284,9 @@ actor ChangeSetJournal {
 
     /// Reverts the operations recorded for `base` (newest first) and removes their op files.
     /// Returns the problems found (files that could not be restored safely).
-    private func rollback(base: String) async -> [String] {
+    private func rollback(base: String) async -> (problems: [String], operations: [RecordedOperation]) {
         var problems: [String] = []
+        var operations: [RecordedOperation] = []
         let names = (try? await store.appDataFileNames(in: VaultPath.internalChangeSets)) ?? []
         let prefix = base + ".op-"
         let opNames = names.filter { $0.hasPrefix(prefix) }.sorted(by: >)
@@ -291,6 +297,7 @@ actor ChangeSetJournal {
                 problems.append("\(name): unreadable, left in place")
                 continue
             }
+            operations.append(op)
             let outcome = await WriteCaptureContext.$current.withValue(nil) { await revert(op) }
             switch outcome {
             case .done:
@@ -304,7 +311,14 @@ actor ChangeSetJournal {
                 problems.append("\(op.path): \(why), will retry")
             }
         }
-        return problems
+        return (problems, operations.reversed())
+    }
+
+    /// The operations of the transaction that failed most recently (rolled back by then), so the
+    /// caller can bring its caches in line with the files as they are again. Clears the list.
+    func takeFailedOperations() -> [RecordedOperation] {
+        defer { failedOperations = [] }
+        return failedOperations
     }
 
     private enum RevertOutcome { case done, skipped(String), failed(String) }

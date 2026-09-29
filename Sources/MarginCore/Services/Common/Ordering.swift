@@ -26,22 +26,52 @@ enum ServiceRules {
             ?? semesters.min { $0.start < $1.start }
     }
 
-    /// The classes of a 1-based `week` of `semester`, sorted by date, start time, course id.
-    static func occurrences(week: Int, semester: Semester, courses: [Course]) throws -> [SessionOccurrence] {
+    /// The classes of a 1-based `week` of `semester`, sorted by date, start time, course id. `overrides`
+    /// (of the courses in `courses`) are applied: a cancelled class stays, flagged; a moved one shows at
+    /// its new day, time and room, and only in the week that contains its new day.
+    static func occurrences(week: Int, semester: Semester, courses: [Course],
+                            overrides: [SessionOverride] = []) throws -> [SessionOccurrence] {
         guard week >= 1, week <= semester.weekCount else {
             throw MarginError.invalid("Week \(week) is outside \(semester.name) (1…\(semester.weekCount))")
         }
         let monday = semester.start.startOfWeek.adding(days: (week - 1) * 7)
+        let sunday = monday.adding(days: 6)
+        func inWeek(_ d: LocalDate) -> Bool { d >= monday && d <= sunday }
+        let byKey = Dictionary(overrides.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+
         var result: [SessionOccurrence] = []
         for course in courses {
             for session in course.sessions {
-                result.append(SessionOccurrence(session: session, date: monday.adding(days: session.day.isoNumber - 1)))
+                let date = monday.adding(days: session.day.isoNumber - 1)
+                guard let o = byKey["\(session.id)@\(date.iso)"], o.courseID == course.id else {
+                    result.append(SessionOccurrence(session: session, date: date))
+                    continue
+                }
+                if let placed = apply(o, to: session), inWeek(placed.date) { result.append(placed) }
+            }
+        }
+        // Classes moved here from another week.
+        let sessions = Dictionary(courses.flatMap { $0.sessions }.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for o in overrides where !o.cancelled && !inWeek(o.originalDate) {
+            if let session = sessions[o.sessionID], let placed = apply(o, to: session), inWeek(placed.date) {
+                result.append(placed)
             }
         }
         return result.sorted {
             ($0.date, $0.session.start, $0.session.courseID, $0.session.id)
                 < ($1.date, $1.session.start, $1.session.courseID, $1.session.id)
         }
+    }
+
+    /// The occurrence `override` makes of `session`.
+    private static func apply(_ o: SessionOverride, to session: Session) -> SessionOccurrence? {
+        var s = session
+        if !o.cancelled {
+            if let start = o.newStart { s.start = start.time }
+            if let room = o.newRoom { s.room = room }
+        }
+        return SessionOccurrence(session: s, date: o.cancelled ? o.originalDate : (o.newStart?.date ?? o.originalDate),
+                                 originalDate: o.originalDate, isCancelled: o.cancelled, note: o.note)
     }
 
     // MARK: Notes

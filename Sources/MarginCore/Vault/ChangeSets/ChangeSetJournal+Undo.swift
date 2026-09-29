@@ -41,13 +41,22 @@ extension ChangeSetJournal {
         }
         let known = noteIDs
 
-        // Fail fast, before anything is touched: check the last operation on every path.
+        // Fail fast, before anything is touched: check the last operation on every path. An operation
+        // recorded before a move sees its file where the move is going to put it back, so its path is
+        // followed through the moves that will be reverted first (`laterMoves`, newest first).
         var seen = Set<String>()
+        var laterMoves: [(from: String, to: String)] = []
         for op in ops.reversed() {
             let paths = [op.path] + (op.fromPath.map { [$0] } ?? [])
+            defer { if op.kind == .move, let from = op.fromPath { laterMoves.append((from, op.path)) } }
             if paths.contains(where: seen.contains) { continue }
             seen.formUnion(paths)
-            _ = try await verdict(for: op, mode: mode)
+            let moves = Array(laterMoves.reversed())            // oldest first: the order they happened in
+            _ = try await Self.verdict(for: op, mode: mode, store: store, physical: { path in
+                var p = path
+                for m in moves where p == m.from || p.hasPrefix(m.from + "/") { p = m.to + p.dropFirst(m.from.count) }
+                return p
+            })
         }
 
         let planned = ops.reversed().map { $0.inverseEntry(noteID: known[$0.path] ?? $0.fromPath.flatMap { known[$0] }) }
@@ -83,10 +92,6 @@ extension ChangeSetJournal {
 
     // MARK: Checking
 
-    private func verdict(for op: RecordedOperation, mode: UndoMode) async throws -> Verdict {
-        try await Self.verdict(for: op, mode: mode, store: store)
-    }
-
     private static func conflict(_ message: String, path: String, current: Data? = nil,
                                  merge: ThreeWayMerge.Result? = nil) -> MarginError {
         .conflict("Cannot undo: \(message)",
@@ -98,8 +103,11 @@ extension ChangeSetJournal {
         try? await store.readData(path).data
     }
 
-    private static func verdict(for op: RecordedOperation, mode: UndoMode, store: VaultStore) async throws -> Verdict {
-        let path = try VaultPath(op.path)
+    /// - Parameter physical: where a recorded path is on disk right now (identity while applying, since
+    ///   the later moves have been reverted by then).
+    private static func verdict(for op: RecordedOperation, mode: UndoMode, store: VaultStore,
+                                physical: (String) -> String = { $0 }) async throws -> Verdict {
+        let path = try VaultPath(physical(op.path))
         switch op.kind {
         case .write:
             guard let before = op.before, let after = op.after else { throw MarginError.notFound("Incomplete undo record for \(op.path)") }
@@ -127,7 +135,7 @@ extension ChangeSetJournal {
             }
             return .direct
         case .move:
-            guard let from = op.fromPath.flatMap({ try? VaultPath($0) }) else {
+            guard let from = op.fromPath.flatMap({ try? VaultPath(physical($0)) }) else {
                 throw MarginError.notFound("Incomplete undo record for \(op.path)")
             }
             guard await store.exists(path) else { throw conflict("\(op.path) is not where the move left it", path: op.path) }

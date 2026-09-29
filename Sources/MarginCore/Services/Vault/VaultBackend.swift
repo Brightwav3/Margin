@@ -25,11 +25,12 @@ actor VaultBackend {
     let taskWriteBack: TaskWriteBack
 
     private(set) var model = VaultCourseModel()
-    private var changeSets: ChangeSetFactory
-    private var idempotency = IdempotencyCache()
+    var changeSets: ChangeSetFactory
+    var idempotency = IdempotencyCache()
     private var versions = TextVersionCache()
-    private let writeGate = AsyncMutex()
-    private let rewriter = WikilinkRewriter()
+    /// Held for the whole of every write: the writes of this process run one at a time.
+    let writeGate = AsyncMutex()
+    let rewriter = WikilinkRewriter()
     private var watchTask: Task<Void, Never>?
 
     /// How often a write is retried against a newer stored version when another program changes
@@ -108,29 +109,34 @@ actor VaultBackend {
             }
         }
         if batch.contains(where: { $0.path.split(separator: "/").last == "_course.md" }) {
-            let old = model.courses
+            let old = model.entries
             await reloadModel()
-            let changed = Self.changedCourses(old: old, new: model.courses)
+            let changed = Self.changedCourses(old: old, new: model.entries)
             if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed)) }
             // A course file can change which course a note belongs to, and the exam dates.
             await tasksMayHaveChanged(paths: nil)
-            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old, new: model.courses))
+            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old.map(\.course), new: model.courses))
         } else {
             await tasksMayHaveChanged(paths: batch.map(\.path))
         }
         if !notes.isEmpty { noteChanges.send(notes.sorted { ($0.noteID, $0.kind.rawValue) < ($1.noteID, $1.kind.rawValue) }) }
     }
 
-    private static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
+    static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
         let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0.exams) })
         let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0.exams) })
         return Set(before.keys).union(after.keys).filter { (before[$0] ?? []) != (after[$0] ?? []) }.sorted()
     }
 
-    private static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
-        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
-        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0) })
-        return Set(before.keys).union(after.keys).filter { before[$0] != after[$0] }.sorted()
+    /// Courses whose file changed in a way the catalog shows: the course itself or its overrides.
+    static func changedCourses(old: [VaultCourseModel.Entry], new: [VaultCourseModel.Entry]) -> [CourseID] {
+        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.course.id, [$0.course] as [Course] + []) })
+        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.course.id, [$0.course] as [Course] + []) })
+        let overridesBefore = Dictionary(uniqueKeysWithValues: old.map { ($0.course.id, $0.overrides) })
+        let overridesAfter = Dictionary(uniqueKeysWithValues: new.map { ($0.course.id, $0.overrides) })
+        return Set(before.keys).union(after.keys).filter {
+            before[$0] != after[$0] || overridesBefore[$0] != overridesAfter[$0]
+        }.sorted()
     }
 
     func reloadModel() async {
@@ -147,8 +153,9 @@ actor VaultBackend {
         return !first.hasPrefix("_") && !first.hasPrefix(".") && !last.hasPrefix("_")
     }
 
-    private func courseID(of record: NoteRecord) -> CourseID? {
-        model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
+    func courseID(of record: NoteRecord) -> CourseID? {
+        if let archived = archivedEntry(forNotePath: record.path) { return archived.course.id }
+        return model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
     }
 
     private func summary(of record: NoteRecord) -> NoteSummary {
@@ -162,7 +169,9 @@ actor VaultBackend {
     }
 
     private func record(_ id: NoteID) async throws -> NoteRecord {
-        guard let r = await index.note(byID: id), Self.isNotePath(r.path) else { throw MarginError.notFound("No note \(id)") }
+        guard let r = await index.note(byID: id), Self.isNotePath(r.path) || Self.isArchivedNotePath(r.path) else {
+            throw MarginError.notFound("No note \(id)")
+        }
         return r
     }
 
@@ -170,7 +179,16 @@ actor VaultBackend {
 
     func semesters() -> [Semester] { model.semesters }
 
-    private func currentSemester() -> Semester? { ServiceRules.currentSemester(model.semesters, today: clock.today) }
+    /// Courses that can be written: not in an archived semester (their exams are not "due" either).
+    var liveCourses: [Course] {
+        let archived = Set(model.semesters.filter(\.isArchived).map(\.id))
+        return model.entries.filter { !$0.archived && !archived.contains($0.course.semester) }.map(\.course)
+    }
+
+    /// The semester that is "now": archived ones never are.
+    func currentSemester() -> Semester? {
+        ServiceRules.currentSemester(model.semesters.filter { !$0.isArchived }, today: clock.today)
+    }
 
     func courses(query: String?) -> [Course] {
         guard let current = currentSemester() else { return [] }
@@ -184,12 +202,18 @@ actor VaultBackend {
 
     func sessions(week: Int) throws -> [SessionOccurrence] {
         guard let current = currentSemester() else { throw MarginError.notFound("This vault has no semester") }
-        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id })
+        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id },
+                                            overrides: overrides(in: current))
     }
 
     // MARK: Notes (read)
 
     func notes(course: CourseID?) async throws -> [NoteSummary] {
+        if let course, model.entry(course)?.archived == true {
+            // A course of an archived semester: its notes are readable, and only listed by course.
+            let records = await index.allNotes.filter { Self.isArchivedNotePath($0.path) && archivedEntry(forNotePath: $0.path)?.course.id == course }
+            return ServiceRules.sortNotes(records.map { summary(of: $0) })
+        }
         if let course { _ = try self.course(id: course) }
         let all = await noteRecords().map { summary(of: $0) }
         return ServiceRules.sortNotes(all.filter { course == nil || $0.courseID == course })
@@ -225,11 +249,11 @@ actor VaultBackend {
     }
 
     func today() async -> [TaskItem] {
-        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
+        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func upcoming() async -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
+        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func tasks(course id: CourseID) async throws -> [TaskItem] {
@@ -239,13 +263,15 @@ actor VaultBackend {
 
     // MARK: Notes (write)
 
-    /// Applies the operations a committed transaction performed to the index, the version cache and
-    /// the tasks store.
+    /// Applies the operations a committed transaction performed to the index, the version cache, the
+    /// course model and the tasks store.
     private func afterCommit(_ committed: ChangeSetJournal.Committed) async {
         var touched: [String] = []
+        var courseFiles = false
         for op in committed.operations {
             touched.append(op.path)
             if let from = op.fromPath { touched.append(from) }
+            if Self.isCourseFile(op.path) || (op.fromPath.map(Self.isCourseFile) ?? false) { courseFiles = true }
             switch op.kind {
             case .write, .create:
                 if let before = op.before, let hash = op.beforeHash, let text = String(validating: before, as: UTF8.self) {
@@ -258,12 +284,54 @@ actor VaultBackend {
                     _ = try? await index.update(path: op.path)
                 }
             case .move:
-                if let from = op.fromPath { await index.rename(from: from, to: op.path) }
+                guard let from = op.fromPath else { break }
+                if op.path.lowercased().hasSuffix(".md") {
+                    await index.rename(from: from, to: op.path)
+                } else {
+                    // A folder: every note below it follows.
+                    courseFiles = true
+                    await renameFolderInIndex(from: from, to: op.path)
+                }
             case .trash:
                 await index.remove(path: op.path)
             }
         }
-        if !touched.isEmpty { await tasksMayHaveChanged(paths: touched) }
+        if courseFiles { await courseFilesChanged() }
+        if !touched.isEmpty { await tasksMayHaveChanged(paths: courseFiles ? nil : touched) }
+    }
+
+    /// `_course.md` or the semester list: files the course model is built from.
+    private static func isCourseFile(_ path: String) -> Bool {
+        path.split(separator: "/").last == "_course.md" || path == SemesterArchiver.semestersFile
+    }
+
+    private func renameFolderInIndex(from: String, to: String) async {
+        let prefix = from + "/"
+        for record in await index.allNotes where record.path.hasPrefix(prefix) {
+            await index.rename(from: record.path, to: to + "/" + record.path.dropFirst(prefix.count))
+        }
+    }
+
+    /// After a transaction failed and was rolled back: the files are as they were, but the code that
+    /// ran inside it may already have updated the index and the course model. Read them again.
+    private func reconcileAfterFailure(_ operations: [RecordedOperation]) async {
+        guard !operations.isEmpty else { return }
+        var folderMoved = false
+        var courseFiles = false
+        var paths: [String] = []
+        for op in operations {
+            paths.append(op.path)
+            if let from = op.fromPath { paths.append(from) }
+            if op.kind == .move, !op.path.lowercased().hasSuffix(".md") { folderMoved = true }
+            if Self.isCourseFile(op.path) || (op.fromPath.map(Self.isCourseFile) ?? false) { courseFiles = true }
+        }
+        if folderMoved {
+            do { try await index.build(from: VaultNoteSource(store: store)) } catch { /* the files are the truth; the next read catches up */ }
+        } else {
+            for path in paths where path.lowercased().hasSuffix(".md") { _ = try? await index.update(path: path) }
+        }
+        if courseFiles || folderMoved { await courseFilesChanged() }
+        await tasksMayHaveChanged(paths: folderMoved || courseFiles ? nil : paths)
     }
 
     /// Identifies the note at a vault path, for change-set entries of files a write touched
@@ -272,16 +340,36 @@ actor VaultBackend {
 
     /// Runs `body` as one recorded transaction and applies its result to the index. A transaction
     /// that performed no operation (nothing to write) is not recorded.
-    private func runTransaction(actor: Actor, key: String?,
+    func runTransaction(actor: Actor, key: String?, describeAllFiles: Bool = true,
                         body: @Sendable () async throws -> [ChangeSet.Entry]) async throws -> ChangeSet {
-        let committed = try await journal.transaction(
-            actor: actor, idempotencyKey: key, noteID: { [weak self] in await self?.noteID(atPath: $0) }, body: body)
+        let committed: ChangeSetJournal.Committed
+        do {
+            committed = try await journal.transaction(
+                actor: actor, idempotencyKey: key, noteID: { [weak self] in await self?.noteID(atPath: $0) },
+                describeAllFiles: describeAllFiles, body: body)
+        } catch {
+            await reconcileAfterFailure(await journal.takeFailedOperations())
+            throw error
+        }
         guard !committed.operations.isEmpty else {
             return finish(actor: actor, entries: committed.changeSet.entries, dryRun: false, key: key)
         }
         await afterCommit(committed)
         idempotency.remember(committed.changeSet, actor: actor)
         return committed.changeSet
+    }
+
+    /// Runs a write that does its own store calls, index and model follow-ups and returns its
+    /// `ChangeSet` (the capture, inbox and course writes) as one recorded, undoable group: the file
+    /// operations it makes join the transaction, and the result is the recorded `ChangeSet`.
+    func journaled(actor: Actor, key: String?, dryRun: Bool,
+                   _ body: @escaping @Sendable () async throws -> ChangeSet) async throws -> ChangeSet {
+        if dryRun { return try await body() }
+        return try await writeGate.withLock {
+            if let cached = idempotency.lookup(actor: actor, key: key) { return cached }
+            // The write's own `ChangeSet` shape is part of its contract: keep its entries as they are.
+            return try await self.runTransaction(actor: actor, key: key, describeAllFiles: false) { try await body().entries }
+        }
     }
 
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
@@ -292,6 +380,7 @@ actor VaultBackend {
             while true {
                 attempt += 1
                 let r = try await record(id)
+                try requireWritable(path: r.path)
                 let path = try VaultPath(r.path)
                 let (content, version) = try await store.read(path)
                 versions.remember(content, version: version.hex)
@@ -347,6 +436,7 @@ actor VaultBackend {
             while true {
                 attempt += 1
                 let r = try await record(id)
+                try requireWritable(path: r.path)
                 let path = try VaultPath(r.path)
                 let (content, version) = try await store.read(path)
                 versions.remember(content, version: version.hex)
@@ -375,6 +465,7 @@ actor VaultBackend {
         try await writeGate.withLock {
             if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
             guard let entry = model.entry(courseID) else { throw MarginError.notFound("No course \(courseID)") }
+            try requireWritable(course: entry)
             let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty else { throw MarginError.invalid("A note needs a title") }
             let id = ServiceRules.noteID(course: courseID, title: title)
@@ -406,7 +497,9 @@ actor VaultBackend {
         try await writeGate.withLock {
             if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
             let r = try await record(id)
+            try requireWritable(path: r.path)
             guard let entry = model.entry(target) else { throw MarginError.notFound("No course \(target)") }
+            try requireWritable(course: entry)
             let from = try VaultPath(r.path)
             let version = try await store.read(from).version
             try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)", path: r.path)
@@ -430,6 +523,7 @@ actor VaultBackend {
         try await writeGate.withLock {
             if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
             let r = try await record(id)
+            try requireWritable(path: r.path)
             let path = try VaultPath(r.path)
             let version = try await store.read(path).version
             try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)", path: r.path)
@@ -465,6 +559,30 @@ actor VaultBackend {
             }
             return try await self.runTransaction(actor: actor, key: idempotencyKey) {
                 let result = try await writeBack.setDone(!item.done, task: item, baseVersion: baseVersion, dryRun: false)
+                return result.entry.map { [$0] } ?? []
+            }
+        }
+    }
+
+    /// Sets or removes a task's due date through `TaskWriteBack`, as one recorded transaction like
+    /// `toggleTask`.
+    func setTaskDue(id taskID: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        return try await writeGate.withLock {
+            if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+            var found: TaskItem?
+            for record in await noteRecords() {
+                if let task = record.tasks.first(where: { $0.id == taskID }) { found = task; break }
+            }
+            guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+            let writeBack = taskWriteBack
+            if dryRun {
+                let result = try await writeBack.setDue(due, task: item, baseVersion: baseVersion, dryRun: true)
+                return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: true, key: idempotencyKey)
+            }
+            return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                let result = try await writeBack.setDue(due, task: item, baseVersion: baseVersion, dryRun: false)
                 return result.entry.map { [$0] } ?? []
             }
         }
@@ -510,7 +628,7 @@ actor VaultBackend {
     }
 
     /// A change set that is not recorded: a dry run, or a write that changed nothing.
-    private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+    func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
         return cs

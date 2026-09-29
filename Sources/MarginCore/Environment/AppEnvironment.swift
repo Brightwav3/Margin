@@ -11,17 +11,25 @@ public struct AppEnvironment: Sendable {
     public let courses: any CourseCatalog
     public let notes: any NoteRepository
     public let tasks: any TaskService
+    public let capture: any CaptureService
+    public let inbox: any InboxService
     public let properties: any PropertyService
     public let analysis: any NoteAnalysis
+    public let graph: any GraphService
+    public let courseWriter: any CourseCatalogWriter
+    public let search: any SearchService
     public let changes: any ChangeSetStore
 
     private let onShutdown: @Sendable () async -> Void
 
     public init(clock: any Clock, courses: any CourseCatalog, notes: any NoteRepository, tasks: any TaskService,
-                properties: any PropertyService, analysis: any NoteAnalysis, changes: any ChangeSetStore,
+                capture: any CaptureService, inbox: any InboxService,
+                properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
+                courseWriter: any CourseCatalogWriter, search: any SearchService, changes: any ChangeSetStore,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
-        self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks; self.properties = properties; self.analysis = analysis
-        self.changes = changes
+        self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
+        self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
+        self.graph = graph; self.courseWriter = courseWriter; self.search = search; self.changes = changes
         self.onShutdown = shutdown
     }
 
@@ -38,8 +46,13 @@ public struct AppEnvironment: Sendable {
             courses: FixtureCourseCatalog(store: store),
             notes: FixtureNoteRepository(store: store),
             tasks: FixtureTaskService(store: store),
+            capture: FixtureCaptureService(store: store),
+            inbox: FixtureInboxService(store: store),
             properties: FixturePropertyService(store: store),
             analysis: FixtureNoteAnalysis(store: store),
+            graph: FixtureGraphService(world: Fixtures.week5),
+            courseWriter: FixtureCourseCatalogWriter(store: store),
+            search: FixtureSearchService(store: store),
             changes: FixtureChangeSetStore(store: store),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }

@@ -25,6 +25,8 @@ final class TempFolder: @unchecked Sendable {
 struct Harness: Sendable {
     let kind: HarnessKind
     let env: AppEnvironment
+    /// The write side of the course catalog (`CourseCatalogWriter`); shares its state with `courses`.
+    let writer: any CourseCatalogWriter
     /// Replaces the body of a note from outside.
     let editNote: @Sendable (NoteID, String) async throws -> Void
     /// The whole file content of a note: frontmatter and body, byte for byte.
@@ -33,13 +35,25 @@ struct Harness: Sendable {
     let deleteNote: @Sendable (NoteID) async throws -> Void
     /// Changes the room of a course from outside.
     let editCourseRoom: @Sendable (CourseID, String) async throws -> Void
+    /// The text of a vault file by vault-relative path (`nil` when it does not exist, and always
+    /// for the fixture, which has no files). For checking the exact file format.
+    let readFile: @Sendable (String) -> String?
+    /// Names of the files (not folders) below a vault-relative folder, sorted; empty for the
+    /// fixture and for a missing folder. For checking that files were trashed, not destroyed.
+    let listFiles: @Sendable (String) -> [String]
+    /// Writes a vault file from outside (vault only; the fixture ignores it).
+    let writeFile: @Sendable (String, String) throws -> Void
     fileprivate let keepAlive: TempFolder?
 
     var courses: any CourseCatalog { env.courses }
     var notes: any NoteRepository { env.notes }
     var tasks: any TaskService { env.tasks }
+    var capture: any CaptureService { env.capture }
+    var inbox: any InboxService { env.inbox }
     var properties: any PropertyService { env.properties }
     var analysis: any NoteAnalysis { env.analysis }
+    var graph: any GraphService { env.graph }
+    var search: any SearchService { env.search }
     var changes: any ChangeSetStore { env.changes }
     var clock: any Clock { env.clock }
 
@@ -50,25 +64,37 @@ struct Harness: Sendable {
             let store = FixtureStore(world: Fixtures.week5, clock: clock)
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
-                tasks: FixtureTaskService(store: store), properties: FixturePropertyService(store: store),
-                analysis: FixtureNoteAnalysis(store: store), changes: FixtureChangeSetStore(store: store),
+                tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
+                inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
+                analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
+                courseWriter: FixtureCourseCatalogWriter(store: store), search: FixtureSearchService(store: store),
+                changes: FixtureChangeSetStore(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
-                kind: kind, env: env,
+                kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
                 rawContent: { id in try await store.rawContent(id: id) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
                 editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
+                readFile: { _ in nil }, listFiles: { _ in [] }, writeFile: { _, _ in },
                 keepAlive: nil)
         case .vault:
             let folder = TempFolder()
             // The sample vault of the same fixtures (M5-09), written before the environment opens it.
             let store = try await VaultStore.open(root: folder.url, clock: clock, createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
-            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: watchInterval)
+            let backend = try await VaultBackend.open(at: folder.url, clock: clock, watchInterval: watchInterval)
+            let env = AppEnvironment(
+                clock: clock, courses: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend),
+                tasks: VaultTaskService(backend: backend), capture: VaultCaptureService(backend: backend),
+                inbox: VaultInboxService(backend: backend), properties: VaultPropertyService(backend: backend),
+                analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
+                courseWriter: VaultCourseCatalogWriter(backend: backend), search: VaultSearchService(backend: backend),
+                changes: VaultChangeSetStore(backend: backend),
+                shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(
-                kind: kind, env: env,
+                kind: kind, env: env, writer: VaultCourseCatalogWriter(backend: backend),
                 editNote: { id, text in
                     let file = try Self.file(ofNoteWithID: id, in: root)
                     let content = try String(contentsOf: file, encoding: .utf8)
@@ -83,6 +109,17 @@ struct Harness: Sendable {
                     var (fm, body) = Frontmatter.parse(content)
                     fm?.set("room", .string(room))
                     try Data(((fm?.render() ?? "") + body).utf8).write(to: file)
+                },
+                readFile: { try? String(contentsOf: root.appendingPathComponent($0), encoding: .utf8) },
+                listFiles: { folder in
+                    let url = root.appendingPathComponent(folder, isDirectory: true)
+                    let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
+                    return names.filter { !$0.hasPrefix(".") }.sorted()
+                },
+                writeFile: { path, text in
+                    let url = root.appendingPathComponent(path)
+                    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try Data(text.utf8).write(to: url)
                 },
                 keepAlive: folder)
         }
