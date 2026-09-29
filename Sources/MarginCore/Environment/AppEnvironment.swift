@@ -22,6 +22,7 @@ public struct AppEnvironment: Sendable {
     public let reminders: any ReminderService
     public let syllabus: any SyllabusService
     public let export: any ExportService
+    public let search: any SearchService
 
     private let onShutdown: @Sendable () async -> Void
 
@@ -30,11 +31,12 @@ public struct AppEnvironment: Sendable {
                 properties: any PropertyService, analysis: any NoteAnalysis, graph: any GraphService,
                 courseWriter: any CourseCatalogWriter, grades: any GradeService,
                 history: any HistoryService, reminders: any ReminderService,
-                syllabus: any SyllabusService, export: any ExportService,
+                syllabus: any SyllabusService, export: any ExportService, search: any SearchService,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
         self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
-        self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history; self.reminders = reminders; self.syllabus = syllabus; self.export = export
+        self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history
+        self.reminders = reminders; self.syllabus = syllabus; self.export = export; self.search = search
         self.onShutdown = shutdown
     }
 
@@ -63,6 +65,7 @@ public struct AppEnvironment: Sendable {
             reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
             syllabus: FixtureSyllabusService(store: store),
             export: FixtureExportService(store: store),
+            search: FixtureSearchService(store: store),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
     }
 }

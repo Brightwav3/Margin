@@ -34,6 +34,7 @@ extension AppEnvironment {
             reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
             syllabus: VaultSyllabusService(backend: backend),
             export: VaultExportService(backend: backend),
+            search: VaultSearchService(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }
