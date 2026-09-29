@@ -7,6 +7,8 @@ import Foundation
 /// through `VaultStore` (atomic, `expectedVersion`) and update the index right away, since the
 /// watcher does not report the app's own writes.
 actor VaultBackend {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.vault-backend")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     let store: VaultStore
     let index: NoteIndex
     let clock: any Clock

@@ -45,7 +45,9 @@ public struct PollingFileWatcher: FileWatcher {
     public func changes() -> AsyncStream<[FileChange]> {
         let baseline = scan(previous: [:])
         let (stream, continuation) = AsyncStream<[FileChange]>.makeStream(bufferingPolicy: .unbounded)
-        let task = Task { [self] in
+        // Scans read the disk and hash files synchronously: a thread of their own, not the pool.
+        let executor = DedicatedExecutor(label: "margin.file-watcher")
+        let task = Task(executorPreference: executor) { [self] in
             var snapshot = baseline
             var pending: [String: FileChange.Kind] = [:]
             while !Task.isCancelled {

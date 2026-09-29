@@ -17,6 +17,8 @@ import Foundation
 /// macOS the creation date, extended attributes (Finder tags) and hard links of the original are
 /// not carried over. Permission bits are preserved.
 public actor VaultStore {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.vault-store")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     /// Vault root as given (location is provisional: configurable path, see Q1).
     public nonisolated let root: URL
     /// Temporary files found and removed by `open`.
