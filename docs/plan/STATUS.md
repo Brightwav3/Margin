@@ -72,3 +72,4 @@ _(žádné)_
 - 2026-09-30: Uživatel dodal mockupy menu (`Margin Menus.dc.html`, `Margin Menu.dc.html`) a schválil jejich zařazení do plánu UI: nový milestone M10d (M10-24…M10-33, váha 37), celkem 871 (BE 405 / UI 466).
 - 2026-10-01: Uživatel dodal mockup menu baru (`Margin Menu Bar.dc.html`, v `Margin Menus` sekce 5a–5k) a zadal ho k realizaci: M10-34…M10-36 v M10d (+8), celkem 879 (UI 474).
 - 2026-09-30: Uživatel rozhodl podobu vnitřního agenta (Q8): lokální CLI nad vaultem jako Claudian (D-023, R-22). Důsledek: aplikace bez App Sandboxu; MA3 se přepracuje zvlášť.
+- 2026-09-30: M0-03–M0-09 (UI) implementováno na `feat/ui-design-system`: tokeny, Inter, celá sada Lucide (D-020), komponenty, galerie `--screen`, `scripts/snap.sh` (D-021). Návrh generátoru ikon předmětů v galerii (`course-icons`, 6 nových barev palety) čeká na schválení. M0-10 (referenční PNG) a vizuální kontrola `docs/checks/M0.md` zbývají.

@@ -109,6 +109,18 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** rychlý zápis dostupný jen při otevřeném okně aplikace.
 **Důsledky:** M8-05 se implementuje jako menu bar povrch; toto rozhodnutí samo o sobě jeho implementaci nedokončuje.
 
+### D-020 · 2026-09-30 · Přijato — Celá sada Lucide jako data, cesty za běhu
+**Rozhodnutí:** přibalit **celou** sadu Lucide 1.49.0 (1857 ikon + 264 aliasů) jako `Resources/lucide-icons.json` (`scripts/gen-icons.sh` z `lucide-static`) a SVG geometrii převádět na `Path` za běhu vlastním parserem (`SVGPath.swift`) s cache. Upřesňuje D-006 (místo generovaných Swift `Shape`).
+**Důvod:** uživatel chce mít k dispozici všechny ikony; 1857 generovaných `Shape` by zpomalilo kompilaci. JSON má 430 kB, bez závislosti za běhu.
+**Alternativy:** generované `Shape` jen pro ~90 použitých ikon (původní D-006); SVG soubory v bundlu (8 MB).
+**Důsledky / riziko:** test ověřuje, že každá ikona se vykreslí uvnitř viewBoxu a každá ikona z mockupu má mapování. Lucide nemá vyplněné varianty (Material `fill`), aktivní stav řeší barva/tloušťka.
+
+### D-021 · 2026-09-30 · Přijato — Snímky obrazovek mimo sandbox (`margin-snap`)
+**Rozhodnutí:** `scripts/snap.sh <id>` volá ladicí nástroj `margin-snap` (spustitelný cíl balíčku), který vykreslí obrazovku z galerie do PNG mimo obrazovku; aplikace sama nic nefotí.
+**Důvod:** aplikace je v sandboxu a nesmí zapisovat mimo svůj kontejner; spouštění aplikace je navíc pomalé.
+**Alternativy:** `--snap` přímo v aplikaci (zápis jen do kontejneru), `screencapture` okna.
+**Důsledky / riziko:** snímek vzniká z `NSHostingView` bez okenního rámu; AppKit pohledy, které se kreslí jen v klíčovém okně, se mohou lišit od živé aplikace.
+
 ### D-023 · 2026-09-30 · Přijato — Vnitřní agent jako Claudian (lokální CLI nad vaultem)
 **Rozhodnutí:** záložka Agent v inspektoru funguje jako Obsidian plugin [Claudian](https://github.com/yishentu/claudian): spouští lokální CLI agenta (Claude Code, Codex CLI, případně další) s vaultem jako pracovní složkou; agent čte, zapisuje, hledá a spouští příkazy vlastními nástroji. Margin dodává UI (chat v inspektoru, inline úprava s náhledem změn, `/` příkazy a skills, `@` zmínky souborů, víc konverzací). Nahrazuje vlastní `AgentService` nad Claude API (§8 v `10-agent-native.md`) a mění Q8.
 **Důvod:** rozhodnutí uživatele (2026-09-30), zvolena varianta „čistý Claudian“ před CLI omezeným na MCP Marginu a před vlastním API adaptérem.
