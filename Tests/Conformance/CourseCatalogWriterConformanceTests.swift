@@ -8,7 +8,7 @@ import Testing
 private let createKinds = HarnessKind.allCases
 private let editKinds = HarnessKind.allCases
 private let archiveKinds = HarnessKind.allCases
-private let overrideKinds: [HarnessKind] = [.fixture]
+private let overrideKinds = HarnessKind.allCases
 
 private func codeOf<T>(_ body: () async throws -> T) async -> String? {
     do { _ = try await body(); return nil } catch let e as MarginError { return e.code } catch { return "other" }

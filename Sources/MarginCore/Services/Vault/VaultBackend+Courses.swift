@@ -8,12 +8,12 @@ extension VaultBackend {
     /// After the app itself changed course files: reloads the model and tells listeners what changed.
     /// (The watcher does not report the app's own writes.)
     func courseFilesChanged() async {
-        let old = model.courses
+        let old = model.entries
         await reloadModel()
-        let changed = Self.changedCourses(old: old, new: model.courses)
+        let changed = Self.changedCourses(old: old, new: model.entries)
         if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed)) }
         await tasksMayHaveChanged(paths: nil)
-        await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old, new: model.courses))
+        await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old.map(\.course), new: model.courses))
     }
 
     // MARK: Read

@@ -88,13 +88,13 @@ actor VaultBackend {
             }
         }
         if batch.contains(where: { $0.path.split(separator: "/").last == "_course.md" }) {
-            let old = model.courses
+            let old = model.entries
             await reloadModel()
-            let changed = Self.changedCourses(old: old, new: model.courses)
+            let changed = Self.changedCourses(old: old, new: model.entries)
             if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed)) }
             // A course file can change which course a note belongs to, and the exam dates.
             await tasksMayHaveChanged(paths: nil)
-            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old, new: model.courses))
+            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old.map(\.course), new: model.courses))
         } else {
             await tasksMayHaveChanged(paths: batch.map(\.path))
         }
@@ -107,10 +107,15 @@ actor VaultBackend {
         return Set(before.keys).union(after.keys).filter { (before[$0] ?? []) != (after[$0] ?? []) }.sorted()
     }
 
-    static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
-        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
-        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0) })
-        return Set(before.keys).union(after.keys).filter { before[$0] != after[$0] }.sorted()
+    /// Courses whose file changed in a way the catalog shows: the course itself or its overrides.
+    static func changedCourses(old: [VaultCourseModel.Entry], new: [VaultCourseModel.Entry]) -> [CourseID] {
+        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.course.id, [$0.course] as [Course] + []) })
+        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.course.id, [$0.course] as [Course] + []) })
+        let overridesBefore = Dictionary(uniqueKeysWithValues: old.map { ($0.course.id, $0.overrides) })
+        let overridesAfter = Dictionary(uniqueKeysWithValues: new.map { ($0.course.id, $0.overrides) })
+        return Set(before.keys).union(after.keys).filter {
+            before[$0] != after[$0] || overridesBefore[$0] != overridesAfter[$0]
+        }.sorted()
     }
 
     func reloadModel() async {
@@ -176,7 +181,8 @@ actor VaultBackend {
 
     func sessions(week: Int) throws -> [SessionOccurrence] {
         guard let current = currentSemester() else { throw MarginError.notFound("This vault has no semester") }
-        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id })
+        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id },
+                                            overrides: overrides(in: current))
     }
 
     // MARK: Notes (read)

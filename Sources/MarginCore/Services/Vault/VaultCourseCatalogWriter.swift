@@ -34,11 +34,13 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
 
     public func override(session: SessionOverride, actor: Actor, baseVersion: String?, dryRun: Bool,
                          idempotencyKey: String?) async throws -> ChangeSet {
-        throw MarginError.invalid("Session overrides are not implemented yet (TODO(M10-14.B))")
+        try await backend.setOverride(session, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                      idempotencyKey: idempotencyKey)
     }
 
     public func clearOverride(sessionID: String, course: CourseID, originalDate: LocalDate, actor: Actor,
                               baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        throw MarginError.invalid("Session overrides are not implemented yet (TODO(M10-14.B))")
+        try await backend.clearOverride(sessionID: sessionID, course: course, originalDate: originalDate, actor: actor,
+                                        baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 }

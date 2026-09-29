@@ -66,8 +66,10 @@ enum ServiceRules {
     /// The occurrence `override` makes of `session`.
     private static func apply(_ o: SessionOverride, to session: Session) -> SessionOccurrence? {
         var s = session
-        if let start = o.newStart { s.start = start.time }
-        if let room = o.newRoom { s.room = room }
+        if !o.cancelled {
+            if let start = o.newStart { s.start = start.time }
+            if let room = o.newRoom { s.room = room }
+        }
         return SessionOccurrence(session: s, date: o.cancelled ? o.originalDate : (o.newStart?.date ?? o.originalDate),
                                  originalDate: o.originalDate, isCancelled: o.cancelled, note: o.note)
     }

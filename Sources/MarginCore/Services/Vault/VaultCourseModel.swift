@@ -12,6 +12,8 @@ struct VaultCourseModel: Sendable {
         var folder: String
         /// The course lives in `_archive/<semester>/` (read-only).
         var archived = false
+        /// Changes to single classes (`overrides:` of `_course.md`, `SessionOverrideCodec`), sorted.
+        var overrides: [SessionOverride] = []
 
         /// `[_archive/]<semester>/<course>/_course.md`. Components come from folder names that exist,
         /// so they are valid.
@@ -62,8 +64,9 @@ struct VaultCourseModel: Sendable {
                 guard let fm, let course = parseCourse(fm, semesterFolder: parts[prefix], folder: parts[prefix + 1]),
                       seen.insert(course.id).inserted
                 else { continue }
+                let overrides = CourseWriting.sorted(SessionOverrideCodec.read(fm, courseID: course.id).overrides)
                 model.entries.append(Entry(course: course, semesterFolder: parts[prefix], folder: parts[prefix + 1],
-                                           archived: archived))
+                                           archived: archived, overrides: overrides))
             }
         }
         model.semesters = await loadSemesters(store: store, entries: model.entries, clock: clock)

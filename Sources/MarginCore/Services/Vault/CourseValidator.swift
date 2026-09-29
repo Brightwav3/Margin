@@ -49,6 +49,10 @@ public enum CourseValidator {
             total += weight
         }
         if total > 100 { bad("The grading weights add up to \(total)%, more than 100%") }
+        // Named by content, not position, so rewriting the list does not make an old problem look new.
+        for item in fm.list(for: "overrides") ?? [] where SessionOverrideCodec.decode(item, courseID: "") == nil {
+            bad("overrides: '\(YAMLSubset.renderInline(item, flow: true).prefix(60))' needs 'session', 'date' and one of 'cancelled: true', 'start' or 'room'")
+        }
         return problems
     }
 }
