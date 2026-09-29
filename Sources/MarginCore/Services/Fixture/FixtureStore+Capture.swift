@@ -53,7 +53,7 @@ extension FixtureStore {
     }
 
     private func appendCapture(_ draft: CaptureDraft, text: String, to note: StoredNote) throws -> (StoredNote, ChangeSet.Entry) {
-        let before = Self.version(of: note.body)
+        let before = Self.version(of: note.content)
         var updated = note
         if draft.kind == .task {
             updated.body = CaptureRules.append(line: CaptureRules.taskLine(text: text, tags: draft.tags, due: draft.due, id: newTaskID()),
@@ -63,7 +63,7 @@ extension FixtureStore {
         }
         updated.summary = summarize(updated)
         return (updated, .init(path: path(of: updated), kind: .modified, noteID: note.summary.id,
-                               beforeHash: before, afterHash: Self.version(of: updated.body)))
+                               beforeHash: before, afterHash: Self.version(of: updated.content)))
     }
 
     /// Appends a task line to `<course>/tasks` (creating the note when missing).
@@ -71,17 +71,19 @@ extension FixtureStore {
         let id = ServiceRules.noteID(course: course.id, title: CaptureRules.tasksNoteTitle)
         let line = CaptureRules.taskLine(text: text, tags: tags, due: due, id: newTaskID())
         if let existing = notes[id] {
-            let before = Self.version(of: existing.body)
+            let before = Self.version(of: existing.content)
             var updated = existing
             updated.body = CaptureRules.append(line: line, to: existing.body)
             updated.summary = summarize(updated)
             return (updated, .init(path: path(of: updated), kind: .modified, noteID: id, beforeHash: before,
-                                   afterHash: Self.version(of: updated.body)))
+                                   afterHash: Self.version(of: updated.content)))
         }
         var note = StoredNote(summary: NoteSummary(id: id, courseID: course.id, title: CaptureRules.tasksNoteTitle, kind: .note),
-                              fileTitle: CaptureRules.tasksNoteTitle, body: "# \(CaptureRules.tasksNoteTitle)\n\n\(line)\n")
+                              fileTitle: CaptureRules.tasksNoteTitle,
+                              frontmatter: Self.newFrontmatter(id: id, course: course, kind: .note),
+                              body: "# \(CaptureRules.tasksNoteTitle)\n\n\(line)\n")
         note.summary = summarize(note)
-        return (note, .init(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.body)))
+        return (note, .init(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.content)))
     }
 
     /// A new note in the course, titled after the first line of `text`.
@@ -94,9 +96,10 @@ extension FixtureStore {
         }
         let id = ServiceRules.noteID(course: course.id, title: title)
         var note = StoredNote(summary: NoteSummary(id: id, courseID: course.id, title: title, kind: .note),
-                              fileTitle: title, body: CaptureRules.noteBody(title: title, text: text))
+                              fileTitle: title, frontmatter: Self.newFrontmatter(id: id, course: course, kind: .note),
+                              body: CaptureRules.noteBody(title: title, text: text))
         note.summary = summarize(note)
         note.summary.date = date
-        return (note, .init(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.body)))
+        return (note, .init(path: path(of: note), kind: .created, noteID: id, afterHash: Self.version(of: note.content)))
     }
 }

@@ -2,9 +2,10 @@ import Foundation
 import Testing
 @testable import MarginCore
 
+extension PerfSuites {
 @Suite struct ForceLayoutPerfTests {
-    private func measure(nodes n: Int, config: ForceLayoutConfig) -> (Duration, LayoutRunResult, ForceLayout) {
-        let g = preferentialAttachmentGraph(nodes: n, seed: 21)
+    private func measure(nodes n: Int, graphSeed: UInt64 = 21, config: ForceLayoutConfig) -> (Duration, LayoutRunResult, ForceLayout) {
+        let g = preferentialAttachmentGraph(nodes: n, seed: graphSeed)
         var layout = ForceLayout(graph: g, config: config)
         var result = LayoutRunResult(iterations: 0, energy: 0, reason: .maxIterations)
         let elapsed = ContinuousClock().measure { result = layout.run() }
@@ -19,11 +20,33 @@ import Testing
 
     @Test func fiveThousandNodesStabilizeWithinBudget() {
         let n = 5000
-        let (t, r, layout) = measure(nodes: n, config: .adaptive(nodeCount: n, seed: 5))
-        print("PERF adaptive \(n) nodes: \(t), \(r.iterations) iterations, \(r.reason)")
+        var last: (LayoutRunResult, ForceLayout)?
+        let times = perfSamples { () -> Double in
+            let (t, r, layout) = measure(nodes: n, config: .adaptive(nodeCount: n, seed: 5))
+            last = (r, layout)
+            return perfMs(t) / 1000
+        }
+        let median = perfMedian(times)
+        let (r, layout) = last!
+        print("PERF adaptive \(n) nodes: median \(median) s of \(times), \(r.iterations) iterations, \(r.reason)")
         #expect(r.reason != .maxIterations)
         #expect(layout.positions.values.allSatisfy { $0.x.isFinite && $0.y.isFinite })
-        #expect(t < .seconds(perfBudget(release: 5, debug: 30)))
+        #expect(median < perfBudget(release: 5, debug: 30), "median \(median) s")
+    }
+
+    @Test func fiveHundredNodesStabilizeQuickly() {
+        var last: (LayoutRunResult, ForceLayout)?
+        let times = perfSamples { () -> Double in
+            let (t, r, layout) = measure(nodes: 500, graphSeed: 11, config: ForceLayoutConfig())
+            last = (r, layout)
+            return perfMs(t) / 1000
+        }
+        let median = perfMedian(times)
+        let (result, layout) = last!
+        print("ForceLayout 500 nodes: median \(median) s of \(times), \(result.iterations) iterations, \(result.reason)")
+        #expect(layout.positions.values.allSatisfy { $0.x.isFinite && $0.y.isFinite })
+        #expect(result.reason != .maxIterations)
+        #expect(median < perfBudget(release: 2, debug: 20), "median \(median) s")
     }
 
     @Test func adaptiveMatchesDefaultsForSmallGraphsAndCoarsensForLarge() {
@@ -66,4 +89,5 @@ import Testing
         #expect(tree.mass[0] == 5)
         #expect(tree.cellCount < 1000)
     }
+}
 }

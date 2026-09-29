@@ -64,5 +64,52 @@ public struct VaultTaskService: TaskService {
     public func today() async throws -> [TaskItem] { await backend.today() }
     public func upcoming() async throws -> [TaskItem] { await backend.upcoming() }
     public func tasks(course: CourseID) async throws -> [TaskItem] { try await backend.tasks(course: course) }
+
+    public func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.toggleTask(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey)
+    }
+
     public var updates: AsyncStream<TaskUpdate> { backend.tasksStore.updates.subscribe() }
+}
+
+/// `PropertyService` over a vault: edits the frontmatter of the note file losslessly through
+/// `VaultStore` (atomic, `expectedVersion`).
+public struct VaultPropertyService: PropertyService {
+    let backend: VaultBackend
+
+    init(backend: VaultBackend) { self.backend = backend }
+
+    public func types() async throws -> [String: PropertyType] { await backend.propertyTypes() }
+
+    public func set(key: String, value: FrontmatterValue, on note: NoteID, actor: Actor, baseVersion: String?,
+                    dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.setProperty(key: key, value: value, on: note, actor: actor, baseVersion: baseVersion,
+                                      dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func remove(key: String, on note: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.removeProperty(key: key, on: note, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                         idempotencyKey: idempotencyKey)
+    }
+}
+
+/// `NoteAnalysis` over a vault: answers from the note index, which the watcher and the app's own
+/// writes keep current.
+public struct VaultNoteAnalysis: NoteAnalysis {
+    let backend: VaultBackend
+    private let engine: NoteAnalysisEngine
+
+    init(backend: VaultBackend) {
+        self.backend = backend
+        self.engine = NoteAnalysisEngine(index: { backend.index }, isNote: VaultBackend.isNotePath)
+    }
+
+    public func outline(id: NoteID) async throws -> [OutlineItem] { try await engine.outline(id: id) }
+    public func backlinks(id: NoteID) async throws -> [NoteBacklink] { try await engine.backlinks(id: id) }
+    public func outgoing(id: NoteID) async throws -> [OutgoingLink] { try await engine.outgoing(id: id) }
+    public func stats(id: NoteID, text: String?) async throws -> NoteStats { try await engine.stats(id: id, text: text) }
+    public func properties(id: NoteID) async throws -> [NoteProperty] { try await engine.properties(id: id) }
 }

@@ -27,6 +27,8 @@ struct Harness: Sendable {
     let env: AppEnvironment
     /// Replaces the body of a note from outside.
     let editNote: @Sendable (NoteID, String) async throws -> Void
+    /// The whole file content of a note: frontmatter and body, byte for byte.
+    let rawContent: @Sendable (NoteID) async throws -> String
     /// Deletes a note from outside.
     let deleteNote: @Sendable (NoteID) async throws -> Void
     /// Changes the room of a course from outside.
@@ -46,6 +48,8 @@ struct Harness: Sendable {
     var tasks: any TaskService { env.tasks }
     var capture: any CaptureService { env.capture }
     var inbox: any InboxService { env.inbox }
+    var properties: any PropertyService { env.properties }
+    var analysis: any NoteAnalysis { env.analysis }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
@@ -56,11 +60,13 @@ struct Harness: Sendable {
             let env = AppEnvironment(
                 clock: clock, courses: FixtureCourseCatalog(store: store), notes: FixtureNoteRepository(store: store),
                 tasks: FixtureTaskService(store: store), capture: FixtureCaptureService(store: store),
-                inbox: FixtureInboxService(store: store),
+                inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
+                analysis: FixtureNoteAnalysis(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env,
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
+                rawContent: { id in try await store.rawContent(id: id) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
                 editCourseRoom: { id, room in try await store.simulateExternalCourseEdit(id: id) { $0.room = room } },
                 readFile: { _ in nil }, listFiles: { _ in [] }, writeFile: { _, _ in },
@@ -80,6 +86,7 @@ struct Harness: Sendable {
                     let fm = Frontmatter.parse(content).frontmatter
                     try Data(((fm?.render() ?? "") + text).utf8).write(to: file)
                 },
+                rawContent: { id in try String(contentsOf: try Self.file(ofNoteWithID: id, in: root), encoding: .utf8) },
                 deleteNote: { id in try FileManager.default.removeItem(at: try Self.file(ofNoteWithID: id, in: root)) },
                 editCourseRoom: { id, room in
                     let file = try Self.file(ofNoteWithID: nil, courseID: id, in: root)

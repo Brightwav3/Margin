@@ -80,6 +80,8 @@ import Testing
         func today() async throws -> [TaskItem] { [] }
         func upcoming() async throws -> [TaskItem] { [] }
         func tasks(course: CourseID) async throws -> [TaskItem] { throw MarginError.notFound(course) }
+        func toggle(id: String, actor: WriteActor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet { throw MarginError.notFound(id) }
         var updates: AsyncStream<TaskUpdate> { AsyncStream { $0.finish() } }
     }
 
