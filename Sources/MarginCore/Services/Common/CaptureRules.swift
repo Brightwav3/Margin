@@ -83,11 +83,18 @@ enum CaptureRules {
         return body
     }
 
+    /// The line break at the end of `bytes` (`\n` or `\r\n`), 0 when there is none. Compares bytes:
+    /// `"\r\n"` is one `Character` in Swift, so `hasSuffix("\n")` would not see it.
+    private static func trailingBreak(_ bytes: ArraySlice<UInt8>) -> Int {
+        guard bytes.last == 0x0A else { return 0 }
+        return bytes.dropLast().last == 0x0D ? 2 : 1
+    }
+
     /// Appends `line` (no line break) to `content`, keeping a CRLF file CRLF.
     static func append(line: String, to content: String) -> String {
         let eol = content.contains("\r\n") ? "\r\n" : "\n"
         var out = content
-        if !out.isEmpty, !out.hasSuffix("\n") { out += eol }
+        if !out.isEmpty, trailingBreak(ArraySlice(out.utf8)) == 0 { out += eol }
         return out + line + eol
     }
 
@@ -95,8 +102,11 @@ enum CaptureRules {
     static func append(paragraph: String, to content: String) -> String {
         let eol = content.contains("\r\n") ? "\r\n" : "\n"
         var out = content
-        if !out.isEmpty, !out.hasSuffix("\n") { out += eol }
-        if !out.isEmpty, !out.hasSuffix(eol + eol), out != eol { out += eol }
+        if !out.isEmpty, trailingBreak(ArraySlice(out.utf8)) == 0 { out += eol }
+        let bytes = ArraySlice(out.utf8)
+        let last = trailingBreak(bytes)
+        let blankBefore = last > 0 && trailingBreak(bytes.dropLast(last)) > 0
+        if !out.isEmpty, !blankBefore, out.utf8.count > last { out += eol }
         return out + paragraph + eol
     }
 
