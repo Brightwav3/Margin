@@ -30,22 +30,29 @@ struct RecordedOperation: Codable, Sendable, Hashable {
     var restorable: Bool?
 
     init(kind: Kind, path: String, fromPath: String? = nil, before: Data? = nil, after: Data? = nil,
-         restorable: Bool? = nil) {
+         beforeHash: String? = nil, afterHash: String? = nil, restorable: Bool? = nil) {
         self.kind = kind; self.path = path; self.fromPath = fromPath
         self.before = before; self.after = after
-        self.beforeHash = before.map { ContentHash(of: $0).hex }
-        self.afterHash = after.map { ContentHash(of: $0).hex }
+        self.beforeHash = beforeHash ?? Self.hex(of: before)
+        self.afterHash = afterHash ?? Self.hex(of: after)
         self.restorable = restorable
+    }
+
+    private static func hex(of data: Data?) -> String? {
+        guard let data else { return nil }
+        return ContentHash(of: data).hex
     }
 
     init(_ operation: CapturedOperation) {
         switch operation {
-        case .write(let path, let before, let after):
-            self.init(kind: before == nil ? .create : .write, path: path.rawValue, before: before, after: after)
+        case .write(let path, let before, let after, let beforeHash, let afterHash):
+            self.init(kind: before == nil ? .create : .write, path: path.rawValue, before: before, after: after,
+                      beforeHash: beforeHash, afterHash: afterHash)
         case .move(let from, let to):
             self.init(kind: .move, path: to.rawValue, fromPath: from.rawValue)
-        case .trash(let path, let before, let isRegularFile):
-            self.init(kind: .trash, path: path.rawValue, before: before, restorable: isRegularFile ? nil : false)
+        case .trash(let path, let before, let isRegularFile, let beforeHash):
+            self.init(kind: .trash, path: path.rawValue, before: before, beforeHash: beforeHash,
+                      restorable: isRegularFile ? nil : false)
         }
     }
 

@@ -3,13 +3,14 @@ import Foundation
 /// A change the `VaultStore` is about to make, announced to the active `WriteCapture` BEFORE the
 /// file system is touched (write-ahead), so a recorder can persist what is needed to reverse it.
 enum CapturedOperation: Sendable, Hashable {
-    /// Replaces (`before != nil`) or creates (`before == nil`) a file.
-    case write(path: VaultPath, before: Data?, after: Data)
+    /// Replaces (`before != nil`) or creates (`before == nil`) a file. The hashes are those of
+    /// `before` and `after`, computed once by the store.
+    case write(path: VaultPath, before: Data?, after: Data, beforeHash: String?, afterHash: String)
     /// Renames or moves a file or folder.
     case move(from: VaultPath, to: VaultPath)
     /// Moves a file or folder to the trash. `before` holds the bytes of a regular file; folders and
     /// other items are not captured (`before == nil`).
-    case trash(path: VaultPath, before: Data?, isRegularFile: Bool)
+    case trash(path: VaultPath, before: Data?, isRegularFile: Bool, beforeHash: String?)
 }
 
 /// Receives the operations of the task it is installed for. If `willApply` throws, the store

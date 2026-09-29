@@ -261,8 +261,14 @@ public actor VaultStore {
             guard let attrs = try fileSystem.attributes(at: url) else { throw MarginError.notFound("No such file: \(path)") }
             if let capture = WriteCaptureContext.current {
                 let isFile = attrs.kind == .file
-                try await capture.willApply(.trash(path: path, before: isFile ? try fileSystem.readData(at: url) : nil,
-                                                   isRegularFile: isFile))
+                var bytes: Data?
+                var bytesHash: String?
+                if isFile {
+                    let read = try fileSystem.readData(at: url)
+                    bytes = read
+                    bytesHash = ContentHash(of: read).hex
+                }
+                try await capture.willApply(.trash(path: path, before: bytes, isRegularFile: isFile, beforeHash: bytesHash))
             }
             if let ownWrites {
                 announced = watchedFiles(at: url, path: path).map(\.path)
@@ -335,11 +341,14 @@ public actor VaultStore {
                 // Write-ahead: the bytes about to be replaced are persisted by the recorder before
                 // anything is written. They are also what `expectedVersion` was checked against.
                 let before: Data? = existing == nil ? nil : try fileSystem.readData(at: target)
-                if let expectedVersion, let before, ContentHash(of: before) != expectedVersion {
-                    throw MarginError.conflict("\(path) changed on disk (expected \(expectedVersion.hex.prefix(12)), found \(ContentHash(of: before).hex.prefix(12)))",
-                                               ConflictDetail(path: path.rawValue, currentVersion: ContentHash(of: before).hex))
+                var beforeHash: ContentHash?
+                if let before { beforeHash = ContentHash(of: before) }
+                if let expectedVersion, let beforeHash, beforeHash != expectedVersion {
+                    throw MarginError.conflict("\(path) changed on disk (expected \(expectedVersion.hex.prefix(12)), found \(beforeHash.hex.prefix(12)))",
+                                               ConflictDetail(path: path.rawValue, currentVersion: beforeHash.hex))
                 }
-                let operation = CapturedOperation.write(path: path, before: before, after: data)
+                let operation = CapturedOperation.write(path: path, before: before, after: data,
+                                                        beforeHash: beforeHash?.hex, afterHash: newHash.hex)
                 try await capture.willApply(operation)
                 captured = operation
             }
