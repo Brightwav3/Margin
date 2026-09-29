@@ -133,7 +133,8 @@ struct RobustVault: @unchecked Sendable {
     let clock: any Clock
 
     static func make(watchInterval: TimeInterval = 0.05, populate: Bool = true, clock: any Clock = FixedClock(),
-                     seed: (TempDir) throws -> Void = { _ in }) async throws -> RobustVault {
+                     seed: (TempDir) throws -> Void = { _ in },
+                     prepare: (TempDir, ScriptedFileSystem) throws -> Void = { _, _ in }) async throws -> RobustVault {
         let dir = TempDir()
         if populate {
             let store = try await VaultStore.open(root: dir.url, clock: clock, createIfMissing: true)
@@ -141,6 +142,7 @@ struct RobustVault: @unchecked Sendable {
         }
         try seed(dir)
         let fs = ScriptedFileSystem()
+        try prepare(dir, fs)
         let env = try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: watchInterval, fileSystem: fs)
         return RobustVault(dir: dir, fs: fs, env: env, clock: clock)
     }
@@ -161,8 +163,9 @@ struct RobustVault: @unchecked Sendable {
 /// Runs `body` against a fresh vault and always shuts the environment down.
 func withRobustVault(watchInterval: TimeInterval = 0.05, populate: Bool = true,
                      seed: (TempDir) throws -> Void = { _ in },
+                     prepare: (TempDir, ScriptedFileSystem) throws -> Void = { _, _ in },
                      _ body: (RobustVault) async throws -> Void) async throws {
-    let v = try await RobustVault.make(watchInterval: watchInterval, populate: populate, seed: seed)
+    let v = try await RobustVault.make(watchInterval: watchInterval, populate: populate, seed: seed, prepare: prepare)
     do { try await body(v) } catch {
         await v.shutdown()
         throw error
@@ -196,6 +199,10 @@ struct WriteOp: Sendable, CustomTestStringConvertible {
     private static func plain(_ body: @escaping @Sendable (AppEnvironment) async throws -> ChangeSet) -> @Sendable (AppEnvironment) async throws -> Void {
         { env in _ = try await body(env) }
     }
+
+    /// Operations that can run one after another in the same vault (archiving a semester makes it
+    /// read-only for the operations that follow, so it is left out).
+    static var sequence: [WriteOp] { all.filter { $0.name != "courseWriter.setArchived" } }
 
     static let all: [WriteOp] = [
         WriteOp(name: "notes.save", run: plain { try await $0.notes.save(id: "bio/lecture-8", text: "# Lecture 8 — edited\n\nNew body ^t-abcd\n", actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }),
@@ -267,4 +274,41 @@ func exerciseReads(_ env: AppEnvironment) async {
     _ = try? await env.graph.graph(scope: .all, filter: .none)
     _ = try? await env.search.search(query: "the")
     _ = try? await env.search.suggestLinks(prefix: "a")
+}
+
+extension TempDir {
+    /// Vault-relative path of the file whose frontmatter has `id: <id>`.
+    func path(ofNoteWithID id: String) -> String? {
+        snapshot().first { path, data in
+            path.hasSuffix(".md") && String(decoding: data, as: UTF8.self).contains("\nid: \(id)\n")
+        }?.key
+    }
+
+    func setPermissions(_ mode: Int, _ relative: String) throws {
+        try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: file(relative).path)
+    }
+}
+
+extension RobustVault {
+    /// Makes `folder` (vault-relative) refuse changes the way the OS does: a real `chmod` where that
+    /// works, and the same `EACCES` through the file-system seam when the tests run as root (root
+    /// ignores permission bits, as in the Docker container). Returns the function that lifts it.
+    func denyWriting(inFolder folder: String) throws -> () throws -> Void {
+        if !chmodIsIneffective {
+            try dir.setPermissions(0o555, folder)
+            return { try dir.setPermissions(0o755, folder) }
+        }
+        fs.inject(.denied, ops: ["createFile", "createDirectories", "replaceItem", "moveItemNoReplace", "removeFile"], pathContains: folder)
+        return { fs.clear() }
+    }
+}
+
+extension RobustVault {
+    /// `true` once the services show what a restarted app would show for the files on disk.
+    func matchesRestart(timeout: TimeInterval = 20) async -> Bool {
+        guard let fresh = try? await reopened() else { return false }
+        let ok = await eventually(timeout: timeout) { (try? await readModel(env)) == (try? await readModel(fresh)) }
+        await fresh.shutdown()
+        return ok
+    }
 }
