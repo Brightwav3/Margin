@@ -95,7 +95,7 @@ extension Robustness {
         try await withRobustVault(seed: Self.seed) { v in
             let path = "\(Self.folder)/Corrupt 3 latin-1 bytes.md"
             let bytes = try #require(v.dir.bytes(path))
-            let store = try await VaultStore.open(root: v.dir.url)
+            let store = try await VaultStore.open(root: v.dir.url, trash: PortableTrash())
             do { _ = try await store.read(vp(path)); Issue.record("must not decode") } catch let e as MarginError { #expect(e.code == "invalid") }
             // The raw bytes can be read, and a write with the right version replaces them only on purpose.
             #expect(try await store.readData(vp(path)).data == bytes)

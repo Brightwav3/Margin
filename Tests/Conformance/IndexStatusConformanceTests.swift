@@ -121,7 +121,7 @@ private func assertMonotonic(_ seen: [IndexProgress], sourceLocation: SourceLoca
 
     @Test func vaultCallbackSeesTheBuildFromZeroToHundred() async throws {
         let folder = TempFolder()
-        let store = try await VaultStore.open(root: folder.url, createIfMissing: true)
+        let store = try await VaultStore.open(root: folder.url, trash: PortableTrash(), createIfMissing: true)
         try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
         let collected = Collected()
         let env = try await AppEnvironment.vault(at: folder.url, clock: FixedClock(), watchInterval: 0.05) { collected.add($0) }

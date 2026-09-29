@@ -8,7 +8,7 @@ import Testing
 /// The real file system without the durability flushes. A simulated crash (`FaultInjectingFileSystem`)
 /// does not need fsync to be observable, and the sweeps make thousands of writes.
 struct NoSyncFileSystem: FileSystem {
-    let base: any FileSystem = POSIXFileSystem()
+    let base: any FileSystem = POSIXFileSystem(durability: .ordinary)
     func attributes(at url: URL) throws -> FileAttributes? { try base.attributes(at: url) }
     func realPath(_ url: URL) throws -> URL { try base.realPath(url) }
     func readData(at url: URL) throws -> Data { try base.readData(at: url) }
@@ -31,7 +31,7 @@ final class HookFileSystem: FileSystem, @unchecked Sendable {
     private var hooks: [Int: @Sendable () -> Void] = [:]
     private var calls: [String] = []
 
-    init(base: any FileSystem = POSIXFileSystem()) { self.base = base }
+    init(base: any FileSystem = POSIXFileSystem(durability: .ordinary)) { self.base = base }
 
     /// `name:lastPathComponent` of every call since `arm`.
     var log: [String] { lock.withLock { calls } }
@@ -93,9 +93,9 @@ func nastyBytes(_ tag: String) -> Data {
 }
 
 /// Opens a store and journal over `dir`.
-func openJournal(_ dir: TempDir, fileSystem: any FileSystem = POSIXFileSystem(), clock: any Clock = FixedClock(),
+func openJournal(_ dir: TempDir, fileSystem: any FileSystem = POSIXFileSystem(durability: .ordinary), clock: any Clock = FixedClock(),
                  retention: ChangeSetRetention = .standard) async throws -> (store: VaultStore, journal: ChangeSetJournal) {
-    let store = try await VaultStore.open(root: dir.url, fileSystem: fileSystem, clock: clock, createIfMissing: true)
+    let store = try await VaultStore.open(root: dir.url, fileSystem: fileSystem, clock: clock, trash: PortableTrash(), createIfMissing: true)
     let journal = try await ChangeSetJournal.open(store: store, clock: clock, retention: retention)
     return (store, journal)
 }

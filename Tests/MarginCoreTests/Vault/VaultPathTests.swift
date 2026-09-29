@@ -12,6 +12,16 @@ import Testing
         #expect(try VaultPath("x/.hidden").pathExtension == "")
     }
 
+    /// macOS returns names decomposed (NFD) from readdir and FSEvents. A name the vault created at
+    /// the limit in NFC must still be accepted when it comes back longer in NFD.
+    @Test func theLengthLimitIsMeasuredInNFC() throws {
+        let nfc = VaultPath.filename(fromTitle: String(repeating: "é", count: 200)) + ".md"
+        let nfd = nfc.decomposedStringWithCanonicalMapping
+        #expect(nfc.utf8.count <= VaultPath.maxComponentBytes)
+        #expect(nfd.utf8.count > VaultPath.maxComponentBytes)
+        #expect(try VaultPath(components: ["Course", nfd]) == VaultPath(components: ["Course", nfc]))
+    }
+
     @Test func rejectsUnsafePaths() {
         let bad = ["", "/", ".", "./", "/etc/passwd", "..", "../x.md", "a/../b.md", "a/..", "a/b/../../../c",
                    "a\u{0}b.md", "a/\u{0}", "line\nbreak.md", "tab\t.md", "del\u{7f}.md",

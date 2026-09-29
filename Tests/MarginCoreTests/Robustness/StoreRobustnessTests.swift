@@ -5,7 +5,7 @@ import Testing
 extension Robustness {
 /// M12-03 at the store level: the rules the services above rely on.
 @Suite struct StoreRobustnessTests {
-    private func open(_ d: TempDir, _ fs: any FileSystem = POSIXFileSystem()) async throws -> VaultStore {
+    private func open(_ d: TempDir, _ fs: any FileSystem = POSIXFileSystem(durability: .ordinary)) async throws -> VaultStore {
         try await VaultStore.open(root: d.url, fileSystem: fs, clock: FixedClock(), trash: PortableTrash())
     }
 

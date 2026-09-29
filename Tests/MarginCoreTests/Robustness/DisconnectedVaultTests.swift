@@ -131,7 +131,7 @@ extension Robustness {
 
     @Test func aSymlinkedVaultRootSurvivesTheTargetDisappearing() async throws {
         let target = TempDir()
-        let store = try await VaultStore.open(root: target.url, clock: FixedClock(), createIfMissing: true)
+        let store = try await VaultStore.open(root: target.url, clock: FixedClock(), trash: PortableTrash(), createIfMissing: true)
         try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
         let link = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("margin-link-\(UUID().uuidString)")
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target.url)

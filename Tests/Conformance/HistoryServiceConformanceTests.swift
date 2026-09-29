@@ -19,12 +19,19 @@ private func codeOf<T>(_ body: () async throws -> T) async -> String? {
     do { _ = try await body(); return nil } catch let e as MarginError { return e.code } catch { return "other" }
 }
 
-/// Saves `text` as the body of the note and returns the new `Note.version`.
+/// Replaces the body of the note the way another program would (no automatic snapshot, so these
+/// tests control the versions themselves) and returns the new `Note.version`.
 @discardableResult
 private func save(_ h: Harness, _ text: String) async throws -> String {
-    let current = try await h.notes.open(id: note)
-    _ = try await h.notes.save(id: note, text: text, actor: .user, baseVersion: current.version, dryRun: false, idempotencyKey: nil)
+    try await h.editNote(note, text)
     return try await h.notes.open(id: note).version
+}
+
+/// Saves through `NoteRepository.save`, which takes the automatic `.save` snapshot.
+@discardableResult
+private func repositorySave(_ h: Harness, _ text: String, dryRun: Bool = false) async throws -> ChangeSet {
+    let current = try await h.notes.open(id: note)
+    return try await h.notes.save(id: note, text: text, actor: .user, baseVersion: current.version, dryRun: dryRun, idempotencyKey: nil)
 }
 
 /// `HistoryService`, run against `FixtureHistoryService` and `VaultHistoryService` (contract §5).
@@ -50,6 +57,65 @@ private func save(_ h: Harness, _ text: String) async throws -> String {
             #expect(second != nil && second!.timestamp.timeIntervalSince(first!.timestamp) >= 300)
             #expect(try await h.history.text(of: second!) == original + "\nmore\n")
             #expect(try await h.history.versions(note: note).map(\.id) == [second!.id, first!.id])
+        }
+    }
+
+    // M11-08.B: the save path takes the snapshots itself.
+
+    @Test(arguments: HarnessKind.allCases)
+    func savingTwiceWithinFiveMinutesKeepsOneVersion(kind: HarnessKind) async throws {
+        let clock = MovableClock()
+        try await withHarness(kind, clock: clock) { h in
+            #expect(try await h.history.versions(note: note).isEmpty)
+            try await repositorySave(h, "# One\n")
+            clock.advance(120)
+            try await repositorySave(h, "# Two\n")
+            let versions = try await h.history.versions(note: note)
+            #expect(versions.count == 1)
+            #expect(try await h.history.text(of: versions[0]) == "# One\n")
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func aSaveAfterFiveMinutesAddsAVersion(kind: HarnessKind) async throws {
+        let clock = MovableClock()
+        try await withHarness(kind, clock: clock) { h in
+            try await repositorySave(h, "# One\n")
+            clock.advance(301)
+            try await repositorySave(h, "# Two\n")
+            let versions = try await h.history.versions(note: note)
+            #expect(versions.count == 2)
+            #expect(try await h.history.text(of: versions[0]) == "# Two\n")
+            // A save that changes nothing writes nothing and adds nothing.
+            clock.advance(301)
+            #expect(try await repositorySave(h, "# Two\n").isEmpty)
+            #expect(try await h.history.versions(note: note).count == 2)
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func aDryRunSaveTakesNoSnapshot(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let dry = try await repositorySave(h, "# Dry\n", dryRun: true)
+            #expect(dry.isDryRun && dry.entries.count == 1)
+            #expect(try await h.history.versions(note: note).isEmpty)
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func aRestoreDoesNotAddAnAutomaticSnapshotOnTop(kind: HarnessKind) async throws {
+        let clock = MovableClock()
+        try await withHarness(kind, clock: clock) { h in
+            try await repositorySave(h, "# Old\n")
+            let old = try await h.history.versions(note: note)[0]
+            clock.advance(400)
+            try await repositorySave(h, "# New\n")
+            #expect(try await h.history.versions(note: note).count == 2)
+            clock.advance(400)
+            let base = try await h.notes.open(id: note).version
+            _ = try await h.history.restore(old, actor: testActor, baseVersion: base, dryRun: false, idempotencyKey: nil)
+            let texts = try await h.history.versions(note: note).asyncMap { try await h.history.text(of: $0) }
+            #expect(texts == ["# Old\n", "# New\n", "# Old\n"])   // the restore records the restored text once
         }
     }
 

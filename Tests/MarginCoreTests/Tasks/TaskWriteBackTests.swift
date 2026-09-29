@@ -26,7 +26,7 @@ import Testing
     private func rig(_ content: String, maxAttempts: Int = 5, hook: (@Sendable (TempDir, Int) async -> Void)? = nil) async throws -> Rig {
         let dir = TempDir()
         try dir.seed(Self.path, Data(content.utf8))
-        let store = try await VaultStore.open(root: dir.url)
+        let store = try await VaultStore.open(root: dir.url, trash: PortableTrash())
         let index = NoteIndex(clock: FixedClock())
         try await index.build(from: VaultNoteSource(store: store))
         var afterRead: TaskWriteBack.Hook?

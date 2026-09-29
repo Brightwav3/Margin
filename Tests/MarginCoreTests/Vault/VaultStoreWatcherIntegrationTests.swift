@@ -12,7 +12,7 @@ import Testing
         try dir.seed("Fall/sub/_files/pic.png", Data([1, 2, 3]))
         // Generous TTL: on a loaded machine the poller can lag far behind the writes.
         let registry = OwnWriteRegistry(ttl: 120)
-        let store = try await VaultStore.open(root: dir.url, ownWrites: registry)
+        let store = try await VaultStore.open(root: dir.url, trash: PortableTrash(), ownWrites: registry)
         let watcher = PollingFileWatcher(root: store.root, interval: 0.1, ownWrites: registry)
         return (dir, store, watcher, registry)
     }

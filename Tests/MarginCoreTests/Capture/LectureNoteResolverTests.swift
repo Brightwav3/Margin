@@ -168,7 +168,7 @@ import Testing
     }
 
     private func store(_ dir: TempDir) async throws -> VaultStore {
-        try await VaultStore.open(root: dir.url, clock: FixedClock(), createIfMissing: true)
+        try await VaultStore.open(root: dir.url, clock: FixedClock(), trash: PortableTrash(), createIfMissing: true)
     }
 
     @Test func insertLineAppendsAtTheEndAndKeepsEverythingElse() async throws {

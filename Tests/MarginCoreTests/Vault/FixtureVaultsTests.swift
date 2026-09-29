@@ -11,7 +11,7 @@ import Testing
         .appendingPathComponent("Fixtures/vaults", isDirectory: true)
 
     private func index(of name: String) async throws -> (store: VaultStore, index: NoteIndex) {
-        let store = try await VaultStore.open(root: Self.vaultsRoot.appendingPathComponent(name), clock: FixedClock())
+        let store = try await VaultStore.open(root: Self.vaultsRoot.appendingPathComponent(name), clock: FixedClock(), trash: PortableTrash())
         let index = NoteIndex(clock: FixedClock())
         try await index.build(from: VaultNoteSource(store: store))
         return (store, index)

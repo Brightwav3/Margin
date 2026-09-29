@@ -17,7 +17,7 @@ public enum NoteExcerptProvider {
     public static let defaultMaxLength = 280
 
     public static func excerpt(of text: String, heading: String? = nil, maxLength: Int = defaultMaxLength) -> NoteExcerpt {
-        let body = Frontmatter.parse(text.contains("\r") ? text.replacingOccurrences(of: "\r\n", with: "\n") : text).body
+        let body = Frontmatter.parse(text.unicodeScalars.contains("\r") ? text.replacingOccurrences(of: "\r\n", with: "\n") : text).body
         let lines = body.split(separator: "\n", omittingEmptySubsequences: false).map {
             $0.hasSuffix("\r") ? String($0.dropLast()) : String($0)
         }

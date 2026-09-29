@@ -53,7 +53,7 @@ final class ScriptedFileSystem: FileSystem, @unchecked Sendable {
     private var injected = 0
     private var hook: (@Sendable (String, URL) -> Void)?
 
-    init(base: any FileSystem = POSIXFileSystem()) { self.base = base }
+    init(base: any FileSystem = POSIXFileSystem(durability: .ordinary)) { self.base = base }
 
     /// How many calls failed because of a rule.
     var injectedCount: Int { lock.withLock { injected } }
@@ -142,19 +142,19 @@ struct RobustVault: @unchecked Sendable {
                      prepare: (TempDir, ScriptedFileSystem) throws -> Void = { _, _ in }) async throws -> RobustVault {
         let dir = TempDir()
         if populate {
-            let store = try await VaultStore.open(root: dir.url, clock: clock, createIfMissing: true)
+            let store = try await VaultStore.open(root: dir.url, clock: clock, trash: PortableTrash(), createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
         }
         try seed(dir)
         let fs = ScriptedFileSystem()
         try prepare(dir, fs)
-        let env = try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: watchInterval, fileSystem: fs)
+        let env = try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: watchInterval, fileSystem: fs, trash: PortableTrash())
         return RobustVault(dir: dir, fs: fs, env: env, clock: clock)
     }
 
     /// A second, fault-free environment over the same folder: what the app would show after a restart.
     func reopened() async throws -> AppEnvironment {
-        try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: 1, fileSystem: POSIXFileSystem())
+        try await AppEnvironment.vault(at: dir.url, clock: clock, watchInterval: 1, fileSystem: POSIXFileSystem(durability: .ordinary), trash: PortableTrash())
     }
 
     func shutdown() async { await env.shutdown() }
@@ -317,6 +317,11 @@ extension RobustVault {
     func matchesRestart(timeout: TimeInterval = 45) async -> Bool {
         guard let fresh = try? await reopened() else { return false }
         let ok = await eventually(timeout: timeout) { (try? await readModel(env)) == (try? await readModel(fresh)) }
+        if !ok {
+            let live = try? await readModel(env)
+            let reopened = try? await readModel(fresh)
+            print("restart mismatch: live=\(String(describing: live)) reopened=\(String(describing: reopened))")
+        }
         await fresh.shutdown()
         return ok
     }

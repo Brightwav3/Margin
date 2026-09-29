@@ -24,7 +24,7 @@ import Testing
     private func sampleVault() async throws -> Vault {
         let dir = TempDir()
         let clock = FixedClock()
-        let store = try await VaultStore.open(root: dir.url, clock: clock)
+        let store = try await VaultStore.open(root: dir.url, clock: clock, trash: PortableTrash())
         try await SampleVaultGenerator.generate(into: store, from: world)
         let index = NoteIndex(clock: clock)
         _ = try await index.build(from: VaultNoteSource(store: store))

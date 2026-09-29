@@ -26,14 +26,17 @@ extension AppEnvironment {
                         retention: retention, progress: progress, fileSystem: POSIXFileSystem())
     }
 
-    /// `vault(at:)` over a given file system (tests inject faults here).
+    /// `vault(at:)` over a given file system and trash (tests inject faults here, and use
+    /// `PortableTrash` so nothing lands in the user's macOS Trash).
     static func vault(at url: URL, clock: any Clock, watchInterval: TimeInterval,
                       reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
                       retention: ChangeSetRetention = .standard,
                       progress: (@Sendable (IndexProgress) -> Void)? = nil,
-                      fileSystem: any FileSystem) async throws -> AppEnvironment {
+                      fileSystem: any FileSystem,
+                      trash: (any Trash)? = nil) async throws -> AppEnvironment {
         let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval,
-                                                  retention: retention, fileSystem: fileSystem, onProgress: progress)
+                                                  retention: retention, fileSystem: fileSystem, trash: trash,
+                                                  onProgress: progress)
         let settings = VaultSettingsStore(store: backend.store)
         return AppEnvironment(
             clock: clock,

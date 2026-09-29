@@ -171,11 +171,11 @@ extension Robustness {
         let fs = ScriptedFileSystem()
         fs.inject(.denied, ops: ["contentsOfDirectory", "realPath"], pathContains: nil)
         do {
-            _ = try await AppEnvironment.vault(at: dir.url, clock: FixedClock(), watchInterval: 0.05, fileSystem: fs)
+            _ = try await AppEnvironment.vault(at: dir.url, clock: FixedClock(), watchInterval: 0.05, fileSystem: fs, trash: PortableTrash())
             Issue.record("must not open")
         } catch let e as MarginError { #expect(e.code == "io", "\(e)") }
         fs.clear()
-        let env = try await AppEnvironment.vault(at: dir.url, clock: FixedClock(), watchInterval: 0.05, fileSystem: fs)
+        let env = try await AppEnvironment.vault(at: dir.url, clock: FixedClock(), watchInterval: 0.05, fileSystem: fs, trash: PortableTrash())
         await env.shutdown()
     }
 }

@@ -38,14 +38,20 @@ struct VaultHistoryStorage: HistoryStorage {
 }
 
 struct VaultHistoryHost: HistoryHost {
-    let backend: VaultBackend
+    let owner: WeakOwner<VaultBackend>
 
-    func current(note: NoteID) async throws -> Note { try await backend.open(id: note) }
+    private func backend() throws -> VaultBackend {
+        guard let backend = owner.value else { throw MarginError.invalid("The vault is closed") }
+        return backend
+    }
+
+    func current(note: NoteID) async throws -> Note { try await backend().open(id: note) }
 
     func save(note: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
               idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.save(id: note, text: text, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
-                               idempotencyKey: idempotencyKey)
+        // `restore` records its own versions: no automatic snapshot on top.
+        try await backend().save(id: note, text: text, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                 idempotencyKey: idempotencyKey, autoSnapshot: false)
     }
 }
 
@@ -53,9 +59,11 @@ struct VaultHistoryHost: HistoryHost {
 public struct VaultHistoryService: HistoryService {
     private let engine: HistoryEngine
 
-    init(backend: VaultBackend) {
-        engine = HistoryEngine(storage: VaultHistoryStorage(store: backend.store), host: VaultHistoryHost(backend: backend),
-                               clock: backend.clock)
+    init(backend: VaultBackend) { engine = backend.history }
+
+    /// The engine a vault backend owns: shared with the automatic snapshots of its save path.
+    static func makeEngine(store: VaultStore, clock: any Clock, owner: WeakOwner<VaultBackend>) -> HistoryEngine {
+        HistoryEngine(storage: VaultHistoryStorage(store: store), host: VaultHistoryHost(owner: owner), clock: clock)
     }
 
     public func versions(note: NoteID) async throws -> [NoteVersion] { try await engine.versions(note: note) }

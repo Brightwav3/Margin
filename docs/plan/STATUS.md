@@ -39,7 +39,7 @@ Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone 
 
 | # | Otázka | Blokuje | Stav | Výchozí předpoklad |
 |---|---|---|---|---|
-| Q1 | Umístění vaultu a kompatibilita s Obsidianem | M5 | ⬜ | `~/Documents/Margin`, kompatibilní |
+| Q1 | Umístění vaultu a kompatibilita s Obsidianem | M5 | ✅ | **schváleno 2026-09-29**: `~/Documents/Margin`, kompatibilní; D-017 |
 | Q2 | Rychlý zápis i bez okna aplikace | M8 | ⬜ | ano, přes menu bar agenta |
 | Q3 | Rozsah stubů (sdílení, PDF sylabus, sync); Agent už stub není | M10–M11 | ⬜ | jen UI, funkce později |
 | Q4 | Vzhled Today/Upcoming a záložek předmětu | M4, M7 | ⬜ | návrh v M4/M7, schválení v CP1 |
@@ -64,3 +64,4 @@ _(žádné)_
 - 2026-09-28: Repo připraveno pro agenty: `AGENTS.md`, `CLAUDE.md`, `docs/WORKFLOW.md`, git hooky, guard, `scripts/` (D-015).
 - 2026-09-28: Převzat git workflow uživatele (D-016): `docs/git-workflow.md`, `.github/` (CI, šablony, ruleset), `scripts/lint-commit.py`, `scripts/land.sh`; nové hooky čekají v `docs/proposed-hooks/` na aplikaci člověkem.
 - 2026-09-28: Vytvořeno soukromé repo Brightwav3/Margin a 53 štítků. Ruleset nelze na free plánu soukromého repa (403) — viz `docs/git-workflow.md`. První push `main` čeká na člověka.
+- 2026-09-29: Uživatel schválil doporučený formát vaultu (D-017) a aktuální backend/UI smlouvu (D-018) pro postupnou integraci do `main`.

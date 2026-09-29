@@ -177,7 +177,7 @@ import Testing
     @Test func vaultServicesGiveTheSameClassesAndNotes() async throws {
         let dir = TempDir()
         let clock = FixedClock()
-        let store = try await VaultStore.open(root: dir.url, clock: clock)
+        let store = try await VaultStore.open(root: dir.url, clock: clock, trash: PortableTrash())
         try await SampleVaultGenerator.generate(into: store, from: world)
         let env = try await AppEnvironment.vault(at: dir.url, clock: clock)
         let viaVault = try await CourseCardBuilder.cards(courseID: "bio", catalog: env.courses, notes: env.notes,

@@ -16,7 +16,7 @@ struct CourseVault {
     static func open(sample: Bool = true) async throws -> CourseVault {
         let dir = TempDir()
         let clock = FixedClock()
-        let store = try await VaultStore.open(root: dir.url, clock: clock)
+        let store = try await VaultStore.open(root: dir.url, clock: clock, trash: PortableTrash())
         if sample {
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
         } else {
@@ -27,7 +27,7 @@ struct CourseVault {
 
     /// A fresh backend over the same folder (what a restart of the app does).
     static func reopen(_ dir: TempDir, clock: FixedClock = FixedClock()) async throws -> CourseVault {
-        let backend = try await VaultBackend.open(at: dir.url, clock: clock, watchInterval: 0.05)
+        let backend = try await VaultBackend.open(at: dir.url, clock: clock, watchInterval: 0.05, trash: PortableTrash())
         return CourseVault(dir: dir, backend: backend, writer: VaultCourseCatalogWriter(backend: backend),
                            catalog: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend),
                            tasks: VaultTaskService(backend: backend), clock: clock)

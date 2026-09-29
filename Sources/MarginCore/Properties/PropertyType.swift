@@ -193,7 +193,7 @@ public struct PropertyRegistry: Sendable, Hashable {
     public static func validateKey(_ key: String) throws(PropertyValidationError) {
         guard let first = key.first, key == key.trimmingCharacters(in: .whitespaces),
               !"#-[]{}&*!|>'\"%@`".contains(first),
-              !key.contains(":"), !key.contains("\n"), !key.contains("\r")
+              !key.contains(":"), !key.containsLineBreak
         else { throw .invalidKey(key) }
     }
 

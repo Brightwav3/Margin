@@ -32,6 +32,8 @@ actor FixtureStore {
     var courses: [Course]
     /// Graded items of all courses (`GradeService`), in file order per course.
     var grades: [Grade]
+    /// Version history, shared by `HistoryService` and the automatic snapshot of `saveRecordingHistory`.
+    nonisolated let history: HistoryEngine
     /// Snapshot files of `HistoryService`: note id, then file name.
     var historyFiles: [NoteID: [String: Data]] = [:]
     /// Overrides of single classes (`CourseCatalogWriter.override`), sorted by day, then id.
@@ -61,6 +63,8 @@ actor FixtureStore {
         self.semester = world.semester
         self.clock = clock
         self.retention = retention
+        let owner = WeakOwner<FixtureStore>()
+        self.history = FixtureStore.makeHistoryEngine(owner: owner, clock: clock)
         self.courses = world.courses
         self.grades = world.grades
         self.inbox = world.inbox
@@ -78,6 +82,7 @@ actor FixtureStore {
         taskSnapshot = Self.snapshot(of: notes, extractor: extractor)
         lastWorld = World(notes: notes, courses: courses, overrides: overrides, inbox: inbox, inboxStems: inboxStems,
                           grades: grades, semester: semester, extraSemesters: extraSemesters)
+        owner.value = self
     }
 
     // MARK: Courses

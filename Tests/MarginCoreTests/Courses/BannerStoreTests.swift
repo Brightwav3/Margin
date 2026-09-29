@@ -30,7 +30,7 @@ import Testing
 
     private func setup() async throws -> Setup {
         let dir = TempDir()
-        let store = try await VaultStore.open(root: dir.url, clock: FixedClock())
+        let store = try await VaultStore.open(root: dir.url, clock: FixedClock(), trash: PortableTrash())
         return Setup(dir: dir, store: store, banners: Self.folders(store))
     }
 
@@ -54,10 +54,10 @@ import Testing
         let dir = TempDir()
         let data = Self.image(Self.jpegHeader, count: 4096, fill: 42)
         do {
-            let store = try await VaultStore.open(root: dir.url, clock: FixedClock())
+            let store = try await VaultStore.open(root: dir.url, clock: FixedClock(), trash: PortableTrash())
             try await Self.folders(store).save(data, course: "bio")
         }   // the store and everything it held in memory are gone
-        let reopened = try await VaultStore.open(root: dir.url, clock: FixedClock())
+        let reopened = try await VaultStore.open(root: dir.url, clock: FixedClock(), trash: PortableTrash())
         let banner = try #require(try await Self.folders(reopened).read(course: "bio"))
         #expect(banner.data == data && banner.format == .jpg)
         #expect(banner.path == "Fall 2026/Cell Biology/_files/banner.jpg")
@@ -139,9 +139,9 @@ import Testing
 
     @Test func worksOnTheSampleVaultThroughTheBackend() async throws {
         let dir = TempDir()
-        let store = try await VaultStore.open(root: dir.url, clock: FixedClock())
+        let store = try await VaultStore.open(root: dir.url, clock: FixedClock(), trash: PortableTrash())
         try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
-        let backend = try await VaultBackend.open(at: dir.url, clock: FixedClock())
+        let backend = try await VaultBackend.open(at: dir.url, clock: FixedClock(), trash: PortableTrash())
         let banners = BannerStore(backend: backend)
         let saved = try await banners.save(Self.tinyPNG, course: "math")
         #expect(saved.path == "Fall 2026/Linear Algebra/_files/banner.png")
@@ -149,7 +149,7 @@ import Testing
         do { _ = try await banners.read(course: "nope") } catch let e as MarginError { #expect(e.code == "notFound") }
         await backend.shutdown()
         // A new backend on the same folder (a restart) still finds it.
-        let again = try await VaultBackend.open(at: dir.url, clock: FixedClock())
+        let again = try await VaultBackend.open(at: dir.url, clock: FixedClock(), trash: PortableTrash())
         #expect(try await BannerStore(backend: again).read(course: "math")?.data == Self.tinyPNG)
         // The banner is not a note and does not disturb the note list of the course.
         #expect(try await again.notes(course: "math").allSatisfy { !$0.title.lowercased().contains("banner") })

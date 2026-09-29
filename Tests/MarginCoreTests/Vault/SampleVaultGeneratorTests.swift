@@ -19,7 +19,7 @@ import Testing
     private func generated() async throws -> Generated {
         let dir = TempDir()
         let clock = FixedClock()
-        let store = try await VaultStore.open(root: dir.url, clock: clock)
+        let store = try await VaultStore.open(root: dir.url, clock: clock, trash: PortableTrash())
         let report = try await SampleVaultGenerator.generate(into: store, from: world)
         let index = NoteIndex(clock: clock)
         let failures = try await index.build(from: VaultNoteSource(store: store))

@@ -53,7 +53,7 @@ public enum GradeStore {
         var g = grade
         g.item = grade.item.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !g.item.isEmpty else { throw MarginError.invalid("A grade needs an item name") }
-        guard !g.item.contains("\n"), !g.item.contains("\r") else { throw MarginError.invalid("A grade item name is one line") }
+        guard !g.item.containsLineBreak else { throw MarginError.invalid("A grade item name is one line") }
         if let group = g.group?.trimmingCharacters(in: .whitespacesAndNewlines) { g.group = group.isEmpty ? nil : group }
         if let max = g.max, !(max > 0 && max.isFinite) { throw MarginError.invalid("'max' must be above 0") }
         if let score = g.score {

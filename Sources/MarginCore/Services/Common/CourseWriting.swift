@@ -11,7 +11,7 @@ enum CourseWriting {
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !n.isEmpty else { throw MarginError.invalid("A course needs a name") }
         guard n.count <= 120 else { throw MarginError.invalid("A course name is at most 120 characters") }
-        guard !n.contains("\n"), !n.contains("\r") else { throw MarginError.invalid("A course name is one line") }
+        guard !n.containsLineBreak else { throw MarginError.invalid("A course name is one line") }
         guard !VaultPath.filename(fromTitle: n).isEmpty, !NoteIndex.slug(n).isEmpty else {
             throw MarginError.invalid("A course name needs letters or digits")
         }

@@ -175,7 +175,7 @@ enum CaptureRules {
     /// the body only).
     static func noteBody(title: String, text: String) -> String {
         let oneLineTitle = oneLine(text)
-        return oneLineTitle == title && !text.contains("\n") ? "# \(title)\n" : "# \(title)\n\n\(text)\n"
+        return oneLineTitle == title && !text.containsLineBreak ? "# \(title)\n" : "# \(title)\n\n\(text)\n"
     }
 
     static func noteFile(id: String, courseName: String, date: LocalDate, tags: [String], title: String, text: String) -> String {

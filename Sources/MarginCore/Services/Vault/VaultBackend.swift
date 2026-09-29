@@ -28,6 +28,9 @@ actor VaultBackend {
     /// Writes task checkboxes to note files (used by `TaskService.toggle`).
     let taskWriteBack: TaskWriteBack
 
+    /// Version history: the service and the automatic snapshot after a save share this engine.
+    nonisolated let history: HistoryEngine
+
     private(set) var model = VaultCourseModel()
     var changeSets: ChangeSetFactory
     var idempotency = IdempotencyCache()
@@ -53,6 +56,9 @@ actor VaultBackend {
         self.tasksStore = TasksStore(index: index)
         self.taskWriteBack = TaskWriteBack(store: store, index: index, clock: clock)
         self.changeSets = ChangeSetFactory(clock: clock)
+        let owner = WeakOwner<VaultBackend>()
+        self.history = VaultHistoryService.makeEngine(store: store, clock: clock, owner: owner)
+        owner.value = self
     }
 
     /// Opens the vault, builds the index and starts watching.
@@ -68,10 +74,11 @@ actor VaultBackend {
     static func open(at url: URL, clock: any Clock, watchInterval: TimeInterval = 0.3,
                      retention: ChangeSetRetention = .standard,
                      fileSystem: any FileSystem = POSIXFileSystem(),
+                     trash: (any Trash)? = nil,
                      onProgress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> VaultBackend {
         // A generous TTL: on a busy machine the poller may lag far behind the app's own writes.
         let ownWrites = OwnWriteRegistry(ttl: 60)
-        let store = try await VaultStore.open(root: url, fileSystem: fileSystem, clock: clock, ownWrites: ownWrites)
+        let store = try await VaultStore.open(root: url, fileSystem: fileSystem, clock: clock, trash: trash, ownWrites: ownWrites)
         let journal = try await ChangeSetJournal.open(store: store, clock: clock, retention: retention)
         let index = NoteIndex(clock: clock)
         let tracker = IndexProgressTracker(observer: onProgress)
@@ -375,10 +382,12 @@ actor VaultBackend {
         }
     }
 
-    /// After a transaction failed and was rolled back: the files are as they were, but the code that
-    /// ran inside it may already have updated the index and the course model. Read them again.
-    private func reconcileAfterFailure(_ operations: [RecordedOperation]) async {
-        guard !operations.isEmpty else { return }
+    /// After a transaction failed and was rolled back, the code that ran inside it may already have
+    /// updated the index and course model. A not-found error can also mean an external program
+    /// removed a containing folder, so reconcile the whole vault from disk in that case.
+    private func reconcileAfterFailure(_ operations: [RecordedOperation], error: Error) async {
+        let externalDeletion = (error as? MarginError)?.code == "notFound"
+        guard !operations.isEmpty || externalDeletion else { return }
         var folderMoved = false
         var courseFiles = false
         var paths: [String] = []
@@ -388,13 +397,14 @@ actor VaultBackend {
             if op.kind == .move, !op.path.lowercased().hasSuffix(".md") { folderMoved = true }
             if Self.isCourseFile(op.path) || (op.fromPath.map(Self.isCourseFile) ?? false) { courseFiles = true }
         }
-        if folderMoved {
+        let fullRefresh = folderMoved || externalDeletion
+        if fullRefresh {
             do { try await index.build(from: VaultNoteSource(store: store)) } catch { /* the files are the truth; the next read catches up */ }
         } else {
             for path in paths where path.lowercased().hasSuffix(".md") { _ = try? await index.update(path: path) }
         }
-        if courseFiles || folderMoved { await courseFilesChanged() }
-        await tasksMayHaveChanged(paths: folderMoved || courseFiles ? nil : paths)
+        if courseFiles || fullRefresh { await courseFilesChanged() }
+        await tasksMayHaveChanged(paths: fullRefresh || courseFiles ? nil : paths)
     }
 
     /// Identifies the note at a vault path, for change-set entries of files a write touched
@@ -411,7 +421,7 @@ actor VaultBackend {
                 actor: actor, idempotencyKey: key, noteID: { [weak self] in await self?.noteID(atPath: $0) },
                 describeAllFiles: describeAllFiles, body: body)
         } catch {
-            await reconcileAfterFailure(await journal.takeFailedOperations())
+            await reconcileAfterFailure(await journal.takeFailedOperations(), error: error)
             throw error
         }
         guard !committed.operations.isEmpty else {
@@ -435,8 +445,24 @@ actor VaultBackend {
         }
     }
 
+    /// Writes the body of a note. A real change also takes an automatic `.save` snapshot
+    /// (`autoSnapshot`; `HistoryService.restore` turns it off because it records its own versions).
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
-              idempotencyKey: String?) async throws -> ChangeSet {
+              idempotencyKey: String?, autoSnapshot: Bool = true) async throws -> ChangeSet {
+        let changes = try await saveUnrecorded(id: id, text: text, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                               idempotencyKey: idempotencyKey)
+        if autoSnapshot, !dryRun, !changes.entries.isEmpty { await snapshotAfterWrite(id) }
+        return changes
+    }
+
+    /// Stores the current text of `id` as a `.save` version. Never throws: the write it follows is done.
+    private func snapshotAfterWrite(_ id: NoteID) async {
+        guard let note = try? await open(id: id) else { return }
+        await history.autoSnapshot(note: id, text: note.text)
+    }
+
+    private func saveUnrecorded(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                                idempotencyKey: String?) async throws -> ChangeSet {
         try await writeGate.withLock {
             if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
             var attempt = 0

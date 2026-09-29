@@ -95,9 +95,9 @@ struct Harness: Sendable {
         case .vault:
             let folder = TempFolder()
             // The sample vault of the same fixtures (M5-09), written before the environment opens it.
-            let store = try await VaultStore.open(root: folder.url, clock: clock, createIfMissing: true)
+            let store = try await VaultStore.open(root: folder.url, clock: clock, trash: PortableTrash(), createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
-            let backend = try await VaultBackend.open(at: folder.url, clock: clock, watchInterval: watchInterval)
+            let backend = try await VaultBackend.open(at: folder.url, clock: clock, watchInterval: watchInterval, trash: PortableTrash())
             let env = AppEnvironment(
                 clock: clock, courses: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend),
                 tasks: VaultTaskService(backend: backend), capture: VaultCaptureService(backend: backend),

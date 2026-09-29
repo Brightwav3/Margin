@@ -275,7 +275,7 @@ private let spring = NewSemester(name: "Spring 2027", start: .literal(2027, 2, 1
 
     @Test func vaultPersistsAcrossReopening() async throws {
         let folder = TempFolder()
-        let store = try await VaultStore.open(root: folder.url, createIfMissing: true)
+        let store = try await VaultStore.open(root: folder.url, trash: PortableTrash(), createIfMissing: true)
         try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
         let first = try await AppEnvironment.vault(at: folder.url, clock: FixedClock(), watchInterval: 0.05)
         _ = try await first.semesters.create(spring, actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)

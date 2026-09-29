@@ -34,7 +34,7 @@ enum SyllabusRules {
         for e in list {
             let title = e.title.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty else { throw MarginError.invalid("An exam needs a title") }
-            guard !title.contains("\n") else { throw MarginError.invalid("An exam title is one line") }
+            guard !title.containsLineBreak else { throw MarginError.invalid("An exam title is one line") }
             guard (0...100).contains(e.weightPercent) else { throw MarginError.invalid("The weight of \(title) must be from 0 to 100") }
             let exam = Exam(courseID: course, title: title, date: e.date, time: e.time, weightPercent: e.weightPercent)
             guard !made.contains(where: { $0.id == exam.id }) else { throw MarginError.invalid("Two exams called \(title) on \(e.date.iso)") }
@@ -48,7 +48,7 @@ enum SyllabusRules {
         for g in list {
             let label = g.label.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !label.isEmpty else { throw MarginError.invalid("A grading part needs a label") }
-            guard !label.contains("\n") else { throw MarginError.invalid("A grading label is one line") }
+            guard !label.containsLineBreak else { throw MarginError.invalid("A grading label is one line") }
             guard (0...100).contains(g.weightPercent) else { throw MarginError.invalid("The weight of \(label) must be from 0 to 100") }
             guard !made.contains(where: { $0.label.caseInsensitiveCompare(label) == .orderedSame }) else {
                 throw MarginError.invalid("Two grading parts called \(label)")

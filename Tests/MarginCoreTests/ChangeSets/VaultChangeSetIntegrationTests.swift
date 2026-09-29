@@ -13,15 +13,15 @@ extension PerfSuites {
 
         static func sampleVault() async throws -> TempDir {
             let dir = TempDir()
-            let store = try await VaultStore.open(root: dir.url, createIfMissing: true)
+            let store = try await VaultStore.open(root: dir.url, trash: PortableTrash(), createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
             return dir
         }
 
-        static func open(_ dir: TempDir, clock: any Clock = FixedClock(), fileSystem: any FileSystem = POSIXFileSystem(),
+        static func open(_ dir: TempDir, clock: any Clock = FixedClock(), fileSystem: any FileSystem = POSIXFileSystem(durability: .ordinary),
                          retention: ChangeSetRetention = .standard) async throws -> Rig {
             Rig(dir: dir, backend: try await VaultBackend.open(at: dir.url, clock: clock, watchInterval: 0.05,
-                                                              retention: retention, fileSystem: fileSystem))
+                                                              retention: retention, fileSystem: fileSystem, trash: PortableTrash()))
         }
 
         func close() async { await backend.shutdown() }

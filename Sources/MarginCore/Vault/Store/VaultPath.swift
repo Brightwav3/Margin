@@ -41,7 +41,10 @@ public struct VaultPath: Sendable, Hashable, Comparable, Codable, CustomStringCo
 
     private static func validate(component: String, in whole: String) throws {
         if component == ".." { throw MarginError.invalid("Vault path must not contain '..': \(whole.debugDescription)") }
-        if component.utf8.count > maxComponentBytes {
+        // Measured in NFC, the form the vault creates names in: macOS hands names back decomposed
+        // (readdir, FSEvents), and "é" in NFD is three bytes instead of two, so a name the vault
+        // itself created at the limit would otherwise be rejected and vanish after a restart.
+        if component.precomposedStringWithCanonicalMapping.utf8.count > maxComponentBytes {
             throw MarginError.invalid("Path component is longer than \(maxComponentBytes) bytes")
         }
         for scalar in component.unicodeScalars where scalar.value < 0x20 || scalar.value == 0x7f {
