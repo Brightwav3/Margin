@@ -19,6 +19,8 @@ protocol HistoryHost: Sendable {
 /// The behaviour of `HistoryService`, shared by the fixture and the vault implementation so the two
 /// cannot drift. Stateless apart from serialising calls: what it knows lives in the storage.
 actor HistoryEngine {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.history-engine")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     static let throttle: TimeInterval = 5 * 60
     static let keepCount = 50
     static let keepDays = 30

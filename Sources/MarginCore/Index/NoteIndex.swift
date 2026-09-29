@@ -9,6 +9,8 @@ import Foundation
 ///
 /// Budgets (`04-engineering-rules.md`): 1000 notes build < 1 s, reindex of one file < 30 ms.
 public actor NoteIndex {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.note-index")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     private let clock: any Clock
     private let extractor: TaskExtractor
     private let scanner = MarkdownScanner()
