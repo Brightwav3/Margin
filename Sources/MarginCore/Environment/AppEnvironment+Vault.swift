@@ -15,6 +15,7 @@ extension AppEnvironment {
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
                              watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval) async throws -> AppEnvironment {
         let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval)
+        let settings = VaultSettingsStore(store: backend.store)
         return AppEnvironment(
             clock: clock,
             courses: VaultCourseCatalog(backend: backend),
@@ -25,7 +26,7 @@ extension AppEnvironment {
             properties: VaultPropertyService(backend: backend),
             analysis: VaultNoteAnalysis(backend: backend),
             graph: VaultGraphService(backend: backend),
-            courseWriter: VaultCourseCatalogWriter(backend: backend),
-            shutdown: { await backend.shutdown() })
+            courseWriter: VaultCourseCatalogWriter(backend: backend), settings: settings,
+            shutdown: { settings.finish(); await backend.shutdown() })
     }
 }
