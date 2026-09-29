@@ -21,14 +21,16 @@ actor FixtureStore {
         var content: String { (frontmatter?.render() ?? "") + body }
     }
 
-    let semester: Semester
+    private(set) var semester: Semester
     let clock: any Clock
-    private(set) var courses: [Course]
+    var courses: [Course]
+    /// Overrides of single classes (`CourseCatalogWriter.override`), sorted by day, then id.
+    var overrides: [SessionOverride] = []
     private var notes: [NoteID: StoredNote] = [:] { didSet { analysisIndex = nil } }
     /// Index over the current notes for `FixtureNoteAnalysis`; dropped on every change.
     private var analysisIndex: NoteIndex?
-    private var changeSets: ChangeSetFactory
-    private var idempotency = IdempotencyCache()
+    var changeSets: ChangeSetFactory
+    var idempotency = IdempotencyCache()
     private let extractor: TaskExtractor
     private let scanner = MarkdownScanner()
 
@@ -59,7 +61,9 @@ actor FixtureStore {
     func semesters() -> [Semester] { [semester] }
 
     func courses(query: String?) -> [Course] {
-        ServiceRules.sortCourses(courses.filter { ServiceRules.matches($0, query: query) })
+        // Like the vault: an archived semester is not "the current one".
+        guard !semester.isArchived else { return [] }
+        return ServiceRules.sortCourses(courses.filter { ServiceRules.matches($0, query: query) })
     }
 
     func course(id: CourseID) throws -> Course {
@@ -68,8 +72,16 @@ actor FixtureStore {
     }
 
     func sessions(week: Int) throws -> [SessionOccurrence] {
-        try ServiceRules.occurrences(week: week, semester: semester, courses: courses)
+        guard !semester.isArchived else { throw MarginError.notFound("This vault has no semester") }
+        return try ServiceRules.occurrences(week: week, semester: semester, courses: courses, overrides: overrides)
     }
+
+    /// Archived semesters are read-only (spec 05 §1, `CourseCatalogWriter.setArchived`).
+    func requireWritable() throws {
+        if semester.isArchived { throw MarginError.readOnly("\(semester.name) is archived and read-only") }
+    }
+
+    func setSemesterArchived(_ archived: Bool) { semester.isArchived = archived }
 
     // MARK: Notes (read)
 
@@ -158,6 +170,7 @@ actor FixtureStore {
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
               idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        try requireWritable()
         guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
         let current = Self.version(of: note.content)
         try requireBaseVersion(baseVersion, matches: current, what: "Note \(id)")
@@ -177,6 +190,7 @@ actor FixtureStore {
     func editContent(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
                      transform: (StoredNote) throws -> String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        try requireWritable()
         guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
         let current = Self.version(of: note.content)
         try requireBaseVersion(baseVersion, matches: current, what: "Note \(id)")
@@ -238,6 +252,7 @@ actor FixtureStore {
                 dryRun: Bool, idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let course = try self.course(id: courseID)
+        try requireWritable()
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { throw MarginError.invalid("A note needs a title") }
         let id = ServiceRules.noteID(course: courseID, title: title)
@@ -257,6 +272,7 @@ actor FixtureStore {
     func move(id: NoteID, toCourse target: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
               idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        try requireWritable()
         guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
         _ = try course(id: target)
         let version = Self.version(of: note.content)
@@ -276,6 +292,7 @@ actor FixtureStore {
 
     func delete(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        try requireWritable()
         guard let note = notes[id] else { throw MarginError.notFound("No note \(id)") }
         let version = Self.version(of: note.content)
         try requireBaseVersion(baseVersion, matches: version, what: "Note \(id)")
@@ -341,7 +358,7 @@ actor FixtureStore {
 
     static func version(of body: String) -> String { ContentHash(of: body).hex }
 
-    private func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
+    func finish(actor: Actor, entries: [ChangeSet.Entry], dryRun: Bool, key: String?) -> ChangeSet {
         publishTaskChanges()
         let cs = changeSets.make(actor: actor, entries: entries, isDryRun: dryRun, idempotencyKey: key)
         if !dryRun { idempotency.remember(cs, actor: actor) }
