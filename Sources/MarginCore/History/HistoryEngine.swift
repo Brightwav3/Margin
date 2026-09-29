@@ -82,6 +82,12 @@ actor HistoryEngine {
 
     // MARK: Snapshots
 
+    /// The automatic `.save` snapshot after a note was written (spec 05 §9): the 5 minute rule applies
+    /// and a failure is swallowed, because losing a version must never fail the save that caused it.
+    func autoSnapshot(note id: NoteID, text: String) async {
+        _ = try? await record(note: id, text: text, reason: .save)
+    }
+
     func snapshot(note id: NoteID, reason: SnapshotReason) async throws -> NoteVersion? {
         let text = try await host.current(note: id).text
         return try await record(note: id, text: text, reason: reason)
@@ -139,5 +145,16 @@ actor HistoryEngine {
                                           dryRun: dryRun, idempotencyKey: idempotencyKey)
         if !dryRun { _ = try await record(note: version.noteID, text: old, reason: .close) }
         return changes
+    }
+}
+
+/// A weak reference the history host uses to reach the backend that owns the engine, without a
+/// retain cycle. Set once, right after the owner is initialised.
+final class WeakOwner<T: AnyObject>: @unchecked Sendable {
+    private let lock = NSLock()
+    private weak var stored: T?
+    var value: T? {
+        get { lock.withLock { stored } }
+        set { lock.withLock { stored = newValue } }
     }
 }
