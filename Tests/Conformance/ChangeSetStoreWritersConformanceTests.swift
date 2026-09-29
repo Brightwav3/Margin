@@ -16,6 +16,7 @@ import Testing
         var inbox: [String]
         var tasks: [String]
         var week: [SessionOccurrence]
+        var grades: [String]
     }
 
     private func view(_ h: Harness) async throws -> View {
@@ -23,8 +24,11 @@ import Testing
         let inbox = try await h.inbox.items().map(\.id).sorted()
         var tasks: [String] = []
         for c in try await h.courses.courses(query: nil) { tasks += try await h.tasks.tasks(course: c.id).map { "\($0.id):\($0.done)" } }
+        var grades: [String] = []
+        for c in try await h.courses.courses(query: nil) { grades += try await h.grades.grades(course: c.id).map { "\($0.courseID):\($0.item):\($0.score ?? -1)" } }
         return View(courses: try await h.courses.courses(query: nil), semesters: try await h.courses.semesters(),
-                    notes: notes, inbox: inbox, tasks: tasks.sorted(), week: (try? await h.courses.sessions(week: 5)) ?? [])
+                    notes: notes, inbox: inbox, tasks: tasks.sorted(), week: (try? await h.courses.sessions(week: 5)) ?? [],
+                    grades: grades)
     }
 
     /// Runs `write`, checks it is recorded, undoes it (the view is the one before), redoes it (the
@@ -194,6 +198,53 @@ import Testing
             _ = try await h.capture.commit(CaptureDraft(text: "dry", course: "econ"), actor: .user, dryRun: true, idempotencyKey: nil)
             let listed = try await h.changes.changes(limit: nil)
             #expect(listed.isEmpty)
+        }
+    }
+
+    // MARK: Grades, syllabus, semesters
+
+    @Test(arguments: HarnessKind.allCases)
+    func undoingAGradeAddedToACourseWithAndWithoutAGradesFile(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            func quiz(_ course: CourseID) -> Grade {
+                Grade(id: "ignored", courseID: course, item: "Quiz 1", group: "Problem sets", weightPercent: 5,
+                      score: 7, max: 10, date: .literal(2026, 9, 25))
+            }
+            try await roundTrip(h, "grade in a course that has grades") {
+                try await h.grades.add(quiz("bio"), actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            }
+            try await roundTrip(h, "first grade of a course") {
+                try await h.grades.add(quiz("chem"), actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            }
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func undoingASyllabusApplied(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            var draft = try await h.syllabus.draft(course: "bio")
+            draft.sessions?.append(NewSession(day: .wednesday, start: .literal(15, 30), lengthHours: 2, kind: "Lab", room: "Lab 3"))
+            try await roundTrip(h, "syllabus") {
+                try await h.syllabus.apply(draft, to: "bio", actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            }
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
+    func undoingSemesterCreateUpdateAndDelete(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let spring = NewSemester(name: "Spring 2027", start: .literal(2027, 2, 15), end: .literal(2027, 5, 30), breakWeeks: [8])
+            try await roundTrip(h, "create semester") {
+                try await h.semesters.create(spring, actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            }
+            _ = try await h.semesters.create(spring, actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            try await roundTrip(h, "update semester") {
+                try await h.semesters.update(id: "spring-2027", SemesterUpdate(breakWeeks: [2, 5]), actor: testActor,
+                                             baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            }
+            try await roundTrip(h, "delete semester") {
+                try await h.semesters.delete(id: "spring-2027", actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            }
         }
     }
 }
