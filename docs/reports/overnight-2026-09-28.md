@@ -1,5 +1,36 @@
 # Overnight run 2026-09-28
 
+## At a glance (read this first)
+
+**What was done.** Every planned backend task except the deferred agent layer: Swift package, domain model, fixtures, vault (lossless frontmatter, parsers, atomic store, watcher, index), stable ids, undo/redo journal, concurrent-write merge, editor core, tasks, capture/inbox, graph, courses/semesters, search, grades, history, settings, reminders, export, robustness. ~665 core + 289 conformance tests green on Linux (Swift 6.4 in Docker). Nothing merged to `main`.
+
+**Backend progress (weights from `docs/plan/backend/README.md`, total 405):**
+
+| Scope | Weight | Done | Missing |
+|---|---|---|---|
+| Backend without the agent layer | 225 | ~219 (97 %) | ~6 (3 %): M0-02 Xcode project, M12-06 signing, M5-01 spec sign-off, plus macOS verification |
+| Agent layer (MA1–MA4, AG-01) — deferred by the human | 170 | 0 | 170 |
+| Whole backend plan | 405 | ~219 (54 %) | ~186 (46 %) |
+
+**Where the code is (stacked draft PRs, merge in this order):**
+1. #24 — CI workflow fix (independent, merge first).
+2. #23 `feat/core-foundation` → `main`: package, model types, Clock, fixtures.
+3. #26 `feat/core-vault` → #23: vault, parsers, index, AppEnvironment.
+4. #27 `feat/core-features` → #26: all feature services, undo, concurrency, robustness, macOS platform stubs.
+5. #28 (this report).
+Branch `feat/core-finish-leftovers` (automatic history snapshots on save, FSEvents missing-root guard) is the last small follow-up; merge it into `feat/core-features` when green.
+
+**Where to continue:**
+1. **Human decisions** (section *Questions for the human* and *Recommended morning steps*): vault-format additions, contract additions, grade model, Upcoming grouping (Q4), etc. Record them in `DECISIONS.md` / `05-vault-spec.md`.
+2. **On a Mac:** `swift build && swift test` (arm64, macOS 27 SDK); verify UNVERIFIED macOS code: FSEvents watcher, Carbon hotkey (`MarginPlatform`), SystemTrash, `F_FULLFSYNC`, creation-date preservation, UserNotifications, SQLite FTS5 + `.margin/index.sqlite`, zlib history, PDF export. Then M0-02 (Xcode project).
+3. **UI** (was deferred to the Mac): build `MarginUI` against `MarginCore/API` + `AppEnvironment.fixture`; UI must stay replaceable (depends only on the API).
+4. **Agent layer** later: every write already takes `Actor`/`baseVersion`/`dryRun`/`idempotencyKey` and returns a `ChangeSet`; undo exists; start at AG-05 (`ToolRegistry`).
+5. **Linux dev loop** (no Mac): `docker run --rm -v "$PWD":"$PWD" -w "$PWD" swift:latest swift test`.
+
+---
+
+## Detailed ledger
+
 **Environment:** Ubuntu x86_64 cloud container. No native `swift`. Docker daemon started manually (`dockerd`), image `swift:latest` = **Swift 6.4-RELEASE (x86_64-unknown-linux-gnu)** pulled from Docker Hub (one 429 rate-limit, second pull succeeded). A session-local wrapper `/usr/local/bin/swift` (outside the repo) runs `docker run swift:latest swift "$@"`, so `scripts/check.sh` and hooks really build and test. Verification ladder level: **2 (Docker)**. node 22 / npm available. download.swift.org blocked by proxy (403). Linux only: nothing is compiled for macOS/arm64.
 
 **Workers:** Sonnet 5.5 subagents (user instruction mid-run); effort chosen by task weight (1–2 low, 3–5 medium, 6–8 high) but the Agent tool exposes no effort parameter, so the level is stated in each worker prompt only. Orchestrator: this session. The human's extended fault-tolerance table (retry provisioning 2x, 45 min worker limit, 2 medium + 1 high fix rounds, breaker >25 % or 3 consecutive failures, zero tolerance for data loss/injection/foundation failures) applies.
