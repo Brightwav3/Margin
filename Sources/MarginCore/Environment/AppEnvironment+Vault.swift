@@ -22,6 +22,7 @@ extension AppEnvironment {
             tasks: VaultTaskService(backend: backend),
             properties: VaultPropertyService(backend: backend),
             analysis: VaultNoteAnalysis(backend: backend),
+            graph: VaultGraphService(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }
