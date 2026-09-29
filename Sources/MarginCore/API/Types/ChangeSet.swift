@@ -6,7 +6,9 @@ import Foundation
 /// Hashes are lower-case hex SHA-256 of the exact file bytes, so `afterHash` of a note write equals
 /// `Note.version` afterwards and `beforeHash` is the `baseVersion` that was current.
 ///
-/// AG-03 extends this with the inverse (undo) data; new fields must be optional.
+/// The data needed to undo a change set (file contents before the write) is not part of this value;
+/// it lives in the `ChangeSetStore`, which lists recorded change sets and undoes them by id.
+/// New fields must stay optional so stored records remain readable.
 public struct ChangeSet: Codable, Sendable, Hashable, Identifiable {
     /// One file touched by the write.
     public struct Entry: Codable, Sendable, Hashable {
@@ -27,11 +29,15 @@ public struct ChangeSet: Codable, Sendable, Hashable, Identifiable {
         public var beforeHash: String?
         /// Hash after the write; `nil` for `.deleted`.
         public var afterHash: String?
+        /// `true` when the caller's text was merged with a newer stored version (a stale
+        /// `baseVersion` and non-overlapping edits): the stored text is now `afterHash`, not
+        /// exactly what the caller sent, so an editor should reload it. Absent otherwise.
+        public var merged: Bool?
 
         public init(path: String, kind: Kind, noteID: NoteID? = nil, fromPath: String? = nil,
-                    beforeHash: String? = nil, afterHash: String? = nil) {
+                    beforeHash: String? = nil, afterHash: String? = nil, merged: Bool? = nil) {
             self.path = path; self.kind = kind; self.noteID = noteID; self.fromPath = fromPath
-            self.beforeHash = beforeHash; self.afterHash = afterHash
+            self.beforeHash = beforeHash; self.afterHash = afterHash; self.merged = merged
         }
     }
 
@@ -43,11 +49,14 @@ public struct ChangeSet: Codable, Sendable, Hashable, Identifiable {
     public var isDryRun: Bool
     /// The key the caller sent, if any.
     public var idempotencyKey: String?
+    /// Set when this change set is an undo: the id of the change set it reverted. Undoing an undo
+    /// is a redo.
+    public var revertsID: String?
 
     public init(id: String, actor: Actor, timestamp: Date, entries: [Entry], isDryRun: Bool = false,
-                idempotencyKey: String? = nil) {
+                idempotencyKey: String? = nil, revertsID: String? = nil) {
         self.id = id; self.actor = actor; self.timestamp = timestamp; self.entries = entries
-        self.isDryRun = isDryRun; self.idempotencyKey = idempotencyKey
+        self.isDryRun = isDryRun; self.idempotencyKey = idempotencyKey; self.revertsID = revertsID
     }
 
     /// `true` when the write changed nothing (for example saving identical text).

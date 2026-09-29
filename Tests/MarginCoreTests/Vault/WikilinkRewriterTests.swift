@@ -7,7 +7,7 @@ import Testing
     private func vault(_ files: [String: String], rewriter: WikilinkRewriter = WikilinkRewriter()) async throws -> (TempDir, VaultStore, WikilinkRewriter) {
         let dir = TempDir()
         for (path, text) in files { try dir.seed(path, Data(text.utf8)) }
-        let store = try await VaultStore.open(root: dir.url)
+        let store = try await VaultStore.open(root: dir.url, trash: PortableTrash())
         await store.addRenameObserver(rewriter)
         return (dir, store, rewriter)
     }
@@ -95,7 +95,7 @@ import Testing
         let dir = TempDir()
         try dir.seed("Bio/Old.md", Data())
         try dir.seed("Bio/x.md", bytes)
-        let store = try await VaultStore.open(root: dir.url)
+        let store = try await VaultStore.open(root: dir.url, trash: PortableTrash())
         await store.addRenameObserver(WikilinkRewriter())
         try await store.rename(vp("Bio/Old.md"), to: vp("Bio/New.md"))
         let actual = try #require(dir.bytes("Bio/x.md"))

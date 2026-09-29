@@ -14,6 +14,9 @@ public enum CoursePalette {
         "phil": ("#FADAD6", "#B3372B", "#EC8A80"),
     ]
 
+    /// The built-in palette keys, sorted.
+    public static var keys: [String] { entries.keys.sorted() }
+
     /// Style for an icon name and palette key.
     public static func style(icon: String, color: String) -> CourseStyle {
         let c = entries[color] ?? ("#E6E6E6", "#555555", "#9A9A9A")

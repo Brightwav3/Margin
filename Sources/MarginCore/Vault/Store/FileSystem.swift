@@ -42,6 +42,14 @@ public enum FileSystemError: Error, Sendable, Hashable {
     case failed(String)
 }
 
+extension FileSystemError {
+    /// `true` for a failure caused by `EACCES` or `EPERM` (the message carries the errno).
+    public var isPermissionDenied: Bool {
+        guard case .failed(let message) = self else { return false }
+        return message.contains("(errno \(EACCES))") || message.contains("(errno \(EPERM))")
+    }
+}
+
 /// The narrow file-system surface `VaultStore` is built on. Every step of an atomic write is a
 /// separate call so tests can inject a fault (or a simulated crash) between any two of them.
 ///
@@ -75,7 +83,19 @@ public protocol FileSystem: Sendable {
 
 /// The real file system through POSIX calls.
 public struct POSIXFileSystem: FileSystem {
-    public init() {}
+    /// How far `sync` pushes data before returning.
+    public enum Durability: Sendable, Hashable {
+        /// Down to the storage medium: `F_FULLFSYNC` on macOS (plain `fsync` there stops at the
+        /// drive's cache). The default, survives a power loss.
+        case full
+        /// Plain `fsync`: survives a crash of the app or the OS, not necessarily a power loss.
+        /// Tests use it, because `F_FULLFSYNC` makes their thousands of writes minutes slower.
+        case ordinary
+    }
+
+    public let durability: Durability
+
+    public init(durability: Durability = .full) { self.durability = durability }
 
     private static func describe(_ op: String, _ url: URL, _ code: Int32) -> String {
         "\(op) \(url.lastPathComponent): \(String(cString: strerror(code))) (errno \(code))"
@@ -177,28 +197,28 @@ public struct POSIXFileSystem: FileSystem {
         let fd = open(url.path, O_RDONLY)
         guard fd >= 0 else { throw Self.fail("open", url, errno) }
         defer { close(fd) }
-        try Self.flush(fd, url)
+        try flush(fd, url)
     }
 
     public func syncDirectory(at url: URL) throws {
         let fd = open(url.path, O_RDONLY)
         guard fd >= 0 else { throw Self.fail("open", url, errno) }
         defer { close(fd) }
-        do { try Self.flush(fd, url) } catch {
+        do { try flush(fd, url) } catch {
             // Some file systems refuse fsync on directories (EINVAL); that is not a failed write.
             if case FileSystemError.failed(let m) = error, m.contains("errno \(EINVAL)") { return }
             throw error
         }
     }
 
-    private static func flush(_ fd: Int32, _ url: URL) throws {
+    private func flush(_ fd: Int32, _ url: URL) throws {
         #if canImport(Darwin)
         // fsync on macOS does not reach the platter; F_FULLFSYNC does.
-        if fcntl(fd, F_FULLFSYNC) == 0 { return }
+        if durability == .full, fcntl(fd, F_FULLFSYNC) == 0 { return }
         #endif
         while fsync(fd) != 0 {
             if errno == EINTR { continue }
-            throw fail("fsync", url, errno)
+            throw Self.fail("fsync", url, errno)
         }
     }
 
@@ -207,6 +227,17 @@ public struct POSIXFileSystem: FileSystem {
     }
 
     public func moveItemNoReplace(from source: URL, to destination: URL) throws {
+        #if canImport(Darwin)
+        // renamex_np with RENAME_EXCL is an atomic no-replace rename for files, folders and
+        // symlinks. It must come first: a file created through link(2) + unlink(2) is never reported
+        // as deleted by FSEvents on APFS, so the app would keep showing a note removed in Finder.
+        // File systems without RENAME_EXCL (ENOTSUP, EINVAL) fall through to the portable path.
+        if renamex_np(source.path, destination.path, UInt32(RENAME_EXCL)) == 0 { return }
+        let renameCode = errno
+        if renameCode == EEXIST { throw Self.fail("move", destination, renameCode) }
+        if renameCode == ENOENT { throw Self.fail("move", source, renameCode) }
+        if renameCode != ENOTSUP && renameCode != EINVAL { throw Self.fail("rename", destination, renameCode) }
+        #endif
         // link(2) fails atomically with EEXIST, so an existing destination is never overwritten.
         // It only works for non-directories on file systems with hard links; otherwise fall back
         // to check-then-rename (safe inside the store's actor; external racers are out of scope).

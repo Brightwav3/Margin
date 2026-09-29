@@ -214,7 +214,7 @@ import Testing
                 fs.revive()
                 #expect(try await store.list().map(\.rawValue) == ["Fall/n.md", "other.md"])
                 // …and the next open removes it.
-                let reopened = try await VaultStore.open(root: d.url)
+                let reopened = try await VaultStore.open(root: d.url, trash: PortableTrash())
                 #expect(await reopened.recoveredTemporaryFiles.count == 1)
                 #expect(d.temporaryFiles.isEmpty)
             } else {
@@ -222,7 +222,7 @@ import Testing
             }
             #expect(d.bytes("Fall/n.md") == Self.oldBytes)
             // The store still works afterwards and can complete the write.
-            let fresh = try await VaultStore.open(root: d.url)
+            let fresh = try await VaultStore.open(root: d.url, trash: PortableTrash())
             try await fresh.write(vp("Fall/n.md"), content: Self.newContent, expectedVersion: ContentHash(of: Self.oldBytes))
             #expect(d.bytes("Fall/n.md") == Self.newBytes)
         }
@@ -250,7 +250,7 @@ import Testing
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: d.file("ro").path)
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: d.file("ro").path) }
         if geteuid() == 0 { return } // root ignores directory permissions
-        let store = try await VaultStore.open(root: d.url)
+        let store = try await VaultStore.open(root: d.url, trash: PortableTrash())
         await #expect(throws: MarginError.self) { try await store.write(vp("ro/n.md"), content: Self.newContent) }
         #expect(d.bytes("ro/n.md") == Self.oldBytes)
         #expect(d.temporaryFiles.isEmpty)

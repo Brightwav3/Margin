@@ -19,7 +19,13 @@ public struct IndexedLink: Sendable, Hashable {
 
 /// Everything the index knows about one note.
 public struct NoteRecord: Sendable, Hashable, Identifiable {
+    /// The frontmatter `id:` when the note has one (stable across rename, move and edits),
+    /// otherwise a path-derived placeholder until the `IDAssignmentPass` has run.
     public var id: NoteID
+    /// `true` when `id` comes from the note's frontmatter.
+    public var hasStableID: Bool
+    /// Number of tasks whose id is still a location-derived placeholder (no `^id` on the line).
+    public var tasksWithoutID: Int
     /// Vault-relative path including `.md`.
     public var path: String
     public var title: String
@@ -43,6 +49,12 @@ public struct NoteRecord: Sendable, Hashable, Identifiable {
     public var contentHash: String
     /// The indexed text (kept for rename and backlink context).
     var text: String
+    /// Number of lines the frontmatter block takes in front of the body (line numbers in the
+    /// scanner output are file lines; `Note.text` starts after them).
+    var bodyLineOffset: Int = 0
+
+    /// `true` when the `IDAssignmentPass` would change this note.
+    public var needsIDAssignment: Bool { !hasStableID || tasksWithoutID > 0 }
 
     /// File name without extension.
     public var name: String { NoteIndex.name(ofPath: path) }
@@ -74,4 +86,18 @@ public struct UnresolvedLink: Sendable, Hashable {
     public var sourcePath: String
     public var target: String
     public var line: Int
+}
+
+/// Where an id occurs.
+public struct IDOccurrence: Sendable, Hashable {
+    public var path: String
+    /// 1-based line for a task, `nil` for a note.
+    public var line: Int?
+}
+
+/// An id that is used more than once in the vault.
+public struct DuplicateID: Sendable, Hashable {
+    public var id: String
+    /// All uses, ordered by path and line; the first one keeps the id.
+    public var locations: [IDOccurrence]
 }

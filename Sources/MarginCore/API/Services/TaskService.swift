@@ -1,5 +1,5 @@
-/// Tasks found in notes (`- [ ] text @date ^id`) and exams, read side. M7 adds `toggle`,
-/// `setDue` and the rest of the write side.
+/// Tasks found in notes (`- [ ] text @date ^id`) and exams. Reading, `updates`, `toggle` and `setDue`; M7
+/// adds the rest of the write side.
 ///
 /// Implementations: `FixtureTaskService` and `VaultTaskService`. Rules both obey (checked by
 /// `Tests/Conformance/TaskServiceConformanceTests.swift`):
@@ -13,7 +13,24 @@
 ///   `tasks(course:)` sorts by note id, then line.
 /// - **Exams** are `TaskItem`s of kind `.exam` derived from the course's exams (id `exam-<exam.id>`,
 ///   source note `<course>/_course`); they never appear in `tasks(course:)`.
-/// - **Errors:** `tasks(course:)` throws `MarginError.notFound` for an unknown course.
+/// - **Updates:** `updates` reports a change to any task within 1 s of it happening: an edit made
+///   by another program, or a write through `NoteRepository`. An edit that leaves every task as it
+///   was (prose only) reports nothing. `today()`, `upcoming()` and `tasks(course:)` already show the
+///   change when the update arrives.
+/// - **Toggle:** `toggle` flips `- [ ]` and `- [x]` on the task's line in its note, changing that one
+///   character and nothing else, atomically. It takes the write context of contract rule 0 (`baseVersion`
+///   is the note's `Note.version`); the `ChangeSet` has one `.modified` entry for the note. The task is
+///   found again in the current text (`^id`, then text), so a stale line number cannot flip the wrong
+///   line, and `updates` reports the change.
+/// - **Set due:** `setDue` writes the task's due date into its line as an ISO token (`@2026-10-02`),
+///   replacing an existing `@…` token in place or appending one before the `^id`, which stays at the end
+///   of the line; `nil` removes the token. Text, checkbox, indentation and the rest of the file stay byte
+///   for byte. Same write context, task lookup, `ChangeSet` (one `.modified` entry, empty when the task
+///   already has that date) and `updates` as `toggle`.
+/// - **Errors:** `tasks(course:)` throws `MarginError.notFound` for an unknown course. `toggle` throws
+///   `.notFound` for an unknown task id or one that is no longer in its note, `.invalid` for an exam
+///   (and, for `setDue`, when removing the date would leave a task without text), `.conflict` for a stale
+///   `baseVersion`.
 public protocol TaskService: Sendable {
     /// Open tasks due today or overdue, plus exams dated today.
     func today() async throws -> [TaskItem]
@@ -23,4 +40,16 @@ public protocol TaskService: Sendable {
 
     /// All tasks of a course, done and open, with or without due date.
     func tasks(course: CourseID) async throws -> [TaskItem]
+
+    /// A new stream on every access. Each element says which notes and courses have changed tasks.
+    /// The stream stays open until the consumer stops iterating or the environment shuts down.
+    var updates: AsyncStream<TaskUpdate> { get }
+
+    /// Flips a task between open and done. `id` is `TaskItem.id`.
+    func toggle(id: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
+
+    /// Sets (`due`) or removes (`nil`) the due date of a task. `id` is `TaskItem.id`.
+    func setDue(id: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
 }

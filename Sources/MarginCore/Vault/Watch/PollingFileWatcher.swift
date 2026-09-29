@@ -45,7 +45,9 @@ public struct PollingFileWatcher: FileWatcher {
     public func changes() -> AsyncStream<[FileChange]> {
         let baseline = scan(previous: [:])
         let (stream, continuation) = AsyncStream<[FileChange]>.makeStream(bufferingPolicy: .unbounded)
-        let task = Task { [self] in
+        // Scans read the disk and hash files synchronously: a thread of their own, not the pool.
+        let executor = DedicatedExecutor(label: "margin.file-watcher")
+        let task = Task(executorPreference: executor) { [self] in
             var snapshot = baseline
             var pending: [String: FileChange.Kind] = [:]
             while !Task.isCancelled {
@@ -113,6 +115,9 @@ public struct PollingFileWatcher: FileWatcher {
     func scan(previous: [String: Entry]) -> [String: Entry] {
         let fm = FileManager.default
         let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey, .isDirectoryKey]
+        // A vault folder that is gone (unplugged drive, moved folder) is not "every file deleted":
+        // report nothing and compare again when it is back.
+        guard Self.rootIsAvailable(root) else { return previous }
         guard let en = fm.enumerator(at: root, includingPropertiesForKeys: keys,
                                      options: [.skipsHiddenFiles]) else { return [:] }
         let rootCount = root.pathComponents.count
@@ -134,8 +139,10 @@ public struct PollingFileWatcher: FileWatcher {
             let changed = previous[path].map { $0.mtime != mtime || $0.size != size } ?? true
             if changed || isRecent {
                 // New/changed files are hashed (own-write matching); recent ones are re-hashed
-                // so same-size edits within one mtime tick are still noticed.
-                entry.hash = hashProvider(url)
+                // so same-size edits within one mtime tick are still noticed. Time and size are
+                // read again with the hash: the enumerator's values may predate the bytes.
+                guard let fresh = Self.consistentEntry(at: url, hashProvider: hashProvider) else { continue }
+                entry = fresh
             } else {
                 entry.hash = previous[path]?.hash
             }
@@ -144,13 +151,56 @@ public struct PollingFileWatcher: FileWatcher {
         return result
     }
 
-    /// Resolve the vault root the same way macOS directory enumeration reports child paths.
-    /// `resolvingSymlinksInPath` maps `/private/var` back to `/var`, which shifts each relative
-    /// path by one component when enumerated URLs retain the real path.
+    /// The folder's real path (`realpath`), so it has the same form as the URLs a directory
+    /// enumerator and FSEvents report. `resolvingSymlinksInPath` is not enough: on macOS it maps
+    /// `/private/var/…` back to `/var/…`, while the enumerator returns `/private/var/…`, which shifts
+    /// every vault-relative path by one component. Falls back to the standardized URL while the
+    /// folder does not exist. Shared with `FSEventsFileWatcher`.
     static func canonicalRoot(_ root: URL) -> URL {
         guard let resolved = realpath(root.path, nil) else { return root.standardizedFileURL }
         defer { free(resolved) }
         return URL(fileURLWithPath: String(cString: resolved), isDirectory: true)
+    }
+
+    /// Whether the vault folder itself exists. While it does not (unplugged drive, unmounted share,
+    /// moved folder) no watcher may treat the files as deleted: it keeps its last snapshot and compares
+    /// again when the folder is back (M12-03). Shared with `FSEventsFileWatcher`.
+    static func rootIsAvailable(_ root: URL) -> Bool {
+        var isFolder: ObjCBool = false
+        return FileManager.default.fileExists(atPath: root.path, isDirectory: &isFolder) && isFolder.boolValue
+    }
+
+    /// `known` with the entries of the vault-relative paths `touched` read again from disk (a path that
+    /// no longer exists is dropped). `nil` while the vault folder is gone: the caller keeps `known`,
+    /// because a vanished folder is not a batch of deleted files.
+    static func refresh(_ known: [String: Entry], touched: Set<String>, root: URL,
+                        hashProvider: (URL) -> String? = { PollingFileWatcher.sha256Hex(ofFileAt: $0) }) -> [String: Entry]? {
+        guard rootIsAvailable(root) else { return nil }
+        var next = known
+        for rel in touched {
+            next[rel] = consistentEntry(at: root.appendingPathComponent(rel), hashProvider: hashProvider)
+        }
+        return next
+    }
+
+    /// Time, size and hash of the file at `url` taken from one version of it (`nil` when it is gone).
+    /// Reading the time and then the bytes can straddle a write, giving the old time with the new
+    /// hash; the next look then sees "same content, new time" and reports the app's own write as an
+    /// outside change. So the time is read before and after hashing, and again while it moved.
+    static func consistentEntry(at url: URL, hashProvider: (URL) -> String?) -> Entry? {
+        func stamp() -> (mtime: Date, size: Int)? {
+            guard let a = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
+            return ((a[.modificationDate] as? Date) ?? Date(timeIntervalSince1970: 0), (a[.size] as? NSNumber)?.intValue ?? 0)
+        }
+        var entry: Entry?
+        for _ in 0..<5 {
+            guard let before = stamp() else { return nil }
+            let hash = hashProvider(url)
+            guard let after = stamp() else { return nil }
+            entry = Entry(mtime: after.mtime, size: after.size, hash: hash)
+            if before.mtime == after.mtime, before.size == after.size { break }
+        }
+        return entry
     }
 
     static func isWatched(components: [String]) -> Bool {

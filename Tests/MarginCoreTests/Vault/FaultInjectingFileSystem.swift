@@ -24,7 +24,7 @@ final class FaultInjectingFileSystem: FileSystem, @unchecked Sendable {
     private var crashed = false
     private var calls: [String] = []
 
-    init(base: any FileSystem = POSIXFileSystem()) { self.base = base }
+    init(base: any FileSystem = POSIXFileSystem(durability: .ordinary)) { self.base = base }
 
     /// Names of the calls since the last `arm`/`resetCounter`, in order.
     var log: [String] { lock.withLock { calls } }

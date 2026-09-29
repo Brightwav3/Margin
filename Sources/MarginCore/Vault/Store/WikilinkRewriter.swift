@@ -22,6 +22,8 @@ import Foundation
 ///
 /// Attachments (`![[pic.png]]`) are not handled: only markdown notes are tracked.
 public actor WikilinkRewriter: RenameObserver {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.wikilink-rewriter")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     /// What the last rename did.
     public struct Report: Sendable, Equatable {
         public var notesRewritten: [VaultPath] = []

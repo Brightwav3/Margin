@@ -6,6 +6,11 @@ import Testing
     let dir = TempDir()
     let clock = FixedClock()
 
+    /// Tests run with `.ordinary` for speed; the app must keep flushing to the medium.
+    @Test func theRealFileSystemFlushesFullyByDefault() {
+        #expect(POSIXFileSystem().durability == .full)
+    }
+
     func open(createIfMissing: Bool = false) async throws -> VaultStore {
         try await VaultStore.open(root: dir.url, clock: clock, trash: PortableTrash(), createIfMissing: createIfMissing)
     }
@@ -14,11 +19,11 @@ import Testing
 
     @Test func openRequiresExistingFolder() async throws {
         let missing = dir.file("nope")
-        await #expect(throws: MarginError.self) { try await VaultStore.open(root: missing) }
-        let created = try await VaultStore.open(root: missing, createIfMissing: true)
+        await #expect(throws: MarginError.self) { try await VaultStore.open(root: missing, trash: PortableTrash()) }
+        let created = try await VaultStore.open(root: missing, trash: PortableTrash(), createIfMissing: true)
         #expect(created.root.lastPathComponent == "nope")
         try dir.seed("plain.txt", Data("x".utf8))
-        await #expect(throws: MarginError.self) { try await VaultStore.open(root: dir.file("plain.txt")) }
+        await #expect(throws: MarginError.self) { try await VaultStore.open(root: dir.file("plain.txt"), trash: PortableTrash()) }
     }
 
     // MARK: read / write

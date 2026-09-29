@@ -11,7 +11,7 @@ import Testing
         .appendingPathComponent("Fixtures/vaults", isDirectory: true)
 
     private func index(of name: String) async throws -> (store: VaultStore, index: NoteIndex) {
-        let store = try await VaultStore.open(root: Self.vaultsRoot.appendingPathComponent(name), clock: FixedClock())
+        let store = try await VaultStore.open(root: Self.vaultsRoot.appendingPathComponent(name), clock: FixedClock(), trash: PortableTrash())
         let index = NoteIndex(clock: FixedClock())
         try await index.build(from: VaultNoteSource(store: store))
         return (store, index)
@@ -85,15 +85,12 @@ import Testing
         ].sorted(), "all tasks: \(all)")
     }
 
-    /// Found by this fixture: the scanner reads a 4-space indented `- [ ]` (an indented code block
-    /// in CommonMark) as a task. Spec 05 §10 says it is NOT one; remove the wrapper once the
-    /// scanner is fixed.
+    /// A 4-space indented `- [ ]` after a list and a fenced block is an indented code block
+    /// (spec 05 §10: code is never a task).
     @Test func taskInsideIndentedCodeBlockIsNotATask() async throws {
         let (_, index) = try await index(of: "obsidian-quirks")
         let note = try #require(await index.note(byPath: "Indented code.md"))
-        withKnownIssue("MarkdownScanner treats indented code blocks as list items") {
-            #expect(note.tasks.map(\.text) == ["Task before the fence", "Task after it"])
-        }
+        #expect(note.tasks.map(\.text) == ["Task before the fence", "Task after it"])
     }
 
     @Test func aliasesAndAmbiguousLinksAreReadWithoutErrors() async throws {

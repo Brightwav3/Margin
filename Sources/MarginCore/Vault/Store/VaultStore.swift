@@ -17,6 +17,8 @@ import Foundation
 /// macOS the creation date, extended attributes (Finder tags) and hard links of the original are
 /// not carried over. Permission bits are preserved.
 public actor VaultStore {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.vault-store")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     /// Vault root as given (location is provisional: configurable path, see Q1).
     public nonisolated let root: URL
     /// Temporary files found and removed by `open`.
@@ -134,7 +136,14 @@ public actor VaultStore {
             }
             while let dir = stack.popLast() {
                 let dirURL = url(forComponents: dir)
-                for entry in try fileSystem.contentsOfDirectory(at: dirURL) {
+                let entries: [DirectoryEntry]
+                do { entries = try fileSystem.contentsOfDirectory(at: dirURL) } catch {
+                    // A subfolder that may not be read hides its own notes, not the rest of the vault.
+                    // The folder asked for (or the vault root) must be readable, or the caller is told.
+                    if dir.count > (folder?.components.count ?? 0), let e = error as? FileSystemError, e.isPermissionDenied { continue }
+                    throw error
+                }
+                for entry in entries {
                     if entry.name.hasPrefix(".") { continue }
                     switch entry.kind {
                     case .directory:
@@ -176,13 +185,38 @@ public actor VaultStore {
         try await atomicWrite(Data(content.utf8), to: path, expectedVersion: nil, mustNotExist: true)
     }
 
+    /// Byte-level variant of `create`.
+    @discardableResult
+    public func createData(_ path: VaultPath, data: Data) async throws -> ContentHash {
+        try await atomicWrite(data, to: path, expectedVersion: nil, mustNotExist: true)
+    }
+
+    /// Creates a folder (and missing parents). Nothing happens when the folder already exists;
+    /// `.conflict` when a file is in the way. Files are made by `create`/`write`, which create their
+    /// folders; this is for folders that must exist empty (`_inbox/`, a new semester).
+    public func createFolder(_ path: VaultPath) async throws {
+        do {
+            if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            try requireRootAvailable()
+            let target = try checkedURL(path, followFinal: false)
+            if let existing = try fileSystem.attributes(at: target) {
+                guard existing.kind == .directory else { throw MarginError.conflict("\(path) exists and is not a folder") }
+                return
+            }
+            try fileSystem.createDirectories(at: target)
+        } catch { throw VaultStore.map(error, "create folder \(path)") }
+    }
+
     /// Renames or moves a file or folder, creating missing target folders. `MarginError.conflict`
     /// when the target exists (nothing is overwritten), `.notFound` when the source is missing.
-    /// Registered `RenameObserver`s run after the move.
-    public func rename(_ from: VaultPath, to: VaultPath) async throws {
+    /// Registered `RenameObserver`s run after the move, unless `notifyObservers` is `false`: the
+    /// change-set journal replays recorded operations literally (the link rewrites a rename caused
+    /// are recorded as operations of their own), so a replayed rename must not rewrite links again.
+    public func rename(_ from: VaultPath, to: VaultPath, notifyObservers: Bool = true) async throws {
         guard from != to else { return }
         let isDirectory: Bool
         var announced: [(path: String, hash: String)] = []
+        var captured: CapturedOperation?
         do {
             for p in [from, to] where VaultStore.isTrashArea(p) {
                 throw MarginError.invalid("\(p) is inside the trash area and cannot be renamed")
@@ -195,6 +229,11 @@ public actor VaultStore {
             let target = try checkedURL(to, followFinal: false)
             guard let sourceAttrs = try fileSystem.attributes(at: source) else { throw MarginError.notFound("No such file: \(from)") }
             isDirectory = sourceAttrs.kind == .directory
+            if let capture = WriteCaptureContext.current {
+                let operation = CapturedOperation.move(from: from, to: to)
+                try await capture.willApply(operation)
+                captured = operation
+            }
             let targetParent = target.deletingLastPathComponent()
             try fileSystem.createDirectories(at: targetParent)
             if let ownWrites {
@@ -223,9 +262,12 @@ public actor VaultStore {
             if sourceParent != targetParent { try? fileSystem.syncDirectory(at: sourceParent) }
         } catch {
             if let ownWrites { for a in announced { await ownWrites.forget(path: a.path, hash: a.hash) } }
-            throw VaultStore.map(error, "rename \(from)")
+            let mapped = VaultStore.map(error, "rename \(from)")
+            if let captured, case .conflict = mapped, let capture = WriteCaptureContext.current { await capture.didNotApply(captured) }
+            throw mapped
         }
 
+        guard notifyObservers else { return }
         for observer in renameObservers {
             await observer.vaultDidRename(from: from, to: to, isDirectory: isDirectory, in: self)
         }
@@ -241,7 +283,18 @@ public actor VaultStore {
                 throw MarginError.invalid("\(path) is app data and cannot be trashed")
             }
             let url = try checkedURL(path, followFinal: false)
-            guard try fileSystem.attributes(at: url) != nil else { throw MarginError.notFound("No such file: \(path)") }
+            guard let attrs = try fileSystem.attributes(at: url) else { throw MarginError.notFound("No such file: \(path)") }
+            if let capture = WriteCaptureContext.current {
+                let isFile = attrs.kind == .file
+                var bytes: Data?
+                var bytesHash: String?
+                if isFile {
+                    let read = try fileSystem.readData(at: url)
+                    bytes = read
+                    bytesHash = ContentHash(of: read).hex
+                }
+                try await capture.willApply(.trash(path: path, before: bytes, isRegularFile: isFile, beforeHash: bytesHash))
+            }
             if let ownWrites {
                 announced = watchedFiles(at: url, path: path).map(\.path)
                 for p in announced { await ownWrites.register(path: p, hash: OwnWriteRegistry.deletedHash) }
@@ -255,14 +308,61 @@ public actor VaultStore {
         }
     }
 
+    // MARK: - App data (`.margin/`)
+
+    /// Names of the files (not folders) directly inside a folder below `.margin/`, sorted; empty when
+    /// the folder does not exist. For app data such as `.margin/history/<note>/`.
+    public func listInternalFiles(in folder: VaultPath) throws -> [String] {
+        guard folder.isInternal, folder != VaultPath.internalRoot else { throw MarginError.invalid("\(folder) is not app data") }
+        do {
+            let url = try checkedURL(folder, followFinal: true)
+            guard let attrs = try fileSystem.attributes(at: url) else { return [] }
+            guard attrs.kind == .directory else { throw MarginError.invalid("\(folder) is not a folder") }
+            return try fileSystem.contentsOfDirectory(at: url)
+                .filter { $0.kind == .file && !$0.name.hasPrefix(".") }.map(\.name).sorted()
+        } catch { throw VaultStore.map(error, "list \(folder)") }
+    }
+
+    /// Permanently removes one file of app data that the app itself derived and may drop, such as an
+    /// expired history snapshot. Only paths below `.margin/history/` are accepted: user files go to
+    /// the trash (`trash`), never through here.
+    public func removeInternalFile(_ path: VaultPath) throws {
+        guard path.isInside(VaultPath.internalHistory), path != VaultPath.internalHistory else {
+            throw MarginError.invalid("\(path) is not an expirable app data file")
+        }
+        do {
+            let url = try checkedURL(path, followFinal: false)
+            guard let attrs = try fileSystem.attributes(at: url) else { return }
+            guard attrs.kind == .file else { throw MarginError.invalid("\(path) is not a file") }
+            try fileSystem.removeFile(at: url)
+            try? fileSystem.syncDirectory(at: url.deletingLastPathComponent())
+        } catch { throw VaultStore.map(error, "remove \(path)") }
+    }
+
+    /// Deletes one file of the change-set journal (`.margin/changesets/`). This is the only
+    /// deletion the store performs besides its own temporary files: journal records are app data,
+    /// never user content, and expire by the retention rule.
+    func removeJournalFile(_ path: VaultPath) throws {
+        guard path.isInside(VaultPath.internalChangeSets), path != VaultPath.internalChangeSets else {
+            throw MarginError.invalid("\(path) is not a change-set record")
+        }
+        do {
+            let url = try checkedURL(path, followFinal: false)
+            guard try fileSystem.attributes(at: url) != nil else { return }
+            try fileSystem.removeFile(at: url)
+        } catch { throw VaultStore.map(error, "remove \(path)") }
+    }
+
     // MARK: - Atomic write pipeline
 
     private func atomicWrite(_ data: Data, to path: VaultPath, expectedVersion: ContentHash?, mustNotExist: Bool) async throws -> ContentHash {
         let parent: URL
         let newHash = ContentHash(of: data)
         var announced = false
+        var captured: CapturedOperation?
         do {
             if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            try requireRootAvailable()
             let target = try checkedURL(path, followFinal: false)
             let existing = try fileSystem.attributes(at: target)
             if let existing {
@@ -277,6 +377,27 @@ public actor VaultStore {
             if let expectedVersion {
                 guard existing != nil else { throw MarginError.conflict("\(path) no longer exists (expected version \(expectedVersion))") }
                 try verify(version: expectedVersion, of: target, path: path)
+            }
+            // A file the user made read-only stays as it is. (Replacing it by rename would sidestep
+            // the permission bits, which is exactly what they are there to prevent.)
+            if let existing, existing.permissions & 0o200 == 0 {
+                throw MarginError.readOnly("\(path) is read-only; make it writable to change it")
+            }
+
+            if let capture = WriteCaptureContext.current {
+                // Write-ahead: the bytes about to be replaced are persisted by the recorder before
+                // anything is written. They are also what `expectedVersion` was checked against.
+                let before: Data? = existing == nil ? nil : try fileSystem.readData(at: target)
+                var beforeHash: ContentHash?
+                if let before { beforeHash = ContentHash(of: before) }
+                if let expectedVersion, let beforeHash, beforeHash != expectedVersion {
+                    throw MarginError.conflict("\(path) changed on disk (expected \(expectedVersion.hex.prefix(12)), found \(beforeHash.hex.prefix(12)))",
+                                               ConflictDetail(path: path.rawValue, currentVersion: beforeHash.hex))
+                }
+                let operation = CapturedOperation.write(path: path, before: before, after: data,
+                                                        beforeHash: beforeHash?.hex, afterHash: newHash.hex)
+                try await capture.willApply(operation)
+                captured = operation
             }
 
             parent = target.deletingLastPathComponent()
@@ -302,10 +423,15 @@ public actor VaultStore {
             }
         } catch {
             if announced, let ownWrites { await ownWrites.forget(path: path.rawValue, hash: newHash) }
-            throw VaultStore.map(error, "write \(path)")
+            let mapped = VaultStore.map(error, "write \(path)")
+            if let captured, case .conflict = mapped, let capture = WriteCaptureContext.current { await capture.didNotApply(captured) }
+            throw mapped
         }
 
         do { try fileSystem.syncDirectory(at: parent) } catch {
+            // The file is in place although the caller is told otherwise, so nobody updates the index
+            // for it: let the watcher report the change instead of swallowing it as an own write.
+            if let ownWrites, VaultStore.isWatched(path) { await ownWrites.forget(path: path.rawValue, hash: newHash) }
             throw MarginError.io("\(path) was written but syncing its folder failed: \(error)")
         }
         return newHash
@@ -314,11 +440,31 @@ public actor VaultStore {
     private func verify(version expected: ContentHash, of target: URL, path: VaultPath) throws {
         let current: Data
         do { current = try fileSystem.readData(at: target) } catch FileSystemError.notFound {
-            throw MarginError.conflict("\(path) no longer exists (expected version \(expected))")
+            throw MarginError.conflict("\(path) no longer exists (expected version \(expected))", ConflictDetail(path: path.rawValue))
         }
         let actual = ContentHash(of: current)
         guard actual == expected else {
-            throw MarginError.conflict("\(path) changed on disk (expected \(expected.hex.prefix(12)), found \(actual.hex.prefix(12)))")
+            throw MarginError.conflict("\(path) changed on disk (expected \(expected.hex.prefix(12)), found \(actual.hex.prefix(12)))",
+                                       ConflictDetail(path: path.rawValue, currentVersion: actual.hex))
+        }
+    }
+
+    // MARK: - Availability
+
+    /// `true` while the vault folder is there. False when a drive was unplugged or the folder was
+    /// moved or removed while the app runs.
+    public func isAvailable() -> Bool {
+        ((try? fileSystem.attributes(at: URL(fileURLWithPath: rootReal)))??.kind) == .directory
+    }
+
+    /// Fails with `.notFound` when the vault folder is gone. Writes call this first: creating the
+    /// missing folders on the way would silently re-create the vault (on the wrong disk, at the
+    /// mount point of the one that was unplugged) and put new notes there.
+    private func requireRootAvailable() throws {
+        let attrs: FileAttributes?
+        do { attrs = try fileSystem.attributes(at: URL(fileURLWithPath: rootReal)) } catch { throw VaultStore.map(error, "vault folder") }
+        guard attrs?.kind == .directory else {
+            throw MarginError.notFound("The vault folder is not available: \(root.lastPathComponent)")
         }
     }
 
@@ -435,6 +581,9 @@ public actor VaultStore {
 extension VaultPath {
     /// `.margin`
     static let internalRoot = VaultPath(unchecked: [internalFolderName])
+    /// `.margin/changesets`
+    static let internalChangeSets = VaultPath(unchecked: [internalFolderName, "changesets"])
+    static let internalHistory = VaultPath(unchecked: [internalFolderName, "history"])
     /// `.margin/trash`
     static let internalTrash = VaultPath(unchecked: [internalFolderName, PortableTrash.folderName])
 }

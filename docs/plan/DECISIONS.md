@@ -91,6 +91,18 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** vlastní milestone-větve a prefixy (D-015 původní) — vlastní konvence, bez GitHub ekosystému.
 **Důsledky:** přepis hooků, `lib.sh` a guardu (chráněné soubory — provede člověk z `docs/proposed-hooks/`); `accept-milestone.sh` se odstraní; do GitHubu je potřeba jednorázově spustit `scripts/gh-setup.sh`.
 
+### D-017 · 2026-09-29 · Přijato — Formát vaultu před M5
+**Rozhodnutí:** schváleno doporučení v `05-vault-spec.md` §11: semestr je složka; rozvrh a zkoušky jsou v `_course.md`; vault zůstává kompatibilní s Obsidianem bez vlastní syntaxe aplikace; výchozí umístění je `~/Documents/Margin`.
+**Důvod:** uživatel schválil doporučené volby před zahájením integrace backendu do `main`.
+**Alternativy:** plochá struktura, metadata rozvrhu jen v `.margin/`, nebo vlastní syntaxe.
+**Důsledky:** specifikace vaultu je schválena pro implementaci M5; stávající rozšíření `@` pro termíny a `^id` pro stabilní identitu zůstávají jako textově bezpečné Obsidian zápisy.
+
+### D-018 · 2026-09-29 · Přijato — Aktuální backend/UI smlouva
+**Rozhodnutí:** uživatel schválil aktuální `docs/plan/09-contracts.md` a odpovídající protokoly a hodnotové typy v `Sources/MarginCore/API` pro integraci připraveného backendu.
+**Důvod:** smlouva a konformitní pokrytí jsou připravené; macOS build a celá lokální testovací sada prošly.
+**Alternativy:** odložit integraci nebo před ní změnit protokoly.
+**Důsledky:** je možné pokračovat v postupném slučování větví, které tuto smlouvu používají; žádná další změna API z tohoto rozhodnutí automaticky nevyplývá.
+
 ---
 
 ## Šablona
