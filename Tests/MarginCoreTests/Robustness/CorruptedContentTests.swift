@@ -272,3 +272,33 @@ import Testing
         }
     }
 }
+
+/// Hostile titles and text handed to the services (an agent or a paste can send anything).
+@Suite struct HostileInputTests {
+    static let titles: [String] = [
+        String(repeating: "a", count: 300), String(repeating: "🧬", count: 100), "a\0b", "../../escape", "..", ".", "/", "x/y",
+        ".hidden", "   ", "CON", "nul.md", "trailing dot.", "line\nbreak", "\u{202E}rtl", String(repeating: "é", count: 200),
+    ]
+
+    @Test(arguments: titles)
+    func aStrangeTitleIsRefusedOrStoredInsideTheCourseFolder(title: String) async throws {
+        try await withRobustVault { v in
+            let parent = v.dir.url.deletingLastPathComponent()
+            let before = v.files()
+            let code = await robustCode { try await v.env.notes.create(course: "bio", title: title, kind: .note, text: "body \0 text", actor: robustActor, baseVersion: nil, dryRun: false, idempotencyKey: nil) }
+            #expect(code == nil || ["invalid", "conflict", "io"].contains(code ?? ""), "\(code ?? "")")
+            let escaped = ((try? FileManager.default.contentsOfDirectory(atPath: parent.path)) ?? []).filter { $0.hasPrefix("escape") }
+            #expect(escaped.isEmpty, "a title walked out of the vault: \(escaped)")
+            let added = v.files().keys.filter { before[$0] == nil }
+            #expect(added.allSatisfy { $0.hasPrefix("Fall 2026/Cell Biology/") }, "\(added)")
+            #expect(code != nil || added.count == 1, "\(added)")
+            // Capture with the same text goes to the inbox or a course, never elsewhere.
+            let cap = await robustCode { try await v.env.capture.commit(CaptureDraft(text: title, kind: .note), actor: robustActor, dryRun: false, idempotencyKey: nil) }
+            #expect(cap == nil || ["invalid", "io"].contains(cap ?? ""), "\(cap ?? "")")
+            let capAdded = v.files().keys.filter { before[$0] == nil && !added.contains($0) }
+            #expect(capAdded.allSatisfy { $0.hasPrefix("_inbox/") }, "\(capAdded)")
+            await exerciseReads(v.env)
+            #expect(await v.matchesRestart())
+        }
+    }
+}
