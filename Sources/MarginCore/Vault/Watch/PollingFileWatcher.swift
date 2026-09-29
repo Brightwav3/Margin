@@ -113,6 +113,10 @@ public struct PollingFileWatcher: FileWatcher {
     func scan(previous: [String: Entry]) -> [String: Entry] {
         let fm = FileManager.default
         let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey, .isDirectoryKey]
+        // A vault folder that is gone (unplugged drive, moved folder) is not "every file deleted":
+        // report nothing and compare again when it is back.
+        var isFolder: ObjCBool = false
+        guard fm.fileExists(atPath: root.path, isDirectory: &isFolder), isFolder.boolValue else { return previous }
         guard let en = fm.enumerator(at: root, includingPropertiesForKeys: keys,
                                      options: [.skipsHiddenFiles]) else { return [:] }
         let rootCount = root.pathComponents.count
