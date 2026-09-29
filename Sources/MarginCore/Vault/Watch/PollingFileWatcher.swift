@@ -23,7 +23,7 @@ public struct PollingFileWatcher: FileWatcher {
         ownWrites: OwnWriteRegistry? = nil,
         hashProvider: @escaping @Sendable (URL) -> String? = { PollingFileWatcher.sha256Hex(ofFileAt: $0) }
     ) {
-        self.root = root.resolvingSymlinksInPath()
+        self.root = Self.canonicalRoot(root)
         self.interval = interval
         self.clock = clock
         self.ownWrites = ownWrites
@@ -148,6 +148,15 @@ public struct PollingFileWatcher: FileWatcher {
             result[path] = entry
         }
         return result
+    }
+
+    /// Resolve the vault root the same way macOS directory enumeration reports child paths.
+    /// `resolvingSymlinksInPath` maps `/private/var` back to `/var`, which shifts each relative
+    /// path by one component when enumerated URLs retain the real path.
+    static func canonicalRoot(_ root: URL) -> URL {
+        guard let resolved = realpath(root.path, nil) else { return root.standardizedFileURL }
+        defer { free(resolved) }
+        return URL(fileURLWithPath: String(cString: resolved), isDirectory: true)
     }
 
     static func isWatched(components: [String]) -> Bool {
