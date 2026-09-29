@@ -1,15 +1,173 @@
+// UNVERIFIED: written on Linux, compile and test on macOS
+// TODO(M5-07): verify on macOS (compile, FileWatcherTests against this watcher, rename/dir moves)
 import Foundation
 
 #if os(macOS)
-/// macOS watcher. Currently delegates to `PollingFileWatcher`.
-// TODO(M5-07): macOS-only FSEvents implementation, verify on Mac (was not compiled on Linux)
-public struct FSEventsFileWatcher: FileWatcher {
-    private let fallback: PollingFileWatcher
+import CoreServices
 
-    public init(root: URL, clock: any Clock = SystemClock(), ownWrites: OwnWriteRegistry? = nil) {
-        self.fallback = PollingFileWatcher(root: root, clock: clock, ownWrites: ownWrites)
+/// macOS watcher backed by an FSEventStream (file-level events, 0.1 s latency).
+///
+/// Same contract as `PollingFileWatcher`: vault-relative paths, markdown and `_files/` only,
+/// dotfiles ignored, own writes swallowed via `OwnWriteRegistry`, and successive changes to one
+/// path coalesced with `PollingFileWatcher.merge`. The baseline is scanned before `changes()`
+/// returns. Directory-level events (rename/move of a folder) and dropped events trigger a full
+/// rescan diffed against the known state, so nothing is lost.
+public struct FSEventsFileWatcher: FileWatcher {
+    public let root: URL
+    public let latency: TimeInterval
+    public let clock: any Clock
+    public let ownWrites: OwnWriteRegistry?
+
+    public init(root: URL, latency: TimeInterval = 0.1, clock: any Clock = SystemClock(),
+                ownWrites: OwnWriteRegistry? = nil) {
+        // FSEvents reports real paths, so resolve with realpath (not `resolvingSymlinksInPath`,
+        // which maps /private/var back to /var).
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        if realpath(root.path, &buffer) != nil {
+            self.root = URL(fileURLWithPath: String(cString: buffer), isDirectory: true)
+        } else {
+            self.root = root.standardizedFileURL
+        }
+        self.latency = latency
+        self.clock = clock
+        self.ownWrites = ownWrites
     }
 
-    public func changes() -> AsyncStream<[FileChange]> { fallback.changes() }
+    private struct RawEvent: Sendable { let path: String; let flags: UInt32 }
+
+    /// Bridges the C callback to Swift; retained for the lifetime of the stream.
+    private final class Sink: @unchecked Sendable {
+        let continuation: AsyncStream<[RawEvent]>.Continuation
+        init(_ continuation: AsyncStream<[RawEvent]>.Continuation) { self.continuation = continuation }
+    }
+
+    public func changes() -> AsyncStream<[FileChange]> {
+        let scanner = PollingFileWatcher(root: root, clock: clock, ownWrites: ownWrites)
+        let baseline = scanner.scan(previous: [:])
+        let (out, outCont) = AsyncStream<[FileChange]>.makeStream(bufferingPolicy: .unbounded)
+        let (raw, rawCont) = AsyncStream<[RawEvent]>.makeStream(bufferingPolicy: .unbounded)
+
+        let sink = Unmanaged.passRetained(Sink(rawCont))
+        var context = FSEventStreamContext(version: 0, info: sink.toOpaque(), retain: nil, release: nil,
+                                           copyDescription: nil)
+        let callback: FSEventStreamCallback = { _, info, count, eventPaths, eventFlags, _ in
+            guard let info else { return }
+            let sink = Unmanaged<Sink>.fromOpaque(info).takeUnretainedValue()
+            let paths = unsafeBitCast(eventPaths, to: CFArray.self) as? [String] ?? []
+            var events: [RawEvent] = []
+            for i in 0..<min(count, paths.count) { events.append(RawEvent(path: paths[i], flags: eventFlags[i])) }
+            sink.continuation.yield(events)
+        }
+        let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents
+            | kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer)
+        guard let stream = FSEventStreamCreate(nil, callback, &context, [root.path] as CFArray,
+                                               FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+                                               latency, flags) else {
+            sink.release()
+            outCont.finish()
+            return out
+        }
+        let queue = DispatchQueue(label: "margin.fsevents")
+        FSEventStreamSetDispatchQueue(stream, queue)
+        FSEventStreamStart(stream)
+
+        // The stream ref is not Sendable; it is only touched again from `onTermination`.
+        nonisolated(unsafe) let streamRef = stream
+        let rootPath = root.path
+        let task = Task { [self] in
+            var known = baseline
+            for await events in raw {
+                var found: [FileChange] = []
+                var needsRescan = false
+                var touched = Set<String>()
+                for e in events {
+                    let f = Int(e.flags)
+                    if f & (kFSEventStreamEventFlagMustScanSubDirs | kFSEventStreamEventFlagRootChanged
+                            | kFSEventStreamEventFlagUserDropped | kFSEventStreamEventFlagKernelDropped) != 0
+                        || f & kFSEventStreamEventFlagItemIsDir != 0 {
+                        needsRescan = true
+                        continue
+                    }
+                    guard let rel = Self.relativePath(e.path, root: rootPath),
+                          PollingFileWatcher.isWatched(components: rel.split(separator: "/").map(String.init))
+                    else { continue }
+                    touched.insert(rel)
+                }
+                if needsRescan {
+                    let next = scanner.scan(previous: known)
+                    found += await diff(old: known, new: next, paths: Set(known.keys).union(next.keys))
+                    known = next
+                } else if !touched.isEmpty {
+                    var next = known
+                    for rel in touched {
+                        let url = root.appendingPathComponent(rel)
+                        if FileManager.default.fileExists(atPath: url.path) {
+                            next[rel] = PollingFileWatcher.Entry(mtime: Self.mtime(url), size: Self.size(url),
+                                                                 hash: PollingFileWatcher.sha256Hex(ofFileAt: url))
+                        } else {
+                            next[rel] = nil
+                        }
+                    }
+                    found += await diff(old: known, new: next, paths: touched)
+                    known = next
+                }
+                var pending: [String: FileChange.Kind] = [:]
+                for c in found { PollingFileWatcher.merge(&pending, c) }
+                if !pending.isEmpty {
+                    outCont.yield(pending.map { FileChange(path: $0.key, kind: $0.value) }.sorted { $0.path < $1.path })
+                }
+            }
+            outCont.finish()
+        }
+        outCont.onTermination = { _ in
+            FSEventStreamStop(streamRef)
+            FSEventStreamInvalidate(streamRef)
+            FSEventStreamRelease(streamRef)
+            rawCont.finish()
+            sink.release()
+            task.cancel()
+        }
+        return out
+    }
+
+    /// Compares `paths` between snapshots; content-identical entries are not changes.
+    private func diff(old: [String: PollingFileWatcher.Entry], new: [String: PollingFileWatcher.Entry],
+                      paths: Set<String>) async -> [FileChange] {
+        var out: [FileChange] = []
+        for path in paths.sorted() {
+            switch (old[path], new[path]) {
+            case let (o?, e?):
+                if o.hash != nil, o.hash == e.hash { continue }
+                if o.hash == nil, o.mtime == e.mtime, o.size == e.size { continue }
+                if let ownWrites, let h = e.hash, await ownWrites.consume(path: path, hash: h) { continue }
+                out.append(FileChange(path: path, kind: .modified))
+            case let (nil, e?):
+                if let ownWrites, let h = e.hash, await ownWrites.consume(path: path, hash: h) { continue }
+                out.append(FileChange(path: path, kind: .created))
+            case (_?, nil):
+                if let ownWrites, await ownWrites.consume(path: path, hash: OwnWriteRegistry.deletedHash) { continue }
+                out.append(FileChange(path: path, kind: .deleted))
+            case (nil, nil):
+                continue
+            }
+        }
+        return out
+    }
+
+    static func relativePath(_ path: String, root: String) -> String? {
+        let prefix = root.hasSuffix("/") ? root : root + "/"
+        guard path.hasPrefix(prefix) else { return nil }
+        let rel = String(path.dropFirst(prefix.count))
+        return rel.isEmpty ? nil : rel
+    }
+
+    private static func mtime(_ url: URL) -> Date {
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+            ?? Date(timeIntervalSince1970: 0)
+    }
+
+    private static func size(_ url: URL) -> Int {
+        (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+    }
 }
 #endif
