@@ -429,7 +429,10 @@ import Testing
         }
     }
 
-    @Test(arguments: HarnessKind.allCases)
+    /// The vault's journal is checked at the same size, with its files on disk, by
+    /// `ConcurrentWriterStressTests` (2000 saves, 500 kept): five hundred real writes here would only
+    /// slow down the timing tests that run next to this suite.
+    @Test(arguments: [HarnessKind.fixture])
     func onlyTheNewestFiveHundredChangeSetsAreKept(kind: HarnessKind) async throws {
         try await withHarness(kind) { h in
             var ids: [String] = []

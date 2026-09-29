@@ -266,7 +266,11 @@ actor ChangeSetJournal {
     private func applyRetention() async {
         let drop = retention.dropCount(timestamps: slots.map(\.changeSet.timestamp), now: clock.now)
         guard drop > 0 else { return }
-        for slot in slots.prefix(drop) {
+        // Take the expired records out of the list before any await: another call may run while the
+        // files are being removed and must not expire them a second time.
+        let expired = Array(slots.prefix(drop))
+        slots.removeFirst(drop)
+        for slot in expired {
             let base = Self.baseName(seq: slot.seq, id: slot.changeSet.id)
             // Op files first, the meta file last: see the type comment.
             var failed = false
@@ -277,7 +281,6 @@ actor ChangeSetJournal {
             }
             if !failed { try? await store.removeJournalFile(Self.path(Self.metaFileName(base: base))) }
         }
-        slots.removeFirst(drop)
     }
 
     // MARK: Rollback
