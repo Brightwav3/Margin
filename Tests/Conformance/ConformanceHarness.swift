@@ -71,7 +71,8 @@ struct Harness: Sendable {
             let env = AppEnvironment(
                 clock: clock, courses: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend),
                 tasks: VaultTaskService(backend: backend), properties: VaultPropertyService(backend: backend),
-                analysis: VaultNoteAnalysis(backend: backend), shutdown: { await backend.shutdown() })
+                analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
+                shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(
                 kind: kind, env: env, writer: VaultCourseCatalogWriter(backend: backend),
