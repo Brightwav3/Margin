@@ -12,6 +12,10 @@ import CoreServices
 /// path coalesced with `PollingFileWatcher.merge`. The baseline is scanned before `changes()`
 /// returns. Directory-level events (rename/move of a folder) and dropped events trigger a full
 /// rescan diffed against the known state, so nothing is lost.
+///
+/// A vault folder that is gone (unplugged drive, moved folder) is not "every file deleted": the last
+/// snapshot is kept, nothing is reported, and when the folder is back one full rescan is diffed
+/// against that snapshot (same rule as `PollingFileWatcher`, M12-03; the checks are shared).
 public struct FSEventsFileWatcher: FileWatcher {
     public let root: URL
     public let latency: TimeInterval
@@ -59,7 +63,8 @@ public struct FSEventsFileWatcher: FileWatcher {
             sink.continuation.yield(events)
         }
         let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents
-            | kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer)
+            | kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagNoDefer
+            | kFSEventStreamCreateFlagWatchRoot)
         guard let stream = FSEventStreamCreate(nil, callback, &context, [root.path] as CFArray,
                                                FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
                                                latency, flags) else {
@@ -74,11 +79,32 @@ public struct FSEventsFileWatcher: FileWatcher {
         // The stream ref is not Sendable; it is only touched again from `onTermination`.
         nonisolated(unsafe) let streamRef = stream
         let rootPath = root.path
+        // Events stop when the folder goes away and may not come when it returns (a remounted volume
+        // is a new directory): a light check turns each change of availability into a rescan request.
+        let watchedRoot = self.root
+        let availability = Task {
+            var wasAvailable = PollingFileWatcher.rootIsAvailable(watchedRoot)
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                let now = PollingFileWatcher.rootIsAvailable(watchedRoot)
+                if now != wasAvailable {
+                    wasAvailable = now
+                    rawCont.yield([RawEvent(path: rootPath, flags: UInt32(kFSEventStreamEventFlagRootChanged))])
+                }
+            }
+        }
         let task = Task { [self] in
             var known = baseline
+            // Set while the folder is gone; the first batch after it is back is a full rescan.
+            var rootWasMissing = !PollingFileWatcher.rootIsAvailable(watchedRoot)
             for await events in raw {
+                guard PollingFileWatcher.rootIsAvailable(watchedRoot) else {
+                    rootWasMissing = true   // keep `known`: nothing was deleted, the folder is away
+                    continue
+                }
                 var found: [FileChange] = []
-                var needsRescan = false
+                var needsRescan = rootWasMissing
+                rootWasMissing = false
                 var touched = Set<String>()
                 for e in events {
                     let f = Int(e.flags)
@@ -98,15 +124,9 @@ public struct FSEventsFileWatcher: FileWatcher {
                     found += await diff(old: known, new: next, paths: Set(known.keys).union(next.keys))
                     known = next
                 } else if !touched.isEmpty {
-                    var next = known
-                    for rel in touched {
-                        let url = root.appendingPathComponent(rel)
-                        if FileManager.default.fileExists(atPath: url.path) {
-                            next[rel] = PollingFileWatcher.Entry(mtime: Self.mtime(url), size: Self.size(url),
-                                                                 hash: PollingFileWatcher.sha256Hex(ofFileAt: url))
-                        } else {
-                            next[rel] = nil
-                        }
+                    guard let next = PollingFileWatcher.refresh(known, touched: touched, root: watchedRoot) else {
+                        rootWasMissing = true   // the folder went away while this batch was handled
+                        continue
                     }
                     found += await diff(old: known, new: next, paths: touched)
                     known = next
@@ -126,6 +146,7 @@ public struct FSEventsFileWatcher: FileWatcher {
             rawCont.finish()
             sink.release()
             task.cancel()
+            availability.cancel()
         }
         return out
     }
@@ -159,15 +180,6 @@ public struct FSEventsFileWatcher: FileWatcher {
         guard path.hasPrefix(prefix) else { return nil }
         let rel = String(path.dropFirst(prefix.count))
         return rel.isEmpty ? nil : rel
-    }
-
-    private static func mtime(_ url: URL) -> Date {
-        (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
-            ?? Date(timeIntervalSince1970: 0)
-    }
-
-    private static func size(_ url: URL) -> Int {
-        (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
     }
 }
 #endif

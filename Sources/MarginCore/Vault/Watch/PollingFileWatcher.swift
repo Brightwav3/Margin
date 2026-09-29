@@ -117,8 +117,7 @@ public struct PollingFileWatcher: FileWatcher {
         let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey, .isDirectoryKey]
         // A vault folder that is gone (unplugged drive, moved folder) is not "every file deleted":
         // report nothing and compare again when it is back.
-        var isFolder: ObjCBool = false
-        guard fm.fileExists(atPath: root.path, isDirectory: &isFolder), isFolder.boolValue else { return previous }
+        guard Self.rootIsAvailable(root) else { return previous }
         guard let en = fm.enumerator(at: root, includingPropertiesForKeys: keys,
                                      options: [.skipsHiddenFiles]) else { return [:] }
         let rootCount = root.pathComponents.count
@@ -148,6 +147,34 @@ public struct PollingFileWatcher: FileWatcher {
             result[path] = entry
         }
         return result
+    }
+
+    /// Whether the vault folder itself exists. While it does not (unplugged drive, unmounted share,
+    /// moved folder) no watcher may treat the files as deleted: it keeps its last snapshot and compares
+    /// again when the folder is back (M12-03). Shared with `FSEventsFileWatcher`.
+    static func rootIsAvailable(_ root: URL) -> Bool {
+        var isFolder: ObjCBool = false
+        return FileManager.default.fileExists(atPath: root.path, isDirectory: &isFolder) && isFolder.boolValue
+    }
+
+    /// `known` with the entries of the vault-relative paths `touched` read again from disk (a path that
+    /// no longer exists is dropped). `nil` while the vault folder is gone: the caller keeps `known`,
+    /// because a vanished folder is not a batch of deleted files.
+    static func refresh(_ known: [String: Entry], touched: Set<String>, root: URL,
+                        hashProvider: (URL) -> String? = { PollingFileWatcher.sha256Hex(ofFileAt: $0) }) -> [String: Entry]? {
+        guard rootIsAvailable(root) else { return nil }
+        var next = known
+        for rel in touched {
+            let url = root.appendingPathComponent(rel)
+            if FileManager.default.fileExists(atPath: url.path) {
+                let v = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+                next[rel] = Entry(mtime: v?.contentModificationDate ?? Date(timeIntervalSince1970: 0),
+                                  size: v?.fileSize ?? 0, hash: hashProvider(url))
+            } else {
+                next[rel] = nil
+            }
+        }
+        return next
     }
 
     static func isWatched(components: [String]) -> Bool {
