@@ -331,7 +331,7 @@ actor ChangeSetJournal {
             case .move:
                 guard let from = op.fromPath.flatMap({ try? VaultPath($0) }) else { return .skipped("incomplete record") }
                 let toExists = await store.exists(path), fromExists = await store.exists(from)
-                if toExists && !fromExists { try await store.rename(path, to: from); return .done }
+                if toExists && !fromExists { try await store.rename(path, to: from, notifyObservers: false); return .done }
                 if !toExists && fromExists { return .done }
                 return .skipped("neither the old nor the new location is in the expected state")
             case .trash:

@@ -184,8 +184,10 @@ public actor VaultStore {
 
     /// Renames or moves a file or folder, creating missing target folders. `MarginError.conflict`
     /// when the target exists (nothing is overwritten), `.notFound` when the source is missing.
-    /// Registered `RenameObserver`s run after the move.
-    public func rename(_ from: VaultPath, to: VaultPath) async throws {
+    /// Registered `RenameObserver`s run after the move, unless `notifyObservers` is `false`: the
+    /// change-set journal replays recorded operations literally (the link rewrites a rename caused
+    /// are recorded as operations of their own), so a replayed rename must not rewrite links again.
+    public func rename(_ from: VaultPath, to: VaultPath, notifyObservers: Bool = true) async throws {
         guard from != to else { return }
         let isDirectory: Bool
         var announced: [(path: String, hash: String)] = []
@@ -235,6 +237,7 @@ public actor VaultStore {
             throw VaultStore.map(error, "rename \(from)")
         }
 
+        guard notifyObservers else { return }
         for observer in renameObservers {
             await observer.vaultDidRename(from: from, to: to, isDirectory: isDirectory, in: self)
         }

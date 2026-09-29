@@ -163,7 +163,7 @@ extension ChangeSetJournal {
             guard let from = op.fromPath.flatMap({ try? VaultPath($0) }) else {
                 throw MarginError.notFound("Incomplete undo record for \(op.path)")
             }
-            try await store.rename(path, to: from)
+            try await store.rename(path, to: from, notifyObservers: false)
         case .trash:
             guard let before = op.before else { throw MarginError.notFound("Incomplete undo record for \(op.path)") }
             try await store.createData(path, data: before)
