@@ -1,6 +1,7 @@
 import Foundation
 
-/// `SemesterStore` over a vault: `.margin/semesters.json` and the semester folders.
+/// `SemesterStore` over a vault: `.margin/semesters.json` and the semester folders. A created semester
+/// also gets its (empty) folder, made by `SemesterFactory`.
 public struct VaultSemesterStore: SemesterStore {
     let backend: VaultBackend
 

@@ -45,6 +45,8 @@ extension VaultBackend {
         let text = SemesterRules.json(SemesterRules.sorted(file.list + [semester]))
         let entries = [try entry(for: text, file: (file.text, file.version))]
         if !dryRun {
+            // The folder first: an empty folder is harmless, a listed semester without one is not.
+            try await SemesterFactory(store: store).createFolder(for: semester)
             try await writeSemesterFile(text, old: (file.text, file.version))
             await courseFilesChanged()
         }

@@ -176,6 +176,21 @@ public actor VaultStore {
         try await atomicWrite(Data(content.utf8), to: path, expectedVersion: nil, mustNotExist: true)
     }
 
+    /// Creates a folder (and missing parents). Nothing happens when the folder already exists;
+    /// `.conflict` when a file is in the way. Files are made by `create`/`write`, which create their
+    /// folders; this is for folders that must exist empty (`_inbox/`, a new semester).
+    public func createFolder(_ path: VaultPath) async throws {
+        do {
+            if VaultStore.isTrashArea(path) { throw MarginError.invalid("\(path) is inside the trash area") }
+            let target = try checkedURL(path, followFinal: false)
+            if let existing = try fileSystem.attributes(at: target) {
+                guard existing.kind == .directory else { throw MarginError.conflict("\(path) exists and is not a folder") }
+                return
+            }
+            try fileSystem.createDirectories(at: target)
+        } catch { throw VaultStore.map(error, "create folder \(path)") }
+    }
+
     /// Renames or moves a file or folder, creating missing target folders. `MarginError.conflict`
     /// when the target exists (nothing is overwritten), `.notFound` when the source is missing.
     /// Registered `RenameObserver`s run after the move.
