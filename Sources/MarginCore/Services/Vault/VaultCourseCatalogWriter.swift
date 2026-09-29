@@ -28,7 +28,8 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
 
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,
                             dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        throw MarginError.invalid("Archiving semesters is not implemented yet (TODO(M10-13.B))")
+        try await backend.setArchived(semester: semester, archived, actor: actor, dryRun: dryRun,
+                                      idempotencyKey: idempotencyKey)
     }
 
     public func override(session: SessionOverride, actor: Actor, baseVersion: String?, dryRun: Bool,

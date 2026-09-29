@@ -7,7 +7,7 @@ import Testing
 // widened to `HarnessKind.allCases` in the commit that implements it.
 private let createKinds = HarnessKind.allCases
 private let editKinds = HarnessKind.allCases
-private let archiveKinds: [HarnessKind] = [.fixture]
+private let archiveKinds = HarnessKind.allCases
 private let overrideKinds: [HarnessKind] = [.fixture]
 
 private func codeOf<T>(_ body: () async throws -> T) async -> String? {
@@ -200,10 +200,21 @@ private let stats = NewCourse(name: "Statistics", semester: "fall-2026", code: "
             #expect(try await h.courses.semesters().map(\.isArchived) == [true])
             #expect(try await h.courses.courses(query: nil).isEmpty)          // no current semester any more
             #expect(try await h.courses.course(id: "bio").name == "Cell Biology")   // still readable
+            // Its notes stay readable but cannot be written.
+            let archivedNotes = try await h.notes.notes(course: "bio")
+            #expect(archivedNotes.count == bioNotes)
+            let note = try await h.notes.open(id: archivedNotes[0].id)
+            #expect(note.summary.courseID == "bio")
 
             func code(_ body: () async throws -> ChangeSet) async -> String? { await codeOf(body) }
             #expect(await code { try await h.notes.create(course: "bio", title: "New", kind: .note, text: "", actor: .user,
                                                           baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "readOnly")
+            #expect(await code { try await h.notes.save(id: note.summary.id, text: note.text + "x", actor: .user,
+                                                        baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "readOnly")
+            #expect(await code { try await h.notes.delete(id: note.summary.id, actor: .user, baseVersion: nil, dryRun: false,
+                                                          idempotencyKey: nil) } == "readOnly")
+            #expect(await code { try await h.notes.move(id: note.summary.id, toCourse: "chem", actor: .user, baseVersion: nil,
+                                                        dryRun: false, idempotencyKey: nil) } == "readOnly")
             #expect(await code { try await h.writer.rename(id: "bio", to: "X", renameFolder: false, actor: .user,
                                                            baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "readOnly")
             #expect(await code { try await h.writer.create(stats, actor: .user, baseVersion: nil, dryRun: false,

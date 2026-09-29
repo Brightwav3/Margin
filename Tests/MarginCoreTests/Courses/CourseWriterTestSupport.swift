@@ -10,6 +10,7 @@ struct CourseVault {
     let writer: VaultCourseCatalogWriter
     let catalog: VaultCourseCatalog
     let notes: VaultNoteRepository
+    let tasks: VaultTaskService
     let clock: FixedClock
 
     static func open(sample: Bool = true) async throws -> CourseVault {
@@ -28,7 +29,8 @@ struct CourseVault {
     static func reopen(_ dir: TempDir, clock: FixedClock = FixedClock()) async throws -> CourseVault {
         let backend = try await VaultBackend.open(at: dir.url, clock: clock, watchInterval: 0.05)
         return CourseVault(dir: dir, backend: backend, writer: VaultCourseCatalogWriter(backend: backend),
-                           catalog: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend), clock: clock)
+                           catalog: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend),
+                           tasks: VaultTaskService(backend: backend), clock: clock)
     }
 
     func text(_ relative: String) -> String { dir.bytes(relative).flatMap { String(data: $0, encoding: .utf8) } ?? "" }

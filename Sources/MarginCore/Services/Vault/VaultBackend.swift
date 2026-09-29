@@ -128,7 +128,8 @@ actor VaultBackend {
     }
 
     private func courseID(of record: NoteRecord) -> CourseID? {
-        model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
+        if let archived = archivedEntry(forNotePath: record.path) { return archived.course.id }
+        return model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
     }
 
     private func summary(of record: NoteRecord) -> NoteSummary {
@@ -142,13 +143,21 @@ actor VaultBackend {
     }
 
     private func record(_ id: NoteID) async throws -> NoteRecord {
-        guard let r = await index.note(byID: id), Self.isNotePath(r.path) else { throw MarginError.notFound("No note \(id)") }
+        guard let r = await index.note(byID: id), Self.isNotePath(r.path) || Self.isArchivedNotePath(r.path) else {
+            throw MarginError.notFound("No note \(id)")
+        }
         return r
     }
 
     // MARK: Courses
 
     func semesters() -> [Semester] { model.semesters }
+
+    /// Courses that can be written: not in an archived semester (their exams are not "due" either).
+    var liveCourses: [Course] {
+        let archived = Set(model.semesters.filter(\.isArchived).map(\.id))
+        return model.entries.filter { !$0.archived && !archived.contains($0.course.semester) }.map(\.course)
+    }
 
     /// The semester that is "now": archived ones never are.
     func currentSemester() -> Semester? {
@@ -173,6 +182,11 @@ actor VaultBackend {
     // MARK: Notes (read)
 
     func notes(course: CourseID?) async throws -> [NoteSummary] {
+        if let course, model.entry(course)?.archived == true {
+            // A course of an archived semester: its notes are readable, and only listed by course.
+            let records = await index.allNotes.filter { Self.isArchivedNotePath($0.path) && archivedEntry(forNotePath: $0.path)?.course.id == course }
+            return ServiceRules.sortNotes(records.map { summary(of: $0) })
+        }
         if let course { _ = try self.course(id: course) }
         let all = await noteRecords().map { summary(of: $0) }
         return ServiceRules.sortNotes(all.filter { course == nil || $0.courseID == course })
@@ -207,11 +221,11 @@ actor VaultBackend {
     }
 
     func today() async -> [TaskItem] {
-        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
+        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func upcoming() async -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
+        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func tasks(course id: CourseID) async throws -> [TaskItem] {
@@ -225,6 +239,7 @@ actor VaultBackend {
               idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         let path = try VaultPath(r.path)
         let (content, version) = try await store.read(path)
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -247,6 +262,7 @@ actor VaultBackend {
                 dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         guard let entry = model.entry(courseID) else { throw MarginError.notFound("No course \(courseID)") }
+        try requireWritable(course: entry)
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { throw MarginError.invalid("A note needs a title") }
         let id = ServiceRules.noteID(course: courseID, title: title)
@@ -276,7 +292,9 @@ actor VaultBackend {
               idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         guard let entry = model.entry(target) else { throw MarginError.notFound("No course \(target)") }
+        try requireWritable(course: entry)
         let from = try VaultPath(r.path)
         let version = try await store.read(from).version
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -304,6 +322,7 @@ actor VaultBackend {
     func delete(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         let path = try VaultPath(r.path)
         let version = try await store.read(path).version
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -322,6 +341,7 @@ actor VaultBackend {
                      transform: (_ content: String, _ record: NoteRecord) throws -> String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         let path = try VaultPath(r.path)
         let (content, version) = try await store.read(path)
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")

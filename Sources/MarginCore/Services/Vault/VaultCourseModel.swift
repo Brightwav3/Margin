@@ -48,32 +48,47 @@ struct VaultCourseModel: Sendable {
         var model = VaultCourseModel()
         let paths = (try? await store.list()) ?? []
         var seen = Set<CourseID>()
-        for path in paths {
-            let parts = path.components
-            guard parts.count == 3, parts[2] == "_course.md", !parts[0].hasPrefix("_"), !parts[0].hasPrefix("."),
-                  let text = try? await store.read(path).content
-            else { continue }
-            let (fm, _) = Frontmatter.parse(text)
-            guard let fm, let course = parseCourse(fm, semesterFolder: parts[0], folder: parts[1]),
-                  seen.insert(course.id).inserted
-            else { continue }
-            model.entries.append(Entry(course: course, semesterFolder: parts[0], folder: parts[1]))
+        // Live courses first, so a course that exists both live and in the archive is the live one.
+        for archived in [false, true] {
+            for path in paths {
+                let parts = path.components
+                let prefix = archived ? 1 : 0
+                guard parts.count == 3 + prefix, parts[2 + prefix] == "_course.md",
+                      archived ? parts[0] == SemesterArchiver.folderName : !parts[0].hasPrefix("_"),
+                      !parts[prefix].hasPrefix("_"), !parts[prefix].hasPrefix("."),
+                      let text = try? await store.read(path).content
+                else { continue }
+                let (fm, _) = Frontmatter.parse(text)
+                guard let fm, let course = parseCourse(fm, semesterFolder: parts[prefix], folder: parts[prefix + 1]),
+                      seen.insert(course.id).inserted
+                else { continue }
+                model.entries.append(Entry(course: course, semesterFolder: parts[prefix], folder: parts[prefix + 1],
+                                           archived: archived))
+            }
         }
-        model.semesters = await loadSemesters(store: store, folders: Array(Set(model.entries.map(\.semesterFolder))), clock: clock)
+        model.semesters = await loadSemesters(store: store, entries: model.entries, clock: clock)
         return model
     }
 
     /// `.margin/semesters.json` when present; otherwise one semester per semester folder, starting
     /// with the current week and lasting 15 weeks (a placeholder until the user sets dates).
-    private static func loadSemesters(store: VaultStore, folders: [String], clock: any Clock) async -> [Semester] {
+    ///
+    /// A semester is archived when all its courses are in `_archive/`; a semester without courses
+    /// is archived when `semesters.json` says so.
+    private static func loadSemesters(store: VaultStore, entries: [Entry], clock: any Clock) async -> [Semester] {
         var result: [Semester] = []
-        if let path = try? VaultPath(".margin/semesters.json"), let data = try? await store.readData(path).data,
+        if let path = try? VaultPath(SemesterArchiver.semestersFile), let data = try? await store.readData(path).data,
            let decoded = try? JSONDecoder().decode([Semester].self, from: data) {
             result = decoded
         }
-        for folder in folders.sorted() where !result.contains(where: { $0.name == folder || $0.id == semesterID(folder) }) {
+        for folder in Set(entries.map(\.semesterFolder)).sorted()
+        where !result.contains(where: { $0.name == folder || $0.id == semesterID(folder) }) {
             let start = clock.today.startOfWeek
             result.append(Semester(id: semesterID(folder), name: folder, start: start, end: start.adding(days: 15 * 7 - 1)))
+        }
+        for i in result.indices {
+            let own = entries.filter { $0.semesterFolder == result[i].name }
+            if !own.isEmpty { result[i].isArchived = own.allSatisfy(\.archived) }
         }
         return result.sorted { ($0.start, $0.id) < ($1.start, $1.id) }
     }

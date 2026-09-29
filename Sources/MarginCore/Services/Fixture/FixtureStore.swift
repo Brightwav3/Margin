@@ -76,6 +76,9 @@ actor FixtureStore {
         return try ServiceRules.occurrences(week: week, semester: semester, courses: courses, overrides: overrides)
     }
 
+    /// Courses whose exams are due: none in an archived semester.
+    var liveCourses: [Course] { semester.isArchived ? [] : courses }
+
     /// Archived semesters are read-only (spec 05 §1, `CourseCatalogWriter.setArchived`).
     func requireWritable() throws {
         if semester.isArchived { throw MarginError.readOnly("\(semester.name) is archived and read-only") }
@@ -104,11 +107,11 @@ actor FixtureStore {
     }
 
     func today() -> [TaskItem] {
-        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
+        ServiceRules.todayItems(tasks: allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func upcoming() -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(courses), clock: clock)
+        ServiceRules.upcomingItems(tasks: allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func tasks(course id: CourseID) throws -> [TaskItem] {
