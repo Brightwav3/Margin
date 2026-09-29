@@ -222,3 +222,21 @@ public struct FixtureSyllabusService: SyllabusService {
                                    idempotencyKey: idempotencyKey) { $0 = try SyllabusRules.apply(draft, to: $0) }
     }
 }
+
+/// `ExportService` over `Fixtures.week5`, in memory.
+public struct FixtureExportService: ExportService {
+    let store: FixtureStore
+    private let engine: ExportEngine
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.init(store: FixtureStore(world: world, clock: clock))
+    }
+
+    init(store: FixtureStore, pdf: (any PDFRenderer)? = DefaultPDFRenderer.renderer) {
+        self.store = store; engine = ExportEngine(pdf: pdf)
+    }
+
+    public func export(note: NoteID, format: ExportFormat, options: ExportOptions) async throws -> ExportedFile {
+        try await store.export(note: note, format: format, options: options, engine: engine)
+    }
+}

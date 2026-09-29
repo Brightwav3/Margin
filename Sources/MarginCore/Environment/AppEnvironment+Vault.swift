@@ -33,6 +33,7 @@ extension AppEnvironment {
             history: VaultHistoryService(backend: backend),
             reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
             syllabus: VaultSyllabusService(backend: backend),
+            export: VaultExportService(backend: backend),
             shutdown: { await backend.shutdown() })
     }
 }
