@@ -25,6 +25,11 @@ import Foundation
 ///
 /// One app instance per vault is assumed (the same assumption the store's temp-file cleanup makes).
 actor ChangeSetJournal {
+    // Its own thread, like the other vault actors: encoding and decoding records of many kilobytes and
+    // waiting on fsync must not occupy the cooperative pool.
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.changeset-journal")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
+
     /// A finished transaction.
     struct Committed: Sendable {
         var changeSet: ChangeSet
@@ -101,7 +106,7 @@ actor ChangeSetJournal {
 
     private func load() async {
         let names: [String]
-        do { names = try await store.appDataFileNames(in: VaultPath.internalChangeSets) } catch {
+        do { names = try await store.listInternalFiles(in: VaultPath.internalChangeSets) } catch {
             // A broken journal folder must not keep the user out of their vault. Nothing can be
             // recovered or recorded then: every write fails (its write-ahead record cannot be made)
             // until the folder is repaired, and reads keep working.
@@ -290,7 +295,7 @@ actor ChangeSetJournal {
     private func rollback(base: String) async -> (problems: [String], operations: [RecordedOperation]) {
         var problems: [String] = []
         var operations: [RecordedOperation] = []
-        let names = (try? await store.appDataFileNames(in: VaultPath.internalChangeSets)) ?? []
+        let names = (try? await store.listInternalFiles(in: VaultPath.internalChangeSets)) ?? []
         let prefix = base + ".op-"
         let opNames = names.filter { $0.hasPrefix(prefix) }.sorted(by: >)
         for name in opNames {

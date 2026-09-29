@@ -14,6 +14,8 @@ struct SearchSource: Sendable {
 /// Every call first compares the notes' content hashes with what is indexed and re-indexes only
 /// what changed, so results follow saves and outside edits without any change notification.
 actor SearchEngine {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.search-engine")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     typealias Provider = @Sendable () async -> [SearchSource]
 
     private struct Doc: Sendable {

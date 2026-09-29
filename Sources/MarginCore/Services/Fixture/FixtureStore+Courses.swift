@@ -48,7 +48,7 @@ extension FixtureStore {
     // MARK: Edit
 
     /// Applies `change` to the course; an unchanged course is an empty `ChangeSet`.
-    private func editCourse(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
+    func editCourse(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?,
                             moved: Bool = false, change: (inout Course) throws -> Void) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let old = try course(id: id)
@@ -97,6 +97,16 @@ extension FixtureStore {
     func setArchived(semester id: SemesterID, _ archived: Bool, actor: Actor, dryRun: Bool,
                      idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        if let i = extraSemesters.firstIndex(where: { $0.id == id }) {
+            // A semester made through `SemesterStore`: no courses, so only the flag and the folder move.
+            let name = extraSemesters[i].name
+            guard extraSemesters[i].isArchived != archived else { return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey) }
+            let live = name, archive = "_archive/\(name)"
+            let entries: [ChangeSet.Entry] = [.init(path: archived ? archive : live, kind: .moved, fromPath: archived ? live : archive),
+                                              .init(path: ".margin/semesters.json", kind: .modified)]
+            if !dryRun { extraSemesters[i].isArchived = archived }
+            return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
+        }
         guard id == semester.id else { throw MarginError.notFound("No semester \(id)") }
         var entries: [ChangeSet.Entry] = []
         if semester.isArchived != archived {

@@ -12,10 +12,14 @@ import Foundation
 /// read-check-write steps; writers outside the process are caught by the store's `expectedVersion`
 /// check and the write is retried against what they wrote.
 actor VaultBackend {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.vault-backend")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     let store: VaultStore
     let index: NoteIndex
     let clock: any Clock
     let journal: ChangeSetJournal
+    /// Progress of the index build (`IndexStatus`).
+    nonisolated let indexProgress: IndexProgressTracker
 
     nonisolated let noteChanges = Broadcaster<[NoteChange]>()
     nonisolated let catalogUpdates = Broadcaster<CatalogUpdate>()
@@ -37,8 +41,10 @@ actor VaultBackend {
     /// the file between the read and the write.
     private static let maxWriteAttempts = 6
 
-    private init(store: VaultStore, index: NoteIndex, clock: any Clock, journal: ChangeSetJournal) {
+    private init(store: VaultStore, index: NoteIndex, clock: any Clock, journal: ChangeSetJournal,
+                 indexProgress: IndexProgressTracker) {
         self.store = store; self.index = index; self.clock = clock; self.journal = journal
+        self.indexProgress = indexProgress
         self.tasksStore = TasksStore(index: index)
         self.taskWriteBack = TaskWriteBack(store: store, index: index, clock: clock)
         self.changeSets = ChangeSetFactory(clock: clock)
@@ -52,21 +58,32 @@ actor VaultBackend {
     ///   - watchInterval: seconds between scans of the portable watcher.
     ///   - retention: how long and how many change sets are kept for undo.
     ///   - fileSystem: the file system the store uses (tests inject faults here).
+    ///   - onProgress: called while the index is built (`IndexProgress`, whole-percent steps, the last
+    ///     one complete), from whatever thread the build runs on.
     static func open(at url: URL, clock: any Clock, watchInterval: TimeInterval = 0.3,
                      retention: ChangeSetRetention = .standard,
-                     fileSystem: any FileSystem = POSIXFileSystem()) async throws -> VaultBackend {
+                     fileSystem: any FileSystem = POSIXFileSystem(),
+                     onProgress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> VaultBackend {
         // A generous TTL: on a busy machine the poller may lag far behind the app's own writes.
         let ownWrites = OwnWriteRegistry(ttl: 60)
         let store = try await VaultStore.open(root: url, fileSystem: fileSystem, clock: clock, ownWrites: ownWrites)
         let journal = try await ChangeSetJournal.open(store: store, clock: clock, retention: retention)
         let index = NoteIndex(clock: clock)
-        try await index.build(from: VaultNoteSource(store: store))
-        let backend = VaultBackend(store: store, index: index, clock: clock, journal: journal)
+        let tracker = IndexProgressTracker(observer: onProgress)
+        try await index.build(from: VaultNoteSource(store: store)) { done, total in
+            tracker.report(done: done, total: total)
+        }
+        tracker.finish()
+        let backend = VaultBackend(store: store, index: index, clock: clock, journal: journal, indexProgress: tracker)
         await store.addRenameObserver(backend.rewriter)
         await backend.reloadModel()
         await backend.primeTasks()
         // The watcher compares file times, which are real time, so it always uses the system clock.
-        let watcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
+        #if os(macOS)
+        let watcher: any FileWatcher = FSEventsFileWatcher(root: store.root, ownWrites: ownWrites)
+        #else
+        let watcher: any FileWatcher = PollingFileWatcher(root: store.root, interval: watchInterval, ownWrites: ownWrites)
+        #endif
         await backend.startWatching(watcher)
         return backend
     }
@@ -78,6 +95,7 @@ actor VaultBackend {
         noteChanges.finishAll()
         catalogUpdates.finishAll()
         tasksStore.updates.finishAll()
+        indexProgress.finishAll()
     }
 
     // MARK: Watching

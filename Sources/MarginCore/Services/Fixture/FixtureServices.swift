@@ -184,6 +184,96 @@ public struct FixtureCourseCatalogWriter: CourseCatalogWriter {
     }
 }
 
+/// `GradeService` over `Fixtures.week5`, in memory.
+public struct FixtureGradeService: GradeService {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func grades(course: CourseID) async throws -> [Grade] { try await store.grades(course: course) }
+    public func average(course: CourseID) async throws -> GradeSummary? { try await store.gradeAverage(course: course) }
+    public func gradesVersion(course: CourseID) async throws -> String { try await store.gradesVersion(course: course) }
+
+    public func add(_ grade: Grade, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.addGrade(grade, actor: actor, baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+}
+
+/// `SyllabusService` over `Fixtures.week5`, in memory.
+public struct FixtureSyllabusService: SyllabusService {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func draft(course: CourseID) async throws -> SyllabusDraft { SyllabusDraft(course: try await store.course(id: course)) }
+
+    public func apply(_ draft: SyllabusDraft, to course: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                      idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.editCourse(id: course, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                   idempotencyKey: idempotencyKey) { $0 = try SyllabusRules.apply(draft, to: $0) }
+    }
+}
+
+/// `ExportService` over `Fixtures.week5`, in memory.
+public struct FixtureExportService: ExportService {
+    let store: FixtureStore
+    private let engine: ExportEngine
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.init(store: FixtureStore(world: world, clock: clock))
+    }
+
+    init(store: FixtureStore, pdf: (any PDFRenderer)? = DefaultPDFRenderer.renderer) {
+        self.store = store; engine = ExportEngine(pdf: pdf)
+    }
+
+    public func export(note: NoteID, format: ExportFormat, options: ExportOptions) async throws -> ExportedFile {
+        try await store.export(note: note, format: format, options: options, engine: engine)
+    }
+}
+
+/// `SemesterStore` in memory. Shares its state with `FixtureCourseCatalog` when built from the same store.
+public struct FixtureSemesterStore: SemesterStore {
+    let store: FixtureStore
+
+    public init(world: FixtureWorld = Fixtures.week5, clock: any Clock = FixedClock()) {
+        self.store = FixtureStore(world: world, clock: clock)
+    }
+
+    init(store: FixtureStore) { self.store = store }
+
+    public func semesters() async throws -> [Semester] { await store.semesters() }
+    public func current() async throws -> Semester? { await store.currentSemester() }
+    public func version() async throws -> String { await store.semesterVersion() }
+
+    public func create(_ semester: NewSemester, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.createSemester(semester, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+
+    public func update(id: SemesterID, _ update: SemesterUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.updateSemester(id: id, update, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+
+    public func delete(id: SemesterID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.deleteSemester(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                       idempotencyKey: idempotencyKey)
+    }
+}
+
 /// `ChangeSetStore` over the in-memory fixture world: records the writes of the `Fixture…` services
 /// that share its store and undoes them. Same observable behaviour as `VaultChangeSetStore`.
 public struct FixtureChangeSetStore: ChangeSetStore {

@@ -17,7 +17,15 @@ extension FixtureStore {
         var overrides: [SessionOverride]
         var inbox: [InboxItem]
         var inboxStems: [String: String]
-        var archived: Bool
+        var grades: [Grade]
+        var semester: Semester
+        var extraSemesters: [Semester]
+    }
+
+    /// The semesters of the world (`SemesterStore`, `CourseCatalogWriter.setArchived`).
+    struct SemesterSet: Sendable, Equatable {
+        var main: Semester
+        var extra: [Semester]
     }
 
     enum NoteStep: Sendable { case created, deleted, moved, modified }
@@ -28,7 +36,8 @@ extension FixtureStore {
         case course(CourseID, before: Course?, after: Course?)
         case inbox(String, before: InboxItem?, beforeStem: String?, after: InboxItem?)
         case overrides(before: [SessionOverride], after: [SessionOverride])
-        case archived(before: Bool, after: Bool)
+        case grades(before: [Grade], after: [Grade])
+        case semesters(before: SemesterSet, after: SemesterSet)
     }
 
     /// A recorded change set and the steps that undo it.
@@ -41,7 +50,7 @@ extension FixtureStore {
 
     func currentWorld() -> World {
         World(notes: notes, courses: courses, overrides: overrides, inbox: inbox, inboxStems: inboxStems,
-              archived: semester.isArchived)
+              grades: grades, semester: semester, extraSemesters: extraSemesters)
     }
 
     /// Treats the current state as the baseline for the next recorded write.
@@ -92,7 +101,11 @@ extension FixtureStore {
             steps.append(.inbox(id, before: oldInbox[id], beforeStem: old.inboxStems[id], after: newInbox[id]))
         }
         if old.overrides != new.overrides { steps.append(.overrides(before: old.overrides, after: new.overrides)) }
-        if old.archived != new.archived { steps.append(.archived(before: old.archived, after: new.archived)) }
+        if old.grades != new.grades { steps.append(.grades(before: old.grades, after: new.grades)) }
+        if old.semester != new.semester || old.extraSemesters != new.extraSemesters {
+            steps.append(.semesters(before: SemesterSet(main: old.semester, extra: old.extraSemesters),
+                                    after: SemesterSet(main: new.semester, extra: new.extraSemesters)))
+        }
         return steps
     }
 
@@ -130,8 +143,8 @@ extension FixtureStore {
         }
         // Work on a copy: an undo that fails half way changes nothing.
         var world = currentWorld()
-        let revertsArchive = original.steps.contains { if case .archived = $0 { return true } else { return false } }
-        if world.archived && !revertsArchive {
+        let revertsSemesters = original.steps.contains { if case .semesters = $0 { return true } else { return false } }
+        if world.semester.isArchived && !revertsSemesters {
             throw Self.undoConflict("\(semester.name) is archived and read-only", path: semester.name)
         }
         var merged: [NoteID: MergedNote] = [:]
@@ -149,7 +162,9 @@ extension FixtureStore {
         overrides = world.overrides
         inbox = world.inbox
         inboxStems = world.inboxStems
-        setSemesterArchived(world.archived)
+        grades = world.grades
+        semester = world.semester
+        extraSemesters = world.extraSemesters
 
         var changed = Set<CourseID>()
         let old = Dictionary(uniqueKeysWithValues: before.courses.map { ($0.id, $0) })
@@ -158,7 +173,7 @@ extension FixtureStore {
         if before.overrides != world.overrides {
             for o in Set(before.overrides).symmetricDifference(Set(world.overrides)) { changed.insert(o.courseID) }
         }
-        if before.archived != world.archived { changed.formUnion(world.courses.map(\.id)) }
+        if before.semester != world.semester { changed.formUnion(world.courses.map(\.id)) }
         if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed.sorted())) }
         let examCourses = changed.filter { old[$0]?.exams != new[$0]?.exams }.sorted()
         if !examCourses.isEmpty { taskChanges.send(TaskUpdate(noteIDs: [], courseIDs: examCourses)) }
@@ -236,11 +251,17 @@ extension FixtureStore {
                 throw Self.undoConflict("the class overrides changed after this change", path: "overrides")
             }
             world.overrides = before
-        case .archived(let before, let after):
-            guard world.archived == after else {
-                throw Self.undoConflict("the semester was archived or restored again after this change", path: semester.name)
+        case .grades(let before, let after):
+            guard world.grades == after else {
+                throw Self.undoConflict("the grades changed after this change", path: "grades")
             }
-            world.archived = before
+            world.grades = before
+        case .semesters(let before, let after):
+            guard SemesterSet(main: world.semester, extra: world.extraSemesters) == after else {
+                throw Self.undoConflict("the semesters changed after this change (archived, restored or edited again)", path: semester.name)
+            }
+            world.semester = before.main
+            world.extraSemesters = before.extra
         }
     }
 

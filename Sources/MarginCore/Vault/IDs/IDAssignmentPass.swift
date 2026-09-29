@@ -64,6 +64,8 @@ public struct IDAssignmentReport: Sendable, Hashable {
 /// Duplicates (a copy-pasted task line or note): the first owner in path and line order keeps
 /// the id, later ones get a new id.
 public actor IDAssignmentPass {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.id-assignment")
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     private let store: VaultStore
     private var generator: StableIDGenerator
     private let assigner = IDAssigner()

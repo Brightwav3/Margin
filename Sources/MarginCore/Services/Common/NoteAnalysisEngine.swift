@@ -96,6 +96,8 @@ struct NoteAnalysisEngine: Sendable {
 
 /// One `NoteStatsTracker` per note that is being edited; the least recently used are dropped.
 actor StatsTrackers {
+    private nonisolated let dedicatedExecutor = DedicatedExecutor(label: "margin.stats-trackers")
+    nonisolated var unownedExecutor: UnownedSerialExecutor { dedicatedExecutor.asUnownedSerialExecutor() }
     private var trackers: [NoteID: NoteStatsTracker] = [:]
     private var order: [NoteID] = []
     private let capacity: Int

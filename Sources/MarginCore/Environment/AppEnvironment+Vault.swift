@@ -12,11 +12,19 @@ extension AppEnvironment {
     ///
     /// - Parameter watchInterval: seconds between file scans (the portable watcher; macOS uses the
     ///   same until the FSEvents backend lands). Defaults to `defaultWatchInterval`.
-    ///   - retention: how long and how many change sets are kept for undo (30 days / 500).
+    /// - Parameter progress: called while the index is built (0 … 100 %, the last element complete),
+    ///   for a loading screen. `AppEnvironment.indexStatus` gives the same to a late subscriber.
+    /// - Parameter reminderCenter: where class reminders are shown; the macOS app passes
+    ///   `UserNotificationCenter`, the default keeps them in memory.
+    /// - Parameter retention: how long and how many change sets are kept for undo (30 days / 500).
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
                              watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval,
-                             retention: ChangeSetRetention = .standard) async throws -> AppEnvironment {
-        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval, retention: retention)
+                             reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
+                             retention: ChangeSetRetention = .standard,
+                             progress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> AppEnvironment {
+        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval,
+                                                  retention: retention, onProgress: progress)
+        let settings = VaultSettingsStore(store: backend.store)
         return AppEnvironment(
             clock: clock,
             courses: VaultCourseCatalog(backend: backend),
@@ -28,8 +36,15 @@ extension AppEnvironment {
             analysis: VaultNoteAnalysis(backend: backend),
             graph: VaultGraphService(backend: backend),
             courseWriter: VaultCourseCatalogWriter(backend: backend),
+            settings: settings, semesters: VaultSemesterStore(backend: backend),
+            indexStatus: VaultIndexStatus(backend: backend),
+            grades: VaultGradeService(backend: backend),
+            history: VaultHistoryService(backend: backend),
+            reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
+            syllabus: VaultSyllabusService(backend: backend),
+            export: VaultExportService(backend: backend),
             search: VaultSearchService(backend: backend),
             changes: VaultChangeSetStore(backend: backend),
-            shutdown: { await backend.shutdown() })
+            shutdown: { settings.finish(); await backend.shutdown() })
     }
 }
