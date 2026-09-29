@@ -8,6 +8,9 @@ public struct VaultCaptureService: CaptureService {
     public func parse(_ input: String) async throws -> CaptureDraft { await backend.captureParse(input) }
 
     public func commit(_ draft: CaptureDraft, actor: Actor, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.captureCommit(draft, actor: actor, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.captureCommit(draft, actor: actor, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        }
     }
 }

@@ -11,36 +11,54 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
 
     public func create(_ course: NewCourse, actor: Actor, baseVersion: String?, dryRun: Bool,
                        idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.createCourse(course, actor: actor, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.createCourse(course, actor: actor, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        }
     }
 
     public func rename(id: CourseID, to name: String, renameFolder: Bool, actor: Actor, baseVersion: String?,
                        dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.renameCourse(id: id, to: name, renameFolder: renameFolder, actor: actor,
-                                       baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.renameCourse(id: id, to: name, renameFolder: renameFolder, actor: actor,
+                                           baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        }
     }
 
     public func setStyle(id: CourseID, icon: String?, color: String?, actor: Actor, baseVersion: String?,
                          dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.setCourseStyle(id: id, icon: icon, color: color, actor: actor, baseVersion: baseVersion,
-                                         dryRun: dryRun, idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.setCourseStyle(id: id, icon: icon, color: color, actor: actor, baseVersion: baseVersion,
+                                             dryRun: dryRun, idempotencyKey: idempotencyKey)
+        }
     }
 
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,
                             dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.setArchived(semester: semester, archived, actor: actor, dryRun: dryRun,
-                                      idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.setArchived(semester: semester, archived, actor: actor, dryRun: dryRun,
+                                          idempotencyKey: idempotencyKey)
+        }
     }
 
     public func override(session: SessionOverride, actor: Actor, baseVersion: String?, dryRun: Bool,
                          idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.setOverride(session, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
-                                      idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.setOverride(session, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                          idempotencyKey: idempotencyKey)
+        }
     }
 
     public func clearOverride(sessionID: String, course: CourseID, originalDate: LocalDate, actor: Actor,
                               baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.clearOverride(sessionID: sessionID, course: course, originalDate: originalDate, actor: actor,
-                                        baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.clearOverride(sessionID: sessionID, course: course, originalDate: originalDate, actor: actor,
+                                            baseVersion: baseVersion, dryRun: dryRun, idempotencyKey: idempotencyKey)
+        }
     }
 }

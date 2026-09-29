@@ -26,6 +26,7 @@ public struct AppEnvironment: Sendable {
     public let syllabus: any SyllabusService
     public let export: any ExportService
     public let search: any SearchService
+    public let changes: any ChangeSetStore
 
     private let onShutdown: @Sendable () async -> Void
 
@@ -36,12 +37,14 @@ public struct AppEnvironment: Sendable {
                 indexStatus: any IndexStatus, grades: any GradeService,
                 history: any HistoryService, reminders: any ReminderService,
                 syllabus: any SyllabusService, export: any ExportService, search: any SearchService,
+                changes: any ChangeSetStore,
                 shutdown: @escaping @Sendable () async -> Void = {}) {
         self.clock = clock; self.courses = courses; self.notes = notes; self.tasks = tasks
         self.properties = properties; self.analysis = analysis; self.capture = capture; self.inbox = inbox
         self.graph = graph; self.courseWriter = courseWriter; self.grades = grades; self.history = history
         self.settings = settings; self.semesters = semesters; self.indexStatus = indexStatus
         self.reminders = reminders; self.syllabus = syllabus; self.export = export; self.search = search
+        self.changes = changes
         self.onShutdown = shutdown
     }
 
@@ -74,6 +77,7 @@ public struct AppEnvironment: Sendable {
             syllabus: FixtureSyllabusService(store: store),
             export: FixtureExportService(store: store),
             search: FixtureSearchService(store: store),
+            changes: FixtureChangeSetStore(store: store),
             shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll()
                 settings.finish() })
     }

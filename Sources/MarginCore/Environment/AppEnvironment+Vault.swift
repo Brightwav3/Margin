@@ -16,11 +16,14 @@ extension AppEnvironment {
     ///   for a loading screen. `AppEnvironment.indexStatus` gives the same to a late subscriber.
     /// - Parameter reminderCenter: where class reminders are shown; the macOS app passes
     ///   `UserNotificationCenter`, the default keeps them in memory.
+    /// - Parameter retention: how long and how many change sets are kept for undo (30 days / 500).
     public static func vault(at url: URL, clock: any Clock = SystemClock(),
                              watchInterval: TimeInterval = AppEnvironment.defaultWatchInterval,
                              reminderCenter: any ReminderCenter = InMemoryReminderCenter(),
+                             retention: ChangeSetRetention = .standard,
                              progress: (@Sendable (IndexProgress) -> Void)? = nil) async throws -> AppEnvironment {
-        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval, onProgress: progress)
+        let backend = try await VaultBackend.open(at: url, clock: clock, watchInterval: watchInterval,
+                                                  retention: retention, onProgress: progress)
         let settings = VaultSettingsStore(store: backend.store)
         return AppEnvironment(
             clock: clock,
@@ -41,6 +44,7 @@ extension AppEnvironment {
             syllabus: VaultSyllabusService(backend: backend),
             export: VaultExportService(backend: backend),
             search: VaultSearchService(backend: backend),
+            changes: VaultChangeSetStore(backend: backend),
             shutdown: { settings.finish(); await backend.shutdown() })
     }
 }

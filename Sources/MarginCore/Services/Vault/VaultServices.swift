@@ -119,3 +119,18 @@ public struct VaultNoteAnalysis: NoteAnalysis {
     public func stats(id: NoteID, text: String?) async throws -> NoteStats { try await engine.stats(id: id, text: text) }
     public func properties(id: NoteID) async throws -> [NoteProperty] { try await engine.properties(id: id) }
 }
+
+/// `ChangeSetStore` over a vault: every write of the `Vault…` services is recorded in
+/// `.margin/changesets/` (write-ahead, so an interrupted write is rolled back on the next open)
+/// and can be undone here, also after the app was restarted.
+public struct VaultChangeSetStore: ChangeSetStore {
+    let backend: VaultBackend
+
+    init(backend: VaultBackend) { self.backend = backend }
+
+    public func changes(limit: Int?) async throws -> [ChangeSet] { await backend.changes(limit: limit) }
+    public func change(id: String) async throws -> ChangeSet { try await backend.change(id: id) }
+    public func undo(id: String, actor: Actor, mode: UndoMode, dryRun: Bool) async throws -> ChangeSet {
+        try await backend.undo(id: id, actor: actor, mode: mode, dryRun: dryRun)
+    }
+}

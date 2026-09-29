@@ -13,19 +13,28 @@ public struct VaultSemesterStore: SemesterStore {
 
     public func create(_ semester: NewSemester, actor: Actor, baseVersion: String?, dryRun: Bool,
                        idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.createSemester(semester, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
-                                         idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.createSemester(semester, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                             idempotencyKey: idempotencyKey)
+        }
     }
 
     public func update(id: SemesterID, _ update: SemesterUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
                        idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.updateSemester(id: id, update, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
-                                         idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.updateSemester(id: id, update, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                             idempotencyKey: idempotencyKey)
+        }
     }
 
     public func delete(id: SemesterID, actor: Actor, baseVersion: String?, dryRun: Bool,
                        idempotencyKey: String?) async throws -> ChangeSet {
-        try await backend.deleteSemester(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
-                                         idempotencyKey: idempotencyKey)
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.deleteSemester(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                             idempotencyKey: idempotencyKey)
+        }
     }
 }

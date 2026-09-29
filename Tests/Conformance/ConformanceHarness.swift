@@ -62,6 +62,7 @@ struct Harness: Sendable {
     var syllabus: any SyllabusService { env.syllabus }
     var exporter: any ExportService { env.export }
     var search: any SearchService { env.search }
+    var changes: any ChangeSetStore { env.changes }
     var clock: any Clock { env.clock }
 
     static func make(_ kind: HarnessKind, clock: any Clock = FixedClock(),
@@ -81,6 +82,7 @@ struct Harness: Sendable {
                 history: FixtureHistoryService(store: store, clock: clock),
                 reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
                 syllabus: FixtureSyllabusService(store: store), export: FixtureExportService(store: store), search: FixtureSearchService(store: store),
+                changes: FixtureChangeSetStore(store: store),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
                 kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
@@ -107,6 +109,7 @@ struct Harness: Sendable {
                 history: VaultHistoryService(backend: backend),
                 reminders: CatalogReminderService(courses: VaultCourseCatalog(backend: backend), center: reminderCenter, clock: clock),
                 syllabus: VaultSyllabusService(backend: backend), export: VaultExportService(backend: backend), search: VaultSearchService(backend: backend),
+                changes: VaultChangeSetStore(backend: backend),
                 shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(
@@ -211,3 +214,17 @@ func collect<T: Sendable>(from stream: AsyncStream<T>, timeout: TimeInterval = 3
 }
 
 let testActor = Actor.agent(identity: "study-helper", client: "conformance", session: "s-1", purpose: "test")
+
+/// A clock tests can move forward (retention is measured against the `Clock`).
+final class MutableClock: Clock, @unchecked Sendable {
+    private let lock = NSLock()
+    private var current: Date
+    let timeZone: TimeZone
+
+    init(start: Date = FixedClock().now, timeZone: TimeZone = FixedClock.defaultTimeZone) {
+        current = start; self.timeZone = timeZone
+    }
+
+    var now: Date { lock.withLock { current } }
+    func advance(bySeconds seconds: TimeInterval) { lock.withLock { current = current.addingTimeInterval(seconds) } }
+}
