@@ -21,7 +21,7 @@ actor VaultBackend {
     private(set) var model = VaultCourseModel()
     var changeSets: ChangeSetFactory
     var idempotency = IdempotencyCache()
-    private let rewriter = WikilinkRewriter()
+    let rewriter = WikilinkRewriter()
     private var watchTask: Task<Void, Never>?
 
     private init(store: VaultStore, index: NoteIndex, clock: any Clock) {
@@ -88,29 +88,34 @@ actor VaultBackend {
             }
         }
         if batch.contains(where: { $0.path.split(separator: "/").last == "_course.md" }) {
-            let old = model.courses
+            let old = model.entries
             await reloadModel()
-            let changed = Self.changedCourses(old: old, new: model.courses)
+            let changed = Self.changedCourses(old: old, new: model.entries)
             if !changed.isEmpty { catalogUpdates.send(CatalogUpdate(courses: changed)) }
             // A course file can change which course a note belongs to, and the exam dates.
             await tasksMayHaveChanged(paths: nil)
-            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old, new: model.courses))
+            await tasksStore.publish(courses: Self.coursesWithChangedExams(old: old.map(\.course), new: model.courses))
         } else {
             await tasksMayHaveChanged(paths: batch.map(\.path))
         }
         if !notes.isEmpty { noteChanges.send(notes.sorted { ($0.noteID, $0.kind.rawValue) < ($1.noteID, $1.kind.rawValue) }) }
     }
 
-    private static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
+    static func coursesWithChangedExams(old: [Course], new: [Course]) -> [CourseID] {
         let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0.exams) })
         let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0.exams) })
         return Set(before.keys).union(after.keys).filter { (before[$0] ?? []) != (after[$0] ?? []) }.sorted()
     }
 
-    private static func changedCourses(old: [Course], new: [Course]) -> [CourseID] {
-        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.id, $0) })
-        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.id, $0) })
-        return Set(before.keys).union(after.keys).filter { before[$0] != after[$0] }.sorted()
+    /// Courses whose file changed in a way the catalog shows: the course itself or its overrides.
+    static func changedCourses(old: [VaultCourseModel.Entry], new: [VaultCourseModel.Entry]) -> [CourseID] {
+        let before = Dictionary(uniqueKeysWithValues: old.map { ($0.course.id, [$0.course] as [Course] + []) })
+        let after = Dictionary(uniqueKeysWithValues: new.map { ($0.course.id, [$0.course] as [Course] + []) })
+        let overridesBefore = Dictionary(uniqueKeysWithValues: old.map { ($0.course.id, $0.overrides) })
+        let overridesAfter = Dictionary(uniqueKeysWithValues: new.map { ($0.course.id, $0.overrides) })
+        return Set(before.keys).union(after.keys).filter {
+            before[$0] != after[$0] || overridesBefore[$0] != overridesAfter[$0]
+        }.sorted()
     }
 
     func reloadModel() async {
@@ -128,7 +133,8 @@ actor VaultBackend {
     }
 
     private func courseID(of record: NoteRecord) -> CourseID? {
-        model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
+        if let archived = archivedEntry(forNotePath: record.path) { return archived.course.id }
+        return model.courseID(semesterFolder: record.semesterID, folder: record.courseID, className: record.className)
     }
 
     private func summary(of record: NoteRecord) -> NoteSummary {
@@ -142,7 +148,9 @@ actor VaultBackend {
     }
 
     private func record(_ id: NoteID) async throws -> NoteRecord {
-        guard let r = await index.note(byID: id), Self.isNotePath(r.path) else { throw MarginError.notFound("No note \(id)") }
+        guard let r = await index.note(byID: id), Self.isNotePath(r.path) || Self.isArchivedNotePath(r.path) else {
+            throw MarginError.notFound("No note \(id)")
+        }
         return r
     }
 
@@ -150,7 +158,16 @@ actor VaultBackend {
 
     func semesters() -> [Semester] { model.semesters }
 
-    private func currentSemester() -> Semester? { ServiceRules.currentSemester(model.semesters, today: clock.today) }
+    /// Courses that can be written: not in an archived semester (their exams are not "due" either).
+    var liveCourses: [Course] {
+        let archived = Set(model.semesters.filter(\.isArchived).map(\.id))
+        return model.entries.filter { !$0.archived && !archived.contains($0.course.semester) }.map(\.course)
+    }
+
+    /// The semester that is "now": archived ones never are.
+    func currentSemester() -> Semester? {
+        ServiceRules.currentSemester(model.semesters.filter { !$0.isArchived }, today: clock.today)
+    }
 
     func courses(query: String?) -> [Course] {
         guard let current = currentSemester() else { return [] }
@@ -164,12 +181,18 @@ actor VaultBackend {
 
     func sessions(week: Int) throws -> [SessionOccurrence] {
         guard let current = currentSemester() else { throw MarginError.notFound("This vault has no semester") }
-        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id })
+        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id },
+                                            overrides: overrides(in: current))
     }
 
     // MARK: Notes (read)
 
     func notes(course: CourseID?) async throws -> [NoteSummary] {
+        if let course, model.entry(course)?.archived == true {
+            // A course of an archived semester: its notes are readable, and only listed by course.
+            let records = await index.allNotes.filter { Self.isArchivedNotePath($0.path) && archivedEntry(forNotePath: $0.path)?.course.id == course }
+            return ServiceRules.sortNotes(records.map { summary(of: $0) })
+        }
         if let course { _ = try self.course(id: course) }
         let all = await noteRecords().map { summary(of: $0) }
         return ServiceRules.sortNotes(all.filter { course == nil || $0.courseID == course })
@@ -204,11 +227,11 @@ actor VaultBackend {
     }
 
     func today() async -> [TaskItem] {
-        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
+        ServiceRules.todayItems(tasks: await allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func upcoming() async -> [TaskItem] {
-        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(model.courses), clock: clock)
+        ServiceRules.upcomingItems(tasks: await allTasks(), exams: ServiceRules.examItems(liveCourses), clock: clock)
     }
 
     func tasks(course id: CourseID) async throws -> [TaskItem] {
@@ -222,6 +245,7 @@ actor VaultBackend {
               idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         let path = try VaultPath(r.path)
         let (content, version) = try await store.read(path)
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -244,6 +268,7 @@ actor VaultBackend {
                 dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         guard let entry = model.entry(courseID) else { throw MarginError.notFound("No course \(courseID)") }
+        try requireWritable(course: entry)
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { throw MarginError.invalid("A note needs a title") }
         let id = ServiceRules.noteID(course: courseID, title: title)
@@ -273,7 +298,9 @@ actor VaultBackend {
               idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         guard let entry = model.entry(target) else { throw MarginError.notFound("No course \(target)") }
+        try requireWritable(course: entry)
         let from = try VaultPath(r.path)
         let version = try await store.read(from).version
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -301,6 +328,7 @@ actor VaultBackend {
     func delete(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         let path = try VaultPath(r.path)
         let version = try await store.read(path).version
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -319,6 +347,7 @@ actor VaultBackend {
                      transform: (_ content: String, _ record: NoteRecord) throws -> String?) async throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         let r = try await record(id)
+        try requireWritable(path: r.path)
         let path = try VaultPath(r.path)
         let (content, version) = try await store.read(path)
         try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)")
@@ -348,6 +377,21 @@ actor VaultBackend {
         }
         guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
         let result = try await taskWriteBack.setDone(!item.done, task: item, baseVersion: baseVersion, dryRun: dryRun)
+        if !dryRun, result.entry != nil { await tasksMayHaveChanged(paths: [result.path]) }
+        return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: dryRun, key: idempotencyKey)
+    }
+
+    /// Sets or removes a task's due date through `TaskWriteBack` (same steps as `toggleTask`).
+    func setTaskDue(id taskID: String, due: LocalDate?, actor: Actor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet {
+        try TaskEditing.requireTask(id: taskID)
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        var found: TaskItem?
+        for record in await noteRecords() {
+            if let task = record.tasks.first(where: { $0.id == taskID }) { found = task; break }
+        }
+        guard let item = found else { throw MarginError.notFound("No task \(taskID)") }
+        let result = try await taskWriteBack.setDue(due, task: item, baseVersion: baseVersion, dryRun: dryRun)
         if !dryRun, result.entry != nil { await tasksMayHaveChanged(paths: [result.path]) }
         return finish(actor: actor, entries: result.entry.map { [$0] } ?? [], dryRun: dryRun, key: idempotencyKey)
     }

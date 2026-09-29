@@ -25,6 +25,8 @@ final class TempFolder: @unchecked Sendable {
 struct Harness: Sendable {
     let kind: HarnessKind
     let env: AppEnvironment
+    /// The write side of the course catalog (`CourseCatalogWriter`); shares its state with `courses`.
+    let writer: any CourseCatalogWriter
     /// Replaces the body of a note from outside.
     let editNote: @Sendable (NoteID, String) async throws -> Void
     /// The whole file content of a note: frontmatter and body, byte for byte.
@@ -65,7 +67,7 @@ struct Harness: Sendable {
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
                 shutdown: { store.catalogUpdates.finishAll(); store.noteChanges.finishAll(); store.taskChanges.finishAll() })
             return Harness(
-                kind: kind, env: env,
+                kind: kind, env: env, writer: FixtureCourseCatalogWriter(store: store),
                 editNote: { id, text in try await store.simulateExternalEdit(id: id, text: text) },
                 rawContent: { id in try await store.rawContent(id: id) },
                 deleteNote: { id in try await store.simulateExternalDelete(id: id) },
@@ -77,10 +79,16 @@ struct Harness: Sendable {
             // The sample vault of the same fixtures (M5-09), written before the environment opens it.
             let store = try await VaultStore.open(root: folder.url, clock: clock, createIfMissing: true)
             try await SampleVaultGenerator.generate(into: store, from: Fixtures.week5)
-            let env = try await AppEnvironment.vault(at: folder.url, clock: clock, watchInterval: watchInterval)
+            let backend = try await VaultBackend.open(at: folder.url, clock: clock, watchInterval: watchInterval)
+            let env = AppEnvironment(
+                clock: clock, courses: VaultCourseCatalog(backend: backend), notes: VaultNoteRepository(backend: backend),
+                tasks: VaultTaskService(backend: backend), capture: VaultCaptureService(backend: backend),
+                inbox: VaultInboxService(backend: backend), properties: VaultPropertyService(backend: backend),
+                analysis: VaultNoteAnalysis(backend: backend), graph: VaultGraphService(backend: backend),
+                shutdown: { await backend.shutdown() })
             let root = folder.url
             return Harness(
-                kind: kind, env: env,
+                kind: kind, env: env, writer: VaultCourseCatalogWriter(backend: backend),
                 editNote: { id, text in
                     let file = try Self.file(ofNoteWithID: id, in: root)
                     let content = try String(contentsOf: file, encoding: .utf8)
