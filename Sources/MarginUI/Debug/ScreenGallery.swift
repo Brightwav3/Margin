@@ -56,6 +56,15 @@ public enum MarginScreens {
         MarginScreen("course-grades", "Course: grades page", milestone: "M4") {
             AnyView(CoursePageScreen(page: .grades))
         },
+        MarginScreen("3a", "Note editor: live, properties, note inspector", milestone: "M6a") {
+            AnyView(WorkspaceView(env: .fixture(), start: .note("bio/lecture-8"), inspectorOpen: true))
+        },
+        MarginScreen("3a-source", "Note editor: source mode", milestone: "M6a") {
+            AnyView(EditorModeScreen(mode: .source))
+        },
+        MarginScreen("3a-reading", "Note editor: reading view", milestone: "M6a") {
+            AnyView(EditorModeScreen(mode: .reading))
+        },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
 
@@ -120,6 +129,19 @@ struct CoursePageScreen: View {
     init(page: CourseDetailModel.Page) {
         let w = Workspace(env: .fixture(), start: .course("bio"))
         w.courseModel("bio").page = page
+        _workspace = State(initialValue: w)
+    }
+
+    var body: some View { WorkspaceView(workspace: workspace) }
+}
+
+/// Gallery: Lecture 8 in one editor mode.
+struct EditorModeScreen: View {
+    @State private var workspace: Workspace
+
+    init(mode: EditorMode) {
+        let w = Workspace(env: .fixture(), start: .note("bio/lecture-8"))
+        w.editorModel(.note("bio/lecture-8")).setMode(mode)
         _workspace = State(initialValue: w)
     }
 

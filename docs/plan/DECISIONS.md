@@ -129,6 +129,14 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 
 ---
 
+### D-022 · 2026-09-30 · Přijato — Editor na TextKit 1 se skrytými glyfy
+**Rozhodnutí:** `MarkdownTextView` je `NSTextView` na TextKit 1 (`NSLayoutManager`). Live a reading režim skrývají syntaxi Markdownu mimo aktivní blok nulovými glyfy (`NSLayoutManagerDelegate`, atribut `margin.hidden`), zaškrtávací políčka úkolů kreslí textové pole přes neviditelné `[ ]`. Styling dělá `MarkdownStyler` nad inkrementálním `MarkdownTokenizer` jen pro přetokenizované řádky a bloky, do kterých kurzor vstoupil nebo odkud odešel.
+**Důvod:** TextKit 2 neumí znaky vynechat z layoutu bez vlastních fragmentů; nulové glyfy v TextKit 1 jsou ověřená cesta (Obsidian-like live preview), kurzor a výběr zůstávají v původním textu, undo je nativní.
+**Alternativy:** TextKit 2 s vlastním `NSTextLayoutFragment` (výrazně složitější, riziko skoků kurzoru); WebView editor (mimo D-007).
+**Důsledky / riziko:** plán M6-01 počítal s TextKit 2; výkon 10 000 slov ověřit v M6-16.U / M12-02. Text pole se nescrolluje samo (výška podle obsahu ve SwiftUI `ScrollView`), aby vlastnosti a nadpis scrollovaly s textem.
+
+---
+
 ## Šablona
 ```
 ### D-0NN · <datum> · <stav> — <název>

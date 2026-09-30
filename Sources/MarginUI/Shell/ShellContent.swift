@@ -110,9 +110,12 @@ public struct InspectorRow: Identifiable, Sendable {
     public var indent: CGFloat
     public var isLink: Bool
     public var isBold: Bool
+    public var action: (@MainActor @Sendable () -> Void)?
 
     public init(_ title: String, meta: String? = nil, icon: String? = nil, count: String = "",
-                indent: CGFloat = 8, isLink: Bool = false, isBold: Bool = false) {
+                indent: CGFloat = 8, isLink: Bool = false, isBold: Bool = false,
+                action: (@MainActor @Sendable () -> Void)? = nil) {
+        self.action = action
         self.title = title
         self.meta = meta
         self.icon = icon

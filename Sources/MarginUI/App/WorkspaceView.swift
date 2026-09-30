@@ -51,6 +51,8 @@ extension Workspace {
             return PageChrome(sidebar: coursesSidebar, inspector: nil)
         case .course(let id):
             return courseChrome(id)
+        case .note, .draft:
+            return noteChrome(route)
         default:
             return PageChrome(sidebar: coursesSidebar, inspector: nil)
         }
@@ -69,6 +71,8 @@ extension Workspace {
             }
         case .course(let id):
             CourseView(model: courseModel(id))
+        case .note, .draft:
+            NoteEditorView(model: editorModel(route))
         default:
             PendingPage(course: nil, title: Self.title(of: route), detail: "Coming up next")
         }
