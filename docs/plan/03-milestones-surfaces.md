@@ -48,6 +48,7 @@ Jeden povrch pro všechna menu (4a: řádky, zkratky, podmenu, zaškrtnutí, des
 | 2a–2i | **Dropdowny** | Řazení, `⋯` poznámky, výběrové pole, výběr s hledáním, oprávnění, split button, účet, vícenásobný filtr, styl textu. |
 | 3a–3i | **Tooltipy a hover karty** | Popisek + zkratka (4 umístění), vysvětlení, celý název zkráceného textu, proč je tlačítko vypnuté, karta předmětu, tip z onboardingu, validace, hodnota v grafu, zdroj agenta. |
 | 4a | **Stavy a rozměry řádků** | Základ `MarginMenu` (M10-24). |
+| 5a–5k | **Menu bar** (`Margin Menu Bar.dc.html`) | Systémová lišta nabídek jen s textem: Margin, File, Edit, View, Insert, Format, Note, Go, Agent (šedé do MA3), Window, Help se zkratkami; Help hledá příkazy. |
 
 Akce bez hotové služby jsou vypnuté s tooltipem 3d; zapnou se s milestonem, který službu dodá.
 

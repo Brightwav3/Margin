@@ -28,11 +28,11 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 | MA3 | Agent v aplikaci | 30 | 25 | 55 | — | — | ⬜ | `checks/MA3.md` | |  |
 | M10b | Popupy: data a organizace | 12 | 18 | 30 | — | — | 🟦 | `checks/M10b.md` | |  |
 | M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | — | — | ⬜ | `checks/M10c.md` | |  |
-| M10d | Menu, dropdowny a tooltipy | 0 | 37 | 37 | — | — | ⬜ | `checks/M10d.md` | | menu se zapojují k obrazovkám průběžně |
+| M10d | Menu, dropdowny a tooltipy | 0 | 45 | 45 | — | — | ⬜ | `checks/M10d.md` | | menu se zapojují k obrazovkám průběžně |
 | M11 | Obrazovky a stavy | 21 | 37 | 58 | — | — | 🟦 | `checks/M11.md` | | CP4 |
 | MA4 | Agent: odolnost | 32 | 3 | 35 | — | — | ⬜ | `checks/MA4.md` | |  |
 | M12 | Dokončení a vydání | 18 | 22 | 40 | — | — | ⬜ | `checks/M12.md` | |  |
-| | **Σ** | **405** | **466** | **871** | | | | | | |
+| | **Σ** | **405** | **474** | **879** | | | | | | |
 
 Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone — · průměrné čekání na schválení — · cena běhu celkem —
 
@@ -70,3 +70,4 @@ _(žádné)_
 - 2026-09-29: Uživatel rozhodl Q2: rychlý zápis bude dostupný bez okna aplikace přes menu bar; implementace M8-05 zůstává samostatným úkolem (D-019).
 - 2026-09-30: Opraveny nestabilní testy jádra (index po undo přesunu složky, AG-03/M5-07; sweep externích zápisů, AG-04), SHA-256 přes CryptoKit (M5-06), konformitní vaulty bez F_FULLFSYNC. Nový `scripts/test.sh` (quick ~25 s, full ~3 min místo ~5 min).
 - 2026-09-30: Uživatel dodal mockupy menu (`Margin Menus.dc.html`, `Margin Menu.dc.html`) a schválil jejich zařazení do plánu UI: nový milestone M10d (M10-24…M10-33, váha 37), celkem 871 (BE 405 / UI 466).
+- 2026-10-01: Uživatel dodal mockup menu baru (`Margin Menu Bar.dc.html`, v `Margin Menus` sekce 5a–5k) a zadal ho k realizaci: M10-34…M10-36 v M10d (+8), celkem 879 (UI 474).

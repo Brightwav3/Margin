@@ -24,11 +24,11 @@ Jak se obě větve a agentní milestony skládají do sebe. **Neměří se v lid
 | 16 | MA3 | Agent v aplikaci | 30 | 25 | 55 | in-app agent zvládne 3 skills přes frontu |
 | 17 | M10b | Popupy: data a organizace | 12 | 18 | 30 | popupy 1e,1f,2c,2f,3a,3c schváleny |
 | 18 | M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | popupy 1g,1h,1i,2d,2e,2g,3b schváleny |
-| 19 | M10d | Menu, dropdowny a tooltipy | 0 | 37 | 37 | menu 1a–1r, dropdowny 2a–2i, tooltipy 3a–3i schváleny |
+| 19 | M10d | Menu, dropdowny a tooltipy | 0 | 45 | 45 | menu 1a–1r, dropdowny 2a–2i, tooltipy 3a–3i schváleny |
 | 20 | M11 | Obrazovky a stavy | 21 | 37 | 58 | všech 9 obrazovek schváleno; CP4 |
 | 21 | MA4 | Agent: odolnost | 32 | 3 | 35 | 30 injekčních útoků + eval 20/20 + stres bez ztráty |
 | 22 | M12 | Dokončení a vydání | 18 | 22 | 40 | rozpočty splněny, podpis, revize proti mockupům |
-| | **Σ** | | **405** | **466** | **871** | |
+| | **Σ** | | **405** | **474** | **879** | |
 
 ## Vlny (co může běžet souběžně)
 
