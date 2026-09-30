@@ -366,6 +366,16 @@ struct TextStyleMenu: View {
     }
 }
 
+/// Tooltip only when there is something to say (3d: why an item is disabled).
+struct OptionalTooltip: ViewModifier {
+    let text: String?
+    var placement: TooltipPlacement = .bottom
+
+    func body(content: Content) -> some View {
+        if let text, !text.isEmpty { content.marginTooltip(text, shortcut: nil, placement: placement) } else { content }
+    }
+}
+
 /// A row of every Margin menu (Margin Menus 4a): icon, label, shortcut; hover `#F0F1F4`, 30 px.
 struct MenuRow: View {
     let title: String
@@ -396,7 +406,7 @@ struct MenuRow: View {
         .buttonStyle(.plain)
         .disabled(disabled)
         .onHover { hovered = $0 }
-        .help(help ?? "")
+        .modifier(OptionalTooltip(text: help, placement: .trailing))
     }
 }
 
@@ -429,7 +439,7 @@ struct SelectionToolbar: View {
         .buttonStyle(.plain)
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.45)
-        .help(enabled ? title : "\(title) comes with the in-app agent")
+        .marginTooltip(enabled ? title : "\(title) comes with the in-app agent", shortcut: nil, placement: .top)
     }
 
     private func icon(_ name: String, _ help: String, _ action: @escaping () -> Void) -> some View {
@@ -437,6 +447,6 @@ struct SelectionToolbar: View {
             Icon(name, size: 16, color: .white).frame(width: 32, height: 32).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(help)
+        .marginTooltip(help, shortcut: nil, placement: .top)
     }
 }

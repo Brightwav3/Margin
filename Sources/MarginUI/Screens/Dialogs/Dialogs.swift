@@ -355,15 +355,31 @@ struct GradeDialog: View {
             }
             HStack(spacing: 8) {
                 MarginField(placeholder: "18", text: $score).frame(width: 90)
+                    .overlay {
+                        if invalid != nil {
+                            RoundedRectangle(cornerRadius: MarginRadius.sm).strokeBorder(MarginColor.due)
+                            RoundedRectangle(cornerRadius: MarginRadius.sm + 3).stroke(MarginColor.dueSoft, lineWidth: 3).padding(-2)
+                        }
+                    }
                 Text("/").foregroundStyle(MarginColor.textTertiary)
                 MarginField(placeholder: "20", text: $max).frame(width: 90)
                 Spacer()
-                if let pct = percent { Text("\(Int(pct.rounded()))%\(weightText)").marginFont(MarginTextSize.sm).foregroundStyle(MarginColor.textSecondary) }
+                if let pct = percent, invalid == nil { Text("\(Int(pct.rounded()))%\(weightText)").marginFont(MarginTextSize.sm).foregroundStyle(MarginColor.textSecondary) }
+            }
+            if let invalid {
+                // 3g validation bubble under the field.
+                HStack(spacing: 8) {
+                    Icon("error", size: 15, color: .white)
+                    Text(invalid).font(.margin(13)).foregroundStyle(.white)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(Color(hex: 0xC4362B), in: RoundedRectangle(cornerRadius: 7))
+                .shadow(color: Color(hex: 0xC4362B, opacity: 0.25), radius: 8, y: 6)
             }
             if let summary { Text("Course so far: \(summary.letter) · \(summary.percent)%").marginFont(MarginTextSize.sm).foregroundStyle(MarginColor.textSecondary) }
         } footer: {
             MarginButton("Cancel") { workspace.dialog = nil }
-            MarginButton("Save", kind: .primary) { save() }.disabled(percent == nil || item.isEmpty).keyboardShortcut(.defaultAction)
+            MarginButton("Save", kind: .primary) { save() }.disabled(percent == nil || item.isEmpty || invalid != nil).keyboardShortcut(.defaultAction)
         }
         .task {
             grades = (try? await workspace.env.grades.grades(course: courseID)) ?? []
@@ -375,6 +391,16 @@ struct GradeDialog: View {
     private var percent: Double? {
         guard let s = Double(score.replacingOccurrences(of: ",", with: ".")), let m = Double(max), m > 0 else { return nil }
         return s / m * 100
+    }
+
+    /// „Score can’t be higher than 20“ and friends (3g).
+    private var invalid: String? {
+        guard !score.isEmpty else { return nil }
+        guard let s = Double(score.replacingOccurrences(of: ",", with: ".")) else { return "Enter a number" }
+        guard let m = Double(max), m > 0 else { return "The maximum must be more than 0" }
+        if s < 0 { return "Score can’t be negative" }
+        if s > m { return "Score can’t be higher than \(CourseDetailModel.number(m))" }
+        return nil
     }
 
     private var weightText: String {

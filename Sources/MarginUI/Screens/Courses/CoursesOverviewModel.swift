@@ -78,6 +78,7 @@ public final class CoursesOverviewModel {
 
     private let env: AppEnvironment
     private var dueCounts: [CourseID: Int] = [:]
+    private var openCounts: [CourseID: Int] = [:]
     private var notesByCourse: [CourseID: [NoteSummary]] = [:]
     private var weekBlocks: [TimetableBlock] = []
 
@@ -103,6 +104,7 @@ public final class CoursesOverviewModel {
             let upcoming = try await upcomingOccurrences()
             var cards: [CourseCardData] = []
             var due: [CourseID: Int] = [:]
+            var open: [CourseID: Int] = [:]
             var notesByCourse: [CourseID: [NoteSummary]] = [:]
             for course in courses {
                 let notes = try await env.notes.notes(course: course.id)
@@ -110,6 +112,7 @@ public final class CoursesOverviewModel {
                 let grade = try await env.grades.average(course: course.id)
                 let tasks = try await env.tasks.tasks(course: course.id)
                 due[course.id] = CourseListQuery.dueCounts(from: tasks)[course.id] ?? 0
+                open[course.id] = tasks.filter { !$0.done && $0.kind == .task }.count
                 let next = upcoming.first { $0.session.courseID == course.id }
                 cards.append(CourseCardData(
                     course: course,
@@ -119,6 +122,7 @@ public final class CoursesOverviewModel {
             }
             self.cards = cards
             self.dueCounts = due
+            self.openCounts = open
             self.notesByCourse = notesByCourse
             try await loadWeek()
             isLoaded = true
@@ -180,6 +184,9 @@ public final class CoursesOverviewModel {
     }
 
     public func notes(of course: CourseID) -> [NoteSummary] { notesByCourse[course] ?? [] }
+
+    /// Open tasks of a course, with or without a date (hover card 3e).
+    public func openTasks(of course: CourseID) -> Int { openCounts[course] ?? 0 }
 
     /// Monday–Friday range of a week („28 Sep – 2 Oct“).
     public func range(ofWeek week: Int) -> String {

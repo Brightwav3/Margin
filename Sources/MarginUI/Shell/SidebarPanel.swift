@@ -191,6 +191,7 @@ struct SidebarItemRow: View {
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
         .onTapGesture { item.action?() }
+        .modifier(FullTitleTooltip(title: item.title, detail: item.meta, isLong: item.title.count > 24))
         .accessibilityAddTraits(item.action == nil ? [] : .isButton)
     }
 }
@@ -291,6 +292,18 @@ private struct NoteRow: View {
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
         .onTapGesture { note.action?() }
+        .modifier(FullTitleTooltip(title: note.title, detail: nil, isLong: note.title.count > 26))
+    }
+}
+
+/// 3c: long titles in narrow lists show the full title (and their meta) on hover.
+struct FullTitleTooltip: ViewModifier {
+    let title: String
+    let detail: String?
+    let isLong: Bool
+
+    func body(content: Content) -> some View {
+        if isLong { content.marginTooltip(title, detail: detail, placement: .trailing) } else { content }
     }
 }
 
