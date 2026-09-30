@@ -67,3 +67,4 @@ _(žádné)_
 - 2026-09-29: Uživatel schválil doporučený formát vaultu (D-017) a aktuální backend/UI smlouvu (D-018) pro postupnou integraci do `main`.
 - 2026-09-29: Dokončeno M0-02: Xcode projekt pro arm64, sandbox a hardened runtime; ověřen build na macOS 27.
 - 2026-09-29: Uživatel rozhodl Q2: rychlý zápis bude dostupný bez okna aplikace přes menu bar; implementace M8-05 zůstává samostatným úkolem (D-019).
+- 2026-09-30: Opraveny nestabilní testy jádra (index po undo přesunu složky, AG-03/M5-07; sweep externích zápisů, AG-04), SHA-256 přes CryptoKit (M5-06), konformitní vaulty bez F_FULLFSYNC. Nový `scripts/test.sh` (quick ~25 s, full ~3 min místo ~5 min).
