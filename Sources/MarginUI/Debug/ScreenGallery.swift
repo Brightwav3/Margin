@@ -42,10 +42,19 @@ public enum MarginScreens {
                                        inspectorTab: .outline))
         },
         MarginScreen("1a", "Courses home: card grid", milestone: "M3") {
-            AnyView(CoursesScreen(env: .fixture(), mode: .grid))
+            AnyView(WorkspaceView(env: .fixture(), mode: .grid))
         },
         MarginScreen("1b", "Courses home: timetable", milestone: "M3") {
-            AnyView(CoursesScreen(env: .fixture(), mode: .timetable))
+            AnyView(WorkspaceView(env: .fixture(), mode: .timetable))
+        },
+        MarginScreen("2c", "Course: gallery of lecture notes, course inspector", milestone: "M4") {
+            AnyView(WorkspaceView(env: .fixture(), start: .course("bio"), inspectorOpen: true))
+        },
+        MarginScreen("course-tasks", "Course: tasks page", milestone: "M4") {
+            AnyView(CoursePageScreen(page: .tasks))
+        },
+        MarginScreen("course-grades", "Course: grades page", milestone: "M4") {
+            AnyView(CoursePageScreen(page: .grades))
         },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
@@ -102,4 +111,17 @@ public struct ScreenGallery: View {
             }
         }
     }
+}
+
+/// Gallery: a course opened on one of its pages.
+struct CoursePageScreen: View {
+    @State private var workspace: Workspace
+
+    init(page: CourseDetailModel.Page) {
+        let w = Workspace(env: .fixture(), start: .course("bio"))
+        w.courseModel("bio").page = page
+        _workspace = State(initialValue: w)
+    }
+
+    var body: some View { WorkspaceView(workspace: workspace) }
 }

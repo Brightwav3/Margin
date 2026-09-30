@@ -23,16 +23,21 @@ public struct MarginShell<Content: View>: View {
     let rail: RailContent
     let sidebar: SidebarContent
     let inspector: InspectorContent?
+    let onRail: (String) -> Void
+    let onNewTab: () -> Void
     let content: Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(model: AppModel, rail: RailContent, sidebar: SidebarContent, inspector: InspectorContent? = nil,
+                onRail: @escaping (String) -> Void = { _ in }, onNewTab: (() -> Void)? = nil,
                 @ViewBuilder content: () -> Content) {
         self.model = model
         self.rail = rail
         self.sidebar = sidebar
         self.inspector = inspector
+        self.onRail = onRail
+        self.onNewTab = onNewTab ?? { [model] in model.open(ShellTab(title: "New tab")) }
         self.content = content()
     }
 
@@ -41,7 +46,7 @@ public struct MarginShell<Content: View>: View {
             MarginColor.sidebar
 
             HStack(spacing: 0) {
-                Rail(content: rail)
+                Rail(content: rail, onSelect: onRail)
                 HStack(spacing: 0) {
                     if !model.sidebarCollapsed {
                         SidebarPanel(model: model, content: sidebar)
@@ -61,9 +66,8 @@ public struct MarginShell<Content: View>: View {
                 .padding([.bottom, .trailing], Shell.cardInset)
             }
 
-            TitleBar(model: model, inspector: inspector, sidebarWidth: SidebarPanel.width(model: model, content: sidebar)) {
-                model.open(ShellTab(title: "New tab"))
-            }
+            TitleBar(model: model, inspector: inspector, sidebarWidth: SidebarPanel.width(model: model, content: sidebar),
+                     onNewTab: onNewTab)
         }
         .foregroundStyle(MarginColor.ink)
         .ignoresSafeArea()
@@ -83,7 +87,7 @@ public struct MarginShell<Content: View>: View {
                     if let id = model.activeTabID { model.close(id) }
                 }
                 .keyboardShortcut("w", modifiers: .command)
-                Button("New tab") { model.open(ShellTab(title: "New tab")) }
+                Button("New tab") { onNewTab() }
                     .keyboardShortcut("t", modifiers: .command)
             }
             .opacity(0)

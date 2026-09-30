@@ -7,7 +7,7 @@ struct InspectorPanel: View {
     let content: InspectorContent
 
     private var tab: InspectorTab {
-        content.tabs.contains(model.inspectorTab) ? model.inspectorTab : .agent
+        content.tabs.contains(model.inspectorTab) ? model.inspectorTab : (content.tabs.first ?? .agent)
     }
 
     var body: some View {
