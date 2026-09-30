@@ -23,6 +23,24 @@ public enum MarginScreens {
 
     public static let all: [MarginScreen] = [
         MarginScreen("system", "System: type, colours, tiles, controls", milestone: "M0") { AnyView(SystemScreen()) },
+        MarginScreen("shell", "Shell: courses navigation, empty content", milestone: "M1") {
+            AnyView(ShellPreviewScreen(activeTab: "Courses", railActive: "home", sidebar: ShellPresets.grid,
+                                       inspector: ShellPresets.courseInspector))
+        },
+        MarginScreen("shell-notes", "Shell: course, Notes space, note inspector", milestone: "M1") {
+            AnyView(ShellPreviewScreen(activeTab: "Cell Biology", railActive: "bio", sidebar: ShellPresets.course,
+                                       inspector: ShellPresets.noteInspector, inspectorOpen: true, page: .notes,
+                                       inspectorTab: .backlinks))
+        },
+        MarginScreen("shell-course", "Shell: course navigation, course inspector (Agent)", milestone: "M1") {
+            AnyView(ShellPreviewScreen(activeTab: "Cell Biology", railActive: "bio", sidebar: ShellPresets.course,
+                                       inspector: ShellPresets.courseInspector, inspectorOpen: true))
+        },
+        MarginScreen("shell-collapsed", "Shell: collapsed sidebar, inspector (Outline)", milestone: "M1") {
+            AnyView(ShellPreviewScreen(activeTab: "Cell Biology", railActive: "bio", sidebar: ShellPresets.course,
+                                       inspector: ShellPresets.noteInspector, collapsed: true, inspectorOpen: true,
+                                       inspectorTab: .outline))
+        },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
 
