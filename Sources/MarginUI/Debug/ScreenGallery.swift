@@ -75,6 +75,9 @@ public enum MarginScreens {
         MarginScreen("5b", "Inbox triage", milestone: "M8") {
             AnyView(WorkspaceView(env: .fixture(), start: .inbox))
         },
+        MarginScreen("4a", "Graph map: whole semester", milestone: "M9") {
+            AnyView(WorkspaceView(env: .fixture(), start: .graph))
+        },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
 

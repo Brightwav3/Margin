@@ -76,6 +76,21 @@ extension Workspace {
             chrome.sidebar.sections[0].items = chrome.sidebar.sections[0].items.map { var i = $0; i.isOn = i.title == "Inbox"; return i }
             chrome.sidebar.sections.removeLast()
             return chrome
+        case .graph:
+            let m = graphModel()
+            let items = courses.cards.map { card in
+                SidebarContent.Item(card.course.name, dot: card.course.style.dot, isOn: !m.hiddenCourses.contains(card.id)) {
+                    if m.hiddenCourses.contains(card.id) { m.hiddenCourses.remove(card.id) } else { m.hiddenCourses.insert(card.id) }
+                }
+            }
+            var views = [SidebarContent.Item("Whole semester", icon: "share", isOn: m.focus == nil) { m.focus = nil }]
+            if let focus = m.focus {
+                views.append(.init(m.graph.nodes.first { $0.id == focus }?.label ?? "Local graph", icon: "hub", isOn: true))
+            }
+            return PageChrome(sidebar: SidebarContent(title: "Graph", actionTitle: "Fit to screen", actionIcon: "center_focus_weak",
+                                                      sections: [.init("Views", views), .init("Courses", items)],
+                                                      onAction: { m.fit() }),
+                              inspector: nil)
         case .today:
             return tasksChrome(.today)
         case .upcoming:
@@ -102,6 +117,8 @@ extension Workspace {
             NoteEditorView(model: editorModel(route))
         case .inbox:
             InboxView(model: inboxModel())
+        case .graph:
+            GraphView(model: graphModel())
         case .today:
             TasksView(model: tasksModel(.today))
         case .upcoming:

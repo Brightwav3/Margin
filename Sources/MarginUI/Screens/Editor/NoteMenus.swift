@@ -55,7 +55,7 @@ struct NoteMenuButton: View {
         }
         sep
         row("Open version history", disabled: model.noteID == nil) { if let id = model.noteID { workspace.dialog = .history(id) } }
-        row("Open linked view") { workspace.open(.graph) }
+        row("Open linked view") { if let id = model.noteID { workspace.openLocalGraph(id) } else { workspace.open(.graph) } }
         sep
         row("Reveal in Finder", disabled: true, help: "Needs the note's file path from the backend contract")
         row("Reveal file in navigation") { workspace.shell.sidebarPage = .notes; workspace.shell.sidebarCollapsed = false }
