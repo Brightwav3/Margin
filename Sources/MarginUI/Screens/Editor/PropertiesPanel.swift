@@ -28,6 +28,9 @@ struct PropertiesPanel: View {
             .padding(.top, 6)
             .disabled(model.isDraft)
             .help(model.isDraft ? "Write something first; the note is created on the first save" : "")
+            .onChange(of: model.requestAddProperty) { _, asked in
+                if asked { adding = true; model.requestAddProperty = false }
+            }
             .popover(isPresented: $adding, arrowEdge: .bottom) {
                 AddPropertyPopover(model: model) { adding = false }
             }

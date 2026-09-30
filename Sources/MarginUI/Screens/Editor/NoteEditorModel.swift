@@ -23,6 +23,12 @@ public final class NoteEditorModel {
     public var readableLineLength = true
     /// Settings › Editor › Show properties.
     public var showsProperties = true
+    /// Note › Add property (⌘;): the properties panel opens its add popover.
+    public var requestAddProperty = false
+    /// Bumped to restyle after View › Zoom.
+    public private(set) var styleRevision = 0
+
+    func restyle() { styleRevision += 1 }
     public private(set) var isLoaded = false
     public private(set) var saving = false
     public private(set) var lastSaved: LocalDateTime?

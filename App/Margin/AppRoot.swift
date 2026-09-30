@@ -108,6 +108,7 @@ final class AppState {
 final class CapturePanel: NSPanel {
     private let model: CaptureModel
     private var host: NSView?
+    private let container = NSView()
 
     init(model: CaptureModel) {
         self.model = model
@@ -124,7 +125,8 @@ final class CapturePanel: NSPanel {
         // Sized by hand in `present()`; sizing options would let the hosting view drive the window's
         // size limits from inside a layout pass.
         host.sizingOptions = []
-        contentView = host
+        host.autoresizingMask = [.width, .height]
+        contentView = container
         self.host = host
     }
 
@@ -134,11 +136,18 @@ final class CapturePanel: NSPanel {
         model.open()
         let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
         // Room below for chips and an error line that appear while typing (the panel is transparent).
+        // Measured and placed while out of the window: a hosting view resized inside a panel can
+        // re-enter constraint updates until AppKit throws.
+        host?.removeFromSuperview()
         var size = host?.fittingSize ?? NSSize(width: 660, height: 260)
         size.height += 90
         if let frame = screen?.visibleFrame {
             setFrame(NSRect(x: frame.midX - size.width / 2, y: frame.maxY - frame.height * 0.28 - size.height,
-                            width: size.width, height: size.height), display: true)
+                            width: size.width, height: size.height), display: false)
+        }
+        if let host {
+            host.frame = NSRect(origin: .zero, size: size)
+            container.addSubview(host)
         }
         makeKeyAndOrderFront(nil)
     }
@@ -240,34 +249,220 @@ private struct OpeningView: View {
     }
 }
 
-/// Menu bar commands (File, View) wired to the open workspace.
+/// The menu bar (Margin Menu Bar 1a–1k, M10-34): every command with its shortcut. Items act on the
+/// active tab and editor and are disabled when there is nothing to act on; Agent waits for MA3.
 struct MarginCommands: Commands {
     let state: AppState
 
+    private var w: Workspace? { state.workspace }
+    private var editing: Bool { w?.canEditText == true }
+    private var note: Bool { w?.currentNote != nil }
+
     var body: some Commands {
-        CommandGroup(replacing: .newItem) {
-            Button("New Note") { state.workspace?.run(command: "new-note") }.keyboardShortcut("n")
-            Button("New Course…") { state.workspace?.run(command: "new-course") }
-            Button("Quick Capture") { state.showCapture() }.keyboardShortcut(.space, modifiers: [.command, .shift])
-            Divider()
-            Button("Open Vault…") { state.chooseVault() }.keyboardShortcut("o", modifiers: [.command, .shift])
-            Button("Use Sample Data") { state.openSample() }
-        }
+        // 1a Margin
         CommandGroup(replacing: .appSettings) {
-            Button("Settings…") { state.workspace?.run(command: "settings") }.keyboardShortcut(",")
+            Button("Settings…") { w?.run(command: "settings") }.keyboardShortcut(",")
+            Button("Check for updates…") {}.disabled(true)
         }
-        CommandGroup(after: .textEditing) {
-            Button("Command Palette") { state.workspace?.dialog = .palette }.keyboardShortcut("k")
-            Button("Search All Notes") { state.workspace?.open(.search("")) }.keyboardShortcut("f", modifiers: [.command, .shift])
+
+        // 1b File
+        CommandGroup(replacing: .newItem) {
+            Button("New note") { w?.run(command: "new-note") }.keyboardShortcut("n").disabled(w == nil)
+            Button("New lecture note") { w?.newLectureNote() }.keyboardShortcut("n", modifiers: [.control, .command]).disabled(w == nil)
+            Button("New folder") {}.keyboardShortcut("n", modifiers: [.shift, .command]).disabled(true)
+            Button("New course…") { w?.run(command: "new-course") }.disabled(w == nil)
+            Button("Quick capture") { state.showCapture() }.keyboardShortcut(.space, modifiers: [.shift, .command])
+            Divider()
+            Button("Open vault…") { state.chooseVault() }.keyboardShortcut("o", modifiers: [.shift, .command])
+            Menu("Open recent") {
+                ForEach(w?.recentNotes ?? [], id: \.id) { r in Button(r.title) { w?.openRecent(r.id, title: r.title) } }
+                if w?.recentNotes.isEmpty ?? true { Button("No recent notes") {}.disabled(true) }
+                Divider()
+                Button("Use sample data") { state.openSample() }
+            }
+            Divider()
+            Menu("Import") {
+                Button("Syllabus…") { w?.run(command: "syllabus") }.disabled(w?.courses.cards.isEmpty ?? true)
+                Button("Markdown files…") {}.disabled(true)
+            }
+            Menu("Export") {
+                Button("PDF…") { w?.shareCurrentNote() }.disabled(!note)
+                Button("Markdown…") { w?.shareCurrentNote() }.disabled(!note)
+            }
+            Button("Share…") { w?.shareCurrentNote() }.disabled(!note)
+            Divider()
+            Button("Close tab") { w?.closeActiveTab() }.keyboardShortcut("w").disabled(w?.shell.tabs.isEmpty ?? true)
+            Button("Close window") { NSApp.keyWindow?.performClose(nil) }.keyboardShortcut("w", modifiers: [.shift, .command])
+            Divider()
+            Button("Move to trash") { w?.deleteCurrentNote() }.keyboardShortcut(.delete, modifiers: .command).disabled(!note)
         }
+
+        // 1c Edit (Undo, Cut, Copy, Paste, Select all, Dictation and Emoji come from the system)
+        CommandGroup(after: .pasteboard) {
+            Button("Copy as Markdown") { w?.copyAsMarkdown() }.keyboardShortcut("c", modifiers: [.option, .command]).disabled(!(w?.hasEditor ?? false))
+            Button("Paste as plain text") { w?.pasteAsPlainText() }.keyboardShortcut("v", modifiers: [.shift, .command]).disabled(!editing)
+        }
+        CommandGroup(replacing: .textEditing) {
+            Button("Find in note") { w?.findInNote(replace: false) }.keyboardShortcut("f").disabled(!(w?.hasEditor ?? false))
+            Button("Find and replace") { w?.findInNote(replace: true) }.keyboardShortcut("f", modifiers: [.option, .command]).disabled(!editing)
+            Button("Search vault") { w?.open(.search("")) }.keyboardShortcut("f", modifiers: [.shift, .command]).disabled(w == nil)
+        }
+
+        // 1d View
+        CommandGroup(replacing: .sidebar) {
+            Toggle("Reading view", isOn: Binding(get: { w?.isReading ?? false }, set: { _ in w?.toggleReading() }))
+                .keyboardShortcut("e").disabled(!(w?.hasEditor ?? false))
+            Toggle("Source mode", isOn: Binding(get: { w?.isSource ?? false }, set: { _ in w?.toggleSource() }))
+                .keyboardShortcut("e", modifiers: [.shift, .command]).disabled(!(w?.hasEditor ?? false))
+            Divider()
+            Toggle("Sidebar", isOn: Binding(get: { !(w?.shell.sidebarCollapsed ?? true) }, set: { _ in w?.shell.toggleSidebar() }))
+                .keyboardShortcut("\\").disabled(w == nil)
+            Toggle("Right panel", isOn: Binding(get: { w?.shell.inspectorOpen ?? false }, set: { _ in w?.shell.toggleInspector() }))
+                .keyboardShortcut("\\", modifiers: [.option, .command]).disabled(w == nil)
+            Toggle("Properties", isOn: Binding(get: { w?.showsProperties ?? true }, set: { _ in w?.toggleProperties() })).disabled(w == nil)
+            Toggle("Readable line length", isOn: Binding(get: { w?.readableLineLength ?? true }, set: { _ in w?.toggleReadableLineLength() })).disabled(w == nil)
+            Toggle("Line numbers", isOn: .constant(false)).disabled(true)
+            Divider()
+            Button("Split right") {}.disabled(true)
+            Button("Split down") {}.disabled(true)
+            Divider()
+            Button("Zoom in") { w?.zoomText(1) }.keyboardShortcut("+").disabled(w == nil)
+            Button("Zoom out") { w?.zoomText(-1) }.keyboardShortcut("-").disabled(w == nil)
+            Button("Actual size") { w?.zoomText(0) }.keyboardShortcut("0").disabled(w == nil)
+        }
+
+        // 1e Insert
+        CommandMenu("Insert") {
+            Group {
+                Button("Link to note") { w?.insert(.link) }.keyboardShortcut("k", modifiers: [.shift, .command])
+                Button("Task") { w?.insert(.task) }.keyboardShortcut("l")
+                Button("Table") { w?.insert(.table) }.keyboardShortcut("t", modifiers: [.option, .command])
+                Button("Formula") { w?.insert(.formula) }.keyboardShortcut("m", modifiers: [.option, .command])
+                Button("Flashcard") {}.keyboardShortcut("l", modifiers: [.shift, .command]).disabled(true)
+                Button("Image or file…") {}.keyboardShortcut("i", modifiers: [.shift, .command]).disabled(true)
+                Button("Date and time") { w?.insert(.date) }.keyboardShortcut("d", modifiers: [.shift, .command])
+                Divider()
+                Button("Callout") { w?.insert(.callout) }
+                Button("Code block") { w?.insert(.code) }
+                Button("Footnote") { w?.insert(.footnote) }
+                Button("Divider") { w?.insert(.divider) }
+                Divider()
+                Button("From template…") {}.disabled(true)
+            }
+            .disabled(!editing)
+        }
+
+        // 1f Format
+        CommandMenu("Format") {
+            Group {
+                Button("Bold") { w?.format(.bold) }.keyboardShortcut("b")
+                Button("Italic") { w?.format(.italic) }.keyboardShortcut("i")
+                Button("Underline") { w?.format(.underline) }.keyboardShortcut("u")
+                Button("Strikethrough") { w?.format(.strike) }.keyboardShortcut("x", modifiers: [.shift, .command])
+                Button("Highlight") { w?.format(.highlight) }.keyboardShortcut("h", modifiers: [.shift, .command])
+                Button("Inline code") { w?.format(.code) }.keyboardShortcut("`")
+                Divider()
+                Menu("Heading") {
+                    Button("Heading 1") { w?.format(.heading1) }.keyboardShortcut("1", modifiers: [.option, .command])
+                    Button("Heading 2") { w?.format(.heading2) }.keyboardShortcut("2", modifiers: [.option, .command])
+                    Button("Heading 3") { w?.format(.heading3) }.keyboardShortcut("3", modifiers: [.option, .command])
+                }
+                Button("Paragraph") { w?.format(.paragraph) }.keyboardShortcut("0", modifiers: [.option, .command])
+                Button("Quote") { w?.format(.quote) }.keyboardShortcut(".", modifiers: [.shift, .command])
+                Button("Bulleted list") { w?.format(.bullets) }.keyboardShortcut("8", modifiers: [.shift, .command])
+                Button("Numbered list") { w?.format(.numbers) }.keyboardShortcut("7", modifiers: [.shift, .command])
+                Button("Checklist") { w?.format(.checklist) }.keyboardShortcut("9", modifiers: [.shift, .command])
+                Divider()
+                Button("Indent") { w?.indentSelection() }.keyboardShortcut("]")
+                Button("Outdent") { w?.outdentSelection() }.keyboardShortcut("[")
+                Divider()
+                Button("Clear formatting") { w?.clearFormatting() }.keyboardShortcut("\\", modifiers: [.control, .command])
+            }
+            .disabled(!editing)
+        }
+
+        // 1g Note
+        CommandMenu("Note") {
+            Button("Link to session…") {}.disabled(true)
+            Button("Add to revision") { w?.addCurrentNoteToRevision() }.disabled(!note)
+            Button("Make flashcards from note") {}.disabled(true)
+            Divider()
+            Button("Add property") { w?.addPropertyToCurrentNote() }.keyboardShortcut(";").disabled(!note)
+            Button("Rename…") {}.disabled(true)
+            Button("Move to…") { w?.moveCurrentNote() }.keyboardShortcut("m", modifiers: [.shift, .command]).disabled(!note)
+            Button("Merge with…") {}.disabled(true)
+            Button("Bookmark") {}.keyboardShortcut("d").disabled(true)
+            Divider()
+            Button("Backlinks") { w?.showBacklinks() }.disabled(!note)
+            Button("Version history") { w?.historyOfCurrentNote() }.disabled(!note)
+            Button("Reveal in Finder") {}.keyboardShortcut("r", modifiers: [.option, .command]).disabled(true)
+        }
+
+        // 1h Go
         CommandMenu("Go") {
-            Button("Courses") { state.workspace?.run(command: "courses") }.keyboardShortcut("1")
-            Button("Today") { state.workspace?.run(command: "today") }.keyboardShortcut("2")
-            Button("Upcoming") { state.workspace?.run(command: "upcoming") }.keyboardShortcut("3")
-            Button("Inbox") { state.workspace?.run(command: "inbox") }.keyboardShortcut("4")
-            Button("Timetable") { state.workspace?.run(command: "timetable") }
-            Button("Graph") { state.workspace?.run(command: "graph") }
-            Button("Grades") { state.workspace?.run(command: "grades") }
+            Group {
+                Button("Today") { w?.run(command: "today") }.keyboardShortcut("1")
+                Button("Upcoming") { w?.run(command: "upcoming") }.keyboardShortcut("2")
+                Button("Inbox") { w?.run(command: "inbox") }.keyboardShortcut("3")
+                Button("Schedule") { w?.run(command: "timetable") }.keyboardShortcut("4")
+                Button("Flashcard review") {}.keyboardShortcut("5").disabled(true)
+                Divider()
+                Button("Command palette") { w?.dialog = .palette }.keyboardShortcut("k")
+                Button("Quick open…") { w?.dialog = .palette }.keyboardShortcut("o")
+                Divider()
+                Button("Back") { w?.goBack() }.keyboardShortcut(.leftArrow, modifiers: [.option, .command]).disabled(!(w?.canGoBack ?? false))
+                Button("Forward") { w?.goForward() }.keyboardShortcut(.rightArrow, modifiers: [.option, .command]).disabled(!(w?.canGoForward ?? false))
+                Divider()
+                Button("Next lecture") { w?.openAdjacentLecture(1) }.keyboardShortcut(.rightArrow, modifiers: [.control, .command])
+                    .disabled(w?.currentCourse == nil)
+                Button("Previous lecture") { w?.openAdjacentLecture(-1) }.keyboardShortcut(.leftArrow, modifiers: [.control, .command])
+                    .disabled(w?.currentCourse == nil)
+                Menu("Course") {
+                    Button("All courses") { w?.run(command: "courses") }
+                    Divider()
+                    ForEach(w?.courses.cards ?? []) { card in Button(card.course.name) { w?.open(course: card.course) } }
+                }
+                Button("Graph") { w?.run(command: "graph") }
+                Button("Grades") { w?.run(command: "grades") }
+            }
+            .disabled(w == nil)
+        }
+
+        // 1i Agent — greyed out until the in-app agent (MA3).
+        CommandMenu("Agent") {
+            Group {
+                Button("Ask agent…") {}.keyboardShortcut("j")
+                Divider()
+                Button("Explain selection") {}
+                Button("Summarise note") {}
+                Button("Suggest links") {}
+                Button("Make flashcards") {}
+                Button("Quiz me on this note") {}
+                Divider()
+                Button("Agent panel") {}.keyboardShortcut("j", modifiers: [.option, .command])
+                Divider()
+                Button("Agent settings…") {}
+            }
+            .disabled(true)
+        }
+
+        // 1j Window (Minimise, Zoom, Bring all to front and the window list come from the system)
+        CommandGroup(after: .windowArrangement) {
+            Divider()
+            Button("Next tab") { w?.nextTab() }.keyboardShortcut(.tab, modifiers: .control)
+            Button("Previous tab") { w?.previousTab() }.keyboardShortcut(.tab, modifiers: [.control, .shift])
+            Button("Pin tab") {}.disabled(true)
+        }
+
+        // 1k Help (the system adds the search field that finds any command)
+        CommandGroup(replacing: .help) {
+            Button("Margin help") { w?.dialog = .help(.markdown) }
+            Button("Keyboard shortcuts") { w?.dialog = .help(.shortcuts) }.keyboardShortcut("/")
+            Button("Markdown guide") { w?.dialog = .help(.markdown) }
+            Button("What’s new") { w?.dialog = .help(.whatsNew) }
+            Divider()
+            Button("Send feedback…") {}.disabled(true)
+            Button("Report a problem…") {}.disabled(true)
         }
     }
 }

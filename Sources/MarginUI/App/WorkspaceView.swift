@@ -45,7 +45,7 @@ public struct WorkspaceView: View {
         MarginShell(model: workspace.shell, rail: workspace.rail, sidebar: chrome.sidebar,
                     inspector: chrome.inspector,
                     onRail: { workspace.railSelect($0) },
-                    onNewTab: { workspace.shell.open(ShellTab(title: "Search", route: Route.search("").key)) }) {
+                    onNewTab: { workspace.openInNewTab = true; workspace.dialog = .palette }) {
             workspace.page(for: route)
                 .id(route.key)
         }

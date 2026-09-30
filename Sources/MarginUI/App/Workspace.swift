@@ -1,3 +1,4 @@
+import AppKit
 import MarginCore
 import Observation
 import SwiftUI
@@ -16,6 +17,8 @@ public final class Workspace {
     /// Modal dialog over the window (M10c).
     public var dialog: Dialog?
 
+    public enum HelpTopic: String, Sendable { case shortcuts, markdown, whatsNew }
+
     public enum Dialog: Identifiable, Equatable {
         case newCourse
         case deleteNote(NoteSummary)
@@ -29,6 +32,7 @@ public final class Workspace {
         case palette
         case renameCourse(Course)
         case courseStyle(Course)
+        case help(HelpTopic)
 
         public var id: String {
             switch self {
@@ -44,11 +48,17 @@ public final class Workspace {
             case .palette: "palette"
             case .renameCourse(let c): "rename/\(c.id)"
             case .courseStyle(let c): "style/\(c.id)"
+            case .help(let t): "help/\(t.rawValue)"
             }
         }
     }
 
     @ObservationIgnored private var models: [String: AnyObject] = [:]
+    var allModels: [AnyObject] { Array(models.values) }
+    var activeEditor = ActiveEditor()
+    /// The palette was opened from `+`: its note opens in a new tab.
+    public var openInNewTab = false
+    @ObservationIgnored var recents: [(id: NoteID, title: String)] = []
 
     /// Folder of the vault on disk; nil on fixture data.
     public let vaultURL: URL?
@@ -65,14 +75,20 @@ public final class Workspace {
             Task { await self.refreshAfterWrite() }
         }
         if self.shell.tabs.isEmpty {
-            self.shell.open(ShellTab(title: Self.title(of: start), dot: Self.grey, route: start.key))
+            if start.isNote {
+                self.shell.open(ShellTab(title: Self.title(of: start), dot: Self.grey, route: start.key))
+            } else {
+                self.shell.place = start.key
+            }
         }
     }
 
     static let grey = "#9A9DA6"
 
+    /// What the content area shows: the active note tab, else the current place.
     public var route: Route {
-        shell.activeTab?.route.flatMap(Route.init(key:)) ?? .courses
+        if let tab = shell.activeTab, let r = tab.route.flatMap(Route.init(key:)) { return r }
+        return Route(key: shell.place) ?? .courses
     }
 
     /// The model of a route, created on first use.
@@ -97,8 +113,15 @@ public final class Workspace {
     // MARK: Navigation
 
     /// Shows `route` in its open tab or a new one.
-    public func open(_ route: Route, title: String? = nil) {
-        shell.show(ShellTab(title: title ?? Self.title(of: route), dot: dot(of: route), route: route.key))
+    /// Notes open in the one tab (a new tab with `newTab` or ⌘ held); every other page is a place
+    /// shown without a tab.
+    public func open(_ route: Route, title: String? = nil, newTab: Bool? = nil) {
+        guard route.isNote else { shell.showPlace(route.key); return }
+        let title = title ?? Self.title(of: route)
+        noteOpened(route, title: title)
+        let wantsNewTab = newTab ?? (NSApp.currentEvent?.modifierFlags.contains(.command) == true
+                                     && NSApp.currentEvent?.type == .leftMouseUp)
+        shell.show(ShellTab(title: title, dot: dot(of: route), route: route.key), newTab: wantsNewTab)
     }
 
     /// Replaces the active tab's page (a draft becoming a note).
@@ -117,6 +140,11 @@ public final class Workspace {
 
     public func open(note: NoteSummary) {
         open(.note(note.id), title: note.title)
+    }
+
+    /// Every route change goes through here; notes are remembered for File › Open recent.
+    func noteOpened(_ route: Route, title: String) {
+        if case .note(let id) = route { remember(note: id, title: title) }
     }
 
     /// Line to reveal and mark when a note opens (a task's source, an outline heading).
@@ -170,11 +198,11 @@ public final class Workspace {
     }
 
     /// Follows a wikilink; a link to a note that does not exist yet creates it in the same course.
-    public func openLink(_ target: String, from course: CourseID?) {
+    public func openLink(_ target: String, from course: CourseID?, newTab: Bool? = nil) {
         let name = target.split(separator: "#").first.map(String.init) ?? target
         Task { @MainActor in
             if let id = await resolve(link: name) {
-                open(.note(id), title: name)
+                open(.note(id), title: name, newTab: newTab)
             } else if let course = course ?? courses.cards.first?.id {
                 perform("Create note") {
                     let change = try await self.env.notes.create(course: course, title: name, kind: .study,
@@ -317,6 +345,9 @@ public final class Workspace {
     func closeTabs(of route: Route) {
         for tab in shell.tabs where tab.route == route.key { shell.close(tab.id) }
         forget(route.key)
+        if shell.tabs.isEmpty, route.isNote, let course = courses.courseID(ofNote: route.key.replacingOccurrences(of: "note/", with: "")) {
+            shell.showPlace(Route.course(course).key)
+        }
     }
 
     /// Reloads an open editor after its note changed from a dialog (restore).
@@ -351,7 +382,7 @@ public final class Workspace {
     }
 
     /// Editor defaults from Settings (readable line length, first view, properties panel).
-    public private(set) var editorDefaults = EditorDefaults()
+    public internal(set) var editorDefaults = EditorDefaults()
 
     public struct EditorDefaults: Sendable {
         public var readableLineLength = true

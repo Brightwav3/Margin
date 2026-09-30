@@ -78,11 +78,11 @@ public struct MarginShell<Content: View>: View {
                 Button("Toggle sidebar") {
                     withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleSidebar() }
                 }
-                .keyboardShortcut("s", modifiers: [.command, .option])
+                .keyboardShortcut("\\", modifiers: .command)
                 Button("Toggle inspector") {
                     withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleInspector() }
                 }
-                .keyboardShortcut("i", modifiers: [.command, .option])
+                .keyboardShortcut("\\", modifiers: [.command, .option])
                 Button("Close tab") {
                     if let id = model.activeTabID { model.close(id) }
                 }

@@ -22,10 +22,12 @@ struct TitleBar: View {
             // back/forward and the sidebar toggle. Ends at the sidebar divider.
             HStack(spacing: 18) {
                 Color.clear.frame(width: 52, height: 12)
-                HStack(spacing: 10) {
-                    Icon("arrow_back", size: 18, color: MarginColor.textSecondary)
-                    Icon("arrow_forward", size: 18, color: MarginColor.textDisabled)
-                    ChromeButton(icon: "side_navigation", help: "Toggle sidebar (⌥⌘S)") {
+                HStack(spacing: 4) {
+                    ChromeButton(icon: "arrow_back", help: "Back (⌥⌘←)") { model.goBack() }
+                        .disabled(!model.canGoBack).opacity(model.canGoBack ? 1 : 0.45)
+                    ChromeButton(icon: "arrow_forward", help: "Forward (⌥⌘→)") { model.goForward() }
+                        .disabled(!model.canGoForward).opacity(model.canGoForward ? 1 : 0.45)
+                    ChromeButton(icon: "side_navigation", help: "Toggle sidebar (⌘\\)") {
                         withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleSidebar() }
                     }
                 }
@@ -44,7 +46,7 @@ struct TitleBar: View {
                     InspectorTabBar(model: model, tabs: inspector.tabs)
                     Spacer(minLength: 0)
                 }
-                ChromeButton(icon: "dock_to_left", help: "Toggle inspector (⌥⌘I)") {
+                ChromeButton(icon: "dock_to_left", help: "Toggle right panel (⌥⌘\\)") {
                     withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleInspector() }
                 }
                 .padding(.trailing, 12)

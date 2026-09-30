@@ -173,10 +173,10 @@ public struct RailContent: Sendable {
 
         var shortcut: String {
             switch self {
-            case .home: "⌘1"
-            case .today: "⌘2"
-            case .upcoming: "⌘3"
-            case .inbox: "⌘4"
+            case .home: ""
+            case .today: "⌘1"
+            case .upcoming: "⌘2"
+            case .inbox: "⌘3"
             }
         }
 

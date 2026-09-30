@@ -21,7 +21,7 @@ struct NoteEditorView: View {
                         if model.showsProperties, !model.properties.isEmpty || model.noteID != nil {
                             PropertiesPanel(model: model)
                         }
-                        MarkdownTextView(text: model.text, revision: model.revision, mode: model.mode,
+                        MarkdownTextView(text: model.text, revision: model.revision &+ model.styleRevision &* 100_000, mode: model.mode,
                                          onEdit: { model.edit($0) }, events: events, handle: handle)
                         if showBacklinks { BacklinksInDocument(model: model) }
                     }
@@ -53,7 +53,11 @@ struct NoteEditorView: View {
             }
         }
         .task { await model.observeExternalChanges() }
-        .onDisappear { Task { await model.flush() } }
+        .onAppear { workspace.setActiveEditor(model, handle: handle) }
+        .onDisappear {
+            if workspace.editor === model { workspace.setActiveEditor(nil, handle: nil) }
+            Task { await model.flush() }
+        }
         .onChange(of: workspace.reveal?.line) { _, line in
             if let line, workspace.reveal?.note == model.noteID { workspace.reveal = nil; handle.reveal(line: line) }
         }

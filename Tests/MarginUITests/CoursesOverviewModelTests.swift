@@ -113,16 +113,34 @@ import Testing
 }
 
 @MainActor @Suite struct AppModelRouteTests {
-    @Test func showSelectsAnOpenTabWithTheSameRoute() {
-        let m = AppModel(tabs: [ShellTab(title: "Courses", route: "courses")])
-        let first = m.show(ShellTab(title: "Cell Biology", route: "course/bio"))
-        m.select(m.tabs[0].id)
-        let again = m.show(ShellTab(title: "Cell Biology", route: "course/bio"))
-        #expect(first == again)
-        #expect(m.tabs.count == 2 && m.activeTabID == first)
-        // Tabs without a route always open anew.
-        m.show(ShellTab(title: "New tab"))
-        m.show(ShellTab(title: "New tab"))
-        #expect(m.tabs.count == 4)
+    @Test func notesReuseTheOneTabUnlessANewTabIsAsked() {
+        let m = AppModel()
+        let first = m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8"))
+        #expect(m.tabs.count == 1)
+        // Another note replaces the content of the same tab.
+        let second = m.show(ShellTab(title: "Glossary", route: "note/bio/glossary"))
+        #expect(second == first && m.tabs.count == 1 && m.activeTab?.route == "note/bio/glossary")
+        // A new tab only when asked.
+        let third = m.show(ShellTab(title: "Lecture 7", route: "note/bio/lecture-7"), newTab: true)
+        #expect(third != first && m.tabs.count == 2)
+        // An open note is selected, not duplicated.
+        #expect(m.show(ShellTab(title: "Glossary", route: "note/bio/glossary")) == first)
+    }
+
+    @Test func placesShowWithoutATabAndHistoryCoversBoth() {
+        let m = AppModel()
+        m.showPlace("today")
+        let tab = m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8"))
+        m.showPlace("course/bio")
+        #expect(m.activeTabID == nil && m.place == "course/bio" && m.tabs.count == 1)
+        m.goBack()
+        #expect(m.activeTabID == tab)
+        m.goBack()
+        #expect(m.location == .place("today"))
+        m.goForward()
+        #expect(m.activeTabID == tab)
+        // With no tab active, a note opens in the last used tab.
+        m.showPlace("inbox")
+        #expect(m.show(ShellTab(title: "Glossary", route: "note/bio/glossary")) == tab)
     }
 }

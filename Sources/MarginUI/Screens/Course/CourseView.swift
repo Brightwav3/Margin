@@ -84,6 +84,7 @@ struct CourseView: View {
     private func cardMenu(_ card: LectureCardData) -> some View {
         Button("Open") { open(card) }
         if let note = card.note {
+            Button("Open in new tab") { workspace.open(.note(note.id), title: note.title, newTab: true) }
             Button("Move to…") { workspace.dialog = .moveNote(note) }
             Button("Share / Export…") { workspace.dialog = .share(note) }
             Button("Version history") { workspace.dialog = .history(note.id) }
