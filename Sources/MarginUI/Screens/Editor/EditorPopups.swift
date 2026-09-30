@@ -43,6 +43,8 @@ final class EditorPopupState {
     var preview: (title: String, course: Course?, excerpt: NoteExcerpt, noteID: NoteID)?
     var previewAnchor: NSRect = .zero
     var showStyleMenu = false
+    /// 1d: selection rect (window coordinates) while text is selected.
+    var selectionRect: NSRect?
     private var previewTask: Task<Void, Never>?
     private var linkTask: Task<Void, Never>?
 
@@ -153,6 +155,11 @@ struct EditorPopups: View {
                 case .none:
                     EmptyView()
                 }
+                if let sel = state.selectionRect, state.kind == .none {
+                    let top = windowHeight - sel.maxY - origin.y
+                    SelectionToolbar(handle: handle) { state.selectionRect = nil }
+                        .offset(x: max(8, min(sel.minX - origin.x, geo.size.width - 380)), y: max(4, top - 48))
+                }
                 if let preview = state.preview {
                     let p = CGPoint(x: state.previewAnchor.minX - origin.x, y: windowHeight - state.previewAnchor.minY - origin.y)
                     LinkPreviewCard(title: preview.title, course: preview.course, excerpt: preview.excerpt) {
@@ -164,7 +171,7 @@ struct EditorPopups: View {
                 }
             }
         }
-        .allowsHitTesting(state.kind != .none || state.preview != nil)
+        .allowsHitTesting(state.kind != .none || state.preview != nil || state.selectionRect != nil)
     }
 }
 
@@ -390,5 +397,46 @@ struct MenuRow: View {
         .disabled(disabled)
         .onHover { hovered = $0 }
         .help(help ?? "")
+    }
+}
+
+/// 1d Selection toolbar: dark, over the selection. Formatting works now; Explain and Flashcard
+/// belong to the in-app agent (MA3) and stay disabled.
+struct SelectionToolbar: View {
+    let handle: EditorHandle
+    let done: () -> Void
+
+    var body: some View {
+        HStack(spacing: 2) {
+            item("Explain", "auto_awesome", enabled: false) {}
+            item("Flashcard", "style", enabled: false) {}
+            item("Link", "add_link") { handle.wrapSelection("[[", "]]") }
+            Rectangle().fill(Color(hex: 0x4A4D57)).frame(width: 1, height: 18).padding(.horizontal, 4)
+            icon("format_bold", "Bold") { handle.wrapSelection("**", "**") }
+            icon("format_italic", "Italic") { handle.wrapSelection("*", "*") }
+            icon("check_box", "Make task") { handle.wrapSelection("- [ ] ", "") }
+        }
+        .padding(4)
+        .background(MarginColor.ink, in: RoundedRectangle(cornerRadius: 10))
+        .shadow(color: MarginColor.ink.opacity(0.25), radius: 14, y: 10)
+    }
+
+    private func item(_ title: String, _ icon: String, enabled: Bool = true, _ action: @escaping () -> Void) -> some View {
+        Button { action(); done() } label: {
+            HStack(spacing: 6) { Icon(icon, size: 15, color: .white); Text(title).marginFont(MarginTextSize.sm).foregroundStyle(.white) }
+                .padding(.horizontal, 10).frame(height: 32).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.45)
+        .help(enabled ? title : "\(title) comes with the in-app agent")
+    }
+
+    private func icon(_ name: String, _ help: String, _ action: @escaping () -> Void) -> some View {
+        Button { action(); done() } label: {
+            Icon(name, size: 16, color: .white).frame(width: 32, height: 32).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 }

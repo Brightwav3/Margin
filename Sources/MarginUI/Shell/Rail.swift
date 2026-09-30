@@ -41,7 +41,9 @@ struct Rail: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .help(course.name)
+                .help(workspace?.courses.cards.first { $0.id == course.id }.map { card in
+                    [card.course.name, card.course.code, card.next].compactMap { $0 }.joined(separator: " · ")
+                } ?? course.name)
                 .contextMenu {
                     if let workspace, let c = workspace.courses.course(id: course.id) {
                         CourseMenuItems(course: c).environment(workspace)

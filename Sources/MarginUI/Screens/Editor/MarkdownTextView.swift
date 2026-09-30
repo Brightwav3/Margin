@@ -14,6 +14,8 @@ struct EditorEvents {
     var onHoverLink: (String?, NSRect) -> Void = { _, _ in }
     /// Right click (M10-31): what is under the pointer.
     var onContextMenu: (EditorContext) -> NSMenu? = { _ in nil }
+    /// Selection changed (1d toolbar): the selection rect in window coordinates, nil when empty.
+    var onSelection: (NSRect?) -> Void = { _ in }
     /// Keys the popup handles while open (↑ ↓ ⏎ ⎋ ⇥); returns true when consumed.
     var onPopupKey: (EditorKey) -> Bool = { _ in false }
 }
@@ -218,6 +220,7 @@ struct MarkdownTextView: NSViewRepresentable {
             guard let tv = notification.object as? MarginTextView, !loading else { return }
             updateActive(tv, force: false, extra: nil)
             detectQueries(tv)
+            parent.events.onSelection(tv.selectedRange().length > 0 ? tv.selectionRectInWindow : nil)
         }
 
         /// Live mode: when the caret enters another block, restyle the old and new one.
@@ -382,6 +385,16 @@ final class MarginTextView: NSTextView {
         guard shouldChangeText(in: range, replacementString: text) else { return }
         textStorage?.replaceCharacters(in: range, with: text)
         didChangeText()
+    }
+
+    /// Bounding rect of the selection in window coordinates.
+    var selectionRectInWindow: NSRect? {
+        guard let layout = layoutManager, let container = textContainer, selectedRange().length > 0 else { return nil }
+        let glyphs = layout.glyphRange(forCharacterRange: selectedRange(), actualCharacterRange: nil)
+        var rect = layout.boundingRect(forGlyphRange: glyphs, in: container)
+        rect.origin.x += textContainerOrigin.x
+        rect.origin.y += textContainerOrigin.y
+        return convert(rect, to: nil)
     }
 
     var caretRectInWindow: NSRect {

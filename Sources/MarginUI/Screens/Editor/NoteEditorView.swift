@@ -66,6 +66,7 @@ struct NoteEditorView: View {
         e.onSlashQuery = { q, rect in popup.slash(q, at: rect, clock: workspace.env.clock) }
         e.onHoverLink = { target, rect in popup.hover(target, at: rect, workspace: workspace) }
         e.onPopupKey = { key in popup.key(key, handle: handle, workspace: workspace) }
+        e.onSelection = { rect in popup.selectionRect = model.mode == .reading ? nil : rect }
         e.onContextMenu = { ctx in EditorMenus.menu(for: ctx, model: model, handle: handle, workspace: workspace) }
         return e
     }
