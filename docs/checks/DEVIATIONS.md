@@ -6,3 +6,5 @@
 | 2026-09-30 | 3a (vlastnosti), System | Hodnota `class` bez úvodního `+` („Cell Biology“, ne „+Cell Biology“) | pokyn uživatele | Šimon |
 | 2026-09-30 | rail, všechny ikony | Aktivní položka bez vyplněné ikony (Lucide nemá `fill` varianty); zvýraznění barvou a tloušťkou | D-020 | |
 | 2026-09-30 | sidebar Notes (hledání) | Pole „Search notes…“ jako Liquid Glass kapsle (`glassEffect`) místo bílého obdélníku s okrajem | pokyn uživatele | Šimon |
+| 2026-09-30 | shell (lišta) | Záložky jen nad obsahem: začínají u pravé hrany sidebaru a končí u levé hrany inspektoru (nad sidebarem jen semafory, šipky a přepínač) | pokyn uživatele | Šimon |
+| 2026-09-30 | všechny obrazovky | Tenčí písmo a ikony (jako aplikace ChatGPT): Inter `wght` 400→370, 500→460, 600→540, 700→620; tah ikon 1.5 místo 1.75; v sidebaru položky 14 px, sekce 13 px, titulek 15 px | pokyn uživatele | Šimon |

@@ -8,7 +8,11 @@ struct SidebarPanel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Default 220 px, 280 px with a Notes space (mockup); the user can drag it wider or narrower.
-    var width: CGFloat { model.sidebarWidth ?? (content.notes == nil ? 220 : 280) }
+    var width: CGFloat { Self.width(model: model, content: content) }
+
+    static func width(model: AppModel, content: SidebarContent) -> CGFloat {
+        model.sidebarWidth ?? (content.notes == nil ? 220 : 280)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,24 +68,21 @@ private struct NavigationPage: View {
                 if let dot = content.dot {
                     Circle().fill(Color(hexString: dot)).frame(width: 10, height: 10)
                 }
-                Text(content.title)
-                    .marginFont(MarginTextSize.md, .semibold)
-                    .foregroundStyle(MarginColor.ink)
-                    .lineLimit(1)
-                Icon("expand_more", size: 18, color: MarginColor.textSecondary)
+                SidebarTitle(title: content.title, views: content.views)
                 Spacer(minLength: 0)
                 Icon("search", size: 20, color: MarginColor.textSecondary)
             }
             .padding(EdgeInsets(top: 4, leading: 8, bottom: 8, trailing: 8))
 
-            SidebarActionButton(title: content.actionTitle, icon: content.actionIcon, key: content.actionKey)
+            SidebarActionButton(title: content.actionTitle, icon: content.actionIcon, key: content.actionKey,
+                                action: content.onAction)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(content.sections) { section in
                         VStack(alignment: .leading, spacing: 1) {
                             Text(section.label)
-                                .marginFont(MarginTextSize.base)
+                                .marginFont(MarginTextSize.sm)
                                 .foregroundStyle(MarginColor.textTertiary)
                                 .padding(EdgeInsets(top: 16, leading: 10, bottom: 6, trailing: 10))
                             ForEach(section.items) { SidebarItemRow(item: $0) }
@@ -96,22 +97,62 @@ private struct NavigationPage: View {
     }
 }
 
+/// Panel title with its chevron; with `views` the chevron opens a menu of them.
+private struct SidebarTitle: View {
+    let title: String
+    let views: [SidebarContent.Item]
+
+    var body: some View {
+        if views.isEmpty {
+            label
+        } else {
+            Menu {
+                ForEach(views) { view in
+                    Button {
+                        view.action?()
+                    } label: {
+                        if view.isOn { Label(view.title, systemImage: "checkmark") } else { Text(view.title) }
+                    }
+                }
+            } label: {
+                label
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+    }
+
+    private var label: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .marginFont(MarginTextSize.base, .semibold)
+                .foregroundStyle(MarginColor.ink)
+                .lineLimit(1)
+            Icon("expand_more", size: 16, color: MarginColor.textSecondary)
+        }
+        .contentShape(Rectangle())
+    }
+}
+
 private struct SidebarActionButton: View {
     let title: String
     let icon: String
     let key: String
+    let action: (@MainActor @Sendable () -> Void)?
     @State private var hovered = false
 
     var body: some View {
-        Button {} label: {
+        Button { action?() } label: {
             HStack(spacing: 10) {
-                Icon(icon, size: 20, color: MarginColor.ink)
-                Text(title).marginFont(MarginTextSize.base).foregroundStyle(MarginColor.ink)
+                Icon(icon, size: 18, color: MarginColor.ink)
+                Text(title).marginFont(14).foregroundStyle(MarginColor.ink)
                 Spacer(minLength: 0)
                 Text(key).marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary)
             }
             .padding(.horizontal, 10)
-            .frame(height: 38)
+            .frame(height: 34)
             .background(hovered ? MarginColor.borderSubtle : MarginColor.hover, in: RoundedRectangle(cornerRadius: 10))
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
@@ -127,13 +168,13 @@ struct SidebarItemRow: View {
     var body: some View {
         HStack(spacing: 10) {
             if let icon = item.icon {
-                Icon(icon, size: 18, color: item.isOn ? MarginColor.accent : MarginColor.textSecondary)
+                Icon(icon, size: 17, color: item.isOn ? MarginColor.accent : MarginColor.textSecondary)
             }
             if let dot = item.dot {
                 Circle().fill(Color(hexString: dot)).frame(width: 7, height: 7).padding(.horizontal, 5)
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(item.title).marginFont(MarginTextSize.base).lineLimit(1)
+                Text(item.title).marginFont(14).lineLimit(1)
                 if let meta = item.meta {
                     Text(meta).marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary).lineLimit(1)
                 }
@@ -144,11 +185,13 @@ struct SidebarItemRow: View {
         .foregroundStyle(item.isOn ? MarginColor.accentText : MarginColor.ink)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .frame(minHeight: 34)
+        .frame(minHeight: 32)
         .background(item.isOn ? MarginColor.accentSoft : (hovered ? MarginColor.hover : .clear),
                     in: RoundedRectangle(cornerRadius: MarginRadius.sm))
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
+        .onTapGesture { item.action?() }
+        .accessibilityAddTraits(item.action == nil ? [] : .isButton)
     }
 }
 

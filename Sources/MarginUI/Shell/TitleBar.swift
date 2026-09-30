@@ -5,38 +5,54 @@ import SwiftUI
 struct TitleBar: View {
     @Bindable var model: AppModel
     let inspector: InspectorContent?
+    /// Width of the expanded sidebar; the tabs start at its divider.
+    var sidebarWidth: CGFloat = 220
     var onNewTab: () -> Void = {}
 
     static let height: CGFloat = 44
+    /// Traffic lights, back/forward and the sidebar toggle need this much from the window edge.
+    static let controlsWidth: CGFloat = 178
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var inspectorShown: Bool { model.inspectorOpen && inspector != nil }
+
     var body: some View {
-        HStack(spacing: 18) {
-            // Traffic lights: 3 × 12 px with 8 px gaps, positioned by `WindowConfigurator`.
-            Color.clear.frame(width: 52, height: 12)
-            HStack(spacing: 10) {
-                Icon("arrow_back", size: 18, color: MarginColor.textSecondary)
-                Icon("arrow_forward", size: 18, color: MarginColor.textDisabled)
-                ChromeButton(icon: "side_navigation", help: "Toggle sidebar (⌥⌘S)") {
-                    withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleSidebar() }
+        HStack(spacing: 0) {
+            // Over the rail and sidebar: traffic lights (positioned by `WindowConfigurator`),
+            // back/forward and the sidebar toggle. Ends at the sidebar divider.
+            HStack(spacing: 18) {
+                Color.clear.frame(width: 52, height: 12)
+                HStack(spacing: 10) {
+                    Icon("arrow_back", size: 18, color: MarginColor.textSecondary)
+                    Icon("arrow_forward", size: 18, color: MarginColor.textDisabled)
+                    ChromeButton(icon: "side_navigation", help: "Toggle sidebar (⌥⌘S)") {
+                        withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleSidebar() }
+                    }
                 }
             }
+            .padding(.leading, 16)
+            .frame(width: model.sidebarCollapsed ? Self.controlsWidth
+                                                 : max(Self.controlsWidth, Shell.railWidth + sidebarWidth),
+                   alignment: .leading)
+
+            // Between the dividers: only the tabs.
             TabStrip(model: model, onNewTab: onNewTab)
-            if model.inspectorOpen, let inspector {
-                InspectorTabBar(model: model, tabs: inspector.tabs)
-                    // Aligned with the inspector: its left edge sits at W − 8 − 300.
-                    .frame(width: (model.inspectorWidth ?? Shell.inspectorWidth) - 30, alignment: .leading)
+
+            // Over the inspector: its tab icons and the toggle; without it just the toggle.
+            HStack(spacing: 0) {
+                if inspectorShown, let inspector {
+                    InspectorTabBar(model: model, tabs: inspector.tabs)
+                    Spacer(minLength: 0)
+                }
+                ChromeButton(icon: "dock_to_left", help: "Toggle inspector (⌥⌘I)") {
+                    withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleInspector() }
+                }
+                .padding(.trailing, 12)
+                .padding(.leading, inspectorShown ? 0 : 12)
             }
-        }
-        .padding(.leading, 16)
-        // Keep clear of the inspector toggle (12 + 24); with the inspector open the tab bar ends
-        // 30 px before the inspector's right edge, as in `Inspector.dc.html`.
-        .padding(.trailing, model.inspectorOpen && inspector != nil ? 30 + 8 : 12 + 24 + 18)
-        .overlay(alignment: .trailing) {
-            ChromeButton(icon: "dock_to_left", help: "Toggle inspector (⌥⌘I)") {
-                withAnimation(Shell.panelAnimation(reduceMotion)) { model.toggleInspector() }
-            }
-            .padding(.trailing, 12)
+            // The card ends 8 px before the window edge, so the zone is the inspector plus that inset.
+            .frame(width: inspectorShown ? (model.inspectorWidth ?? Shell.inspectorWidth) + Shell.cardInset : nil,
+                   alignment: .leading)
         }
         .frame(height: Self.height)
         .background { WindowDragArea() }
@@ -75,7 +91,8 @@ private struct TabStrip: View {
     private static let maxWidth: CGFloat = 188
     private static let minWidth: CGFloat = 72
     private static let spacing: CGFloat = 2
-    private static let leading: CGFloat = 10
+    // Room for the active tab's left foot so it never crosses the sidebar divider.
+    private static let leading: CGFloat = 12
     private static let plusWidth: CGFloat = 30
 
     /// Tabs are 188 px as in the mockup and shrink evenly when they do not fit (like a browser).
@@ -164,15 +181,11 @@ private struct TabItem: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if isActive || hovered {
-                Button(action: onClose) {
-                    Icon("close", size: 16, color: MarginColor.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .help("Close tab (⌘W)")
+                TabCloseButton(action: onClose)
             }
         }
         .padding(.leading, 12)
-        .padding(.trailing, 8)
+        .padding(.trailing, 5)
         .frame(height: isActive ? 37 : 32)
         .background {
             if isActive {
@@ -196,6 +209,27 @@ private struct TabItem: View {
         .onHover { hovered = $0 }
         // The active tab overlaps the card's top border by 1 px so the two read as one surface.
         .padding(.bottom, isActive ? -1 : 4)
+    }
+}
+
+/// Close „×“ of a tab: a 22 px round target with a hover fill (Chrome). The tap is attached to the
+/// button itself so it wins over the tab's select tap and reorder drag.
+private struct TabCloseButton: View {
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Icon("close", size: 14, color: hovered ? MarginColor.ink : MarginColor.textSecondary)
+            .frame(width: 22, height: 22)
+            .background(hovered ? MarginColor.borderSubtle : .clear, in: Circle())
+            .contentShape(Circle())
+            .onHover { hovered = $0 }
+            .highPriorityGesture(TapGesture().onEnded(action))
+            .help("Close tab (⌘W)")
+            .accessibilityElement()
+            .accessibilityLabel("Close tab")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { action() }
     }
 }
 

@@ -12,15 +12,18 @@ public struct SidebarContent: Sendable {
         public var meta: String?
         public var count: String
         public var isOn: Bool
+        /// Runs on click; nil = the row is not interactive yet.
+        public var action: (@MainActor @Sendable () -> Void)?
 
         public init(_ title: String, icon: String? = nil, dot: String? = nil, meta: String? = nil,
-                    count: String = "", isOn: Bool = false) {
+                    count: String = "", isOn: Bool = false, action: (@MainActor @Sendable () -> Void)? = nil) {
             self.title = title
             self.icon = icon
             self.dot = dot
             self.meta = meta
             self.count = count
             self.isOn = isOn
+            self.action = action
         }
     }
 
@@ -44,9 +47,13 @@ public struct SidebarContent: Sendable {
     public var sections: [Section]
     /// Notes space (second page, switched by the dots at the bottom).
     public var notes: NotesSpace?
+    /// Choices behind the title chevron (Courses ▾ → Cards / Timetable); empty = no menu.
+    public var views: [Item]
+    public var onAction: (@MainActor @Sendable () -> Void)?
 
     public init(title: String, dot: String? = nil, actionTitle: String, actionIcon: String = "add",
-                actionKey: String = "", sections: [Section], notes: NotesSpace? = nil) {
+                actionKey: String = "", sections: [Section], notes: NotesSpace? = nil, views: [Item] = [],
+                onAction: (@MainActor @Sendable () -> Void)? = nil) {
         self.title = title
         self.dot = dot
         self.actionTitle = actionTitle
@@ -54,6 +61,8 @@ public struct SidebarContent: Sendable {
         self.actionKey = actionKey
         self.sections = sections
         self.notes = notes
+        self.views = views
+        self.onAction = onAction
     }
 }
 

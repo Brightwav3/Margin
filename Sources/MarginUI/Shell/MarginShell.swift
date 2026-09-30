@@ -61,7 +61,7 @@ public struct MarginShell<Content: View>: View {
                 .padding([.bottom, .trailing], Shell.cardInset)
             }
 
-            TitleBar(model: model, inspector: inspector) {
+            TitleBar(model: model, inspector: inspector, sidebarWidth: SidebarPanel.width(model: model, content: sidebar)) {
                 model.open(ShellTab(title: "New tab"))
             }
         }
