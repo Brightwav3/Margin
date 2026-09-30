@@ -13,7 +13,7 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 | M0 | Kostra, tokeny, komponenty, galerie | 5 | 18 | 23 | — | — | 🟦 | `checks/M0.md` | |  |
 | M1 | Shell | 0 | 28 | 28 | — | — | ⬜ | `checks/M1.md` | | CP0 |
 | M2 | Model a fixtures | 12 | 2 | 14 | — | — | 🟦 | (testy) | |  |
-| M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | — | — | ⬜ | `checks/M3.md` | |  |
+| M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | 1 | — | 🟦 | `checks/M3.md` | |  |
 | M4 | Detail předmětu (2c) | 3 | 27 | 30 | — | — | ⬜ | `checks/M4.md` | | CP1 |
 | M5 | Vault a index | 35 | 1 | 36 | — | — | 🟦 | `checks/M5.md` | | před startem odsouhlasit spec (§12) |
 | MA0 | Agent: základy (provenance, ID, undo, souběh) | 32 | 0 | 32 | — | — | 🟦 | (testy) | | brána před M6 |
@@ -74,3 +74,4 @@ _(žádné)_
 - 2026-09-30: Uživatel rozhodl podobu vnitřního agenta (Q8): lokální CLI nad vaultem jako Claudian (D-023, R-22). Důsledek: aplikace bez App Sandboxu; MA3 se přepracuje zvlášť.
 - 2026-09-30: M0-03–M0-09 (UI) implementováno na `feat/ui-design-system`: tokeny, Inter, celá sada Lucide (D-020), komponenty, galerie `--screen`, `scripts/snap.sh` (D-021). Návrh generátoru ikon předmětů v galerii (`course-icons`, 6 nových barev palety) čeká na schválení. M0-10 (referenční PNG) a vizuální kontrola `docs/checks/M0.md` zbývají.
 - 2026-09-30: M1-01–M1-08 a M2-06 (UI) implementováno na `feat/ui-shell` (navazuje na `feat/ui-design-system`): lišta se záložkami (smrštitelné, přetažení, semafory 16 px / střed 44 px lišty), rail, sidebar s Notes (420 ms), inspektor 300 px, `AppModel`; galerie `shell`, `shell-notes`, `shell-course`, `shell-collapsed`. Ověřeno v živém okně: klik na záložky, přepínání inspektoru, sbalení sidebaru. Neověřeno: přetažení záložky myší (syntetické tažení nástroje gesto nespustilo). M1-09 a `docs/checks/M1.md` zbývají.
+- 2026-09-30: M3-01–M3-03, M3-06–M3-08 (UI) implementováno na `feat/ui-courses-overview` nad smlouvou (`CourseCatalog`, `NoteRepository`, `GradeService`, `TaskService`, `CourseListQuery`); galerie `1a`, `1b`, snímky a `docs/checks/M3.md`. Shell: záložky jen mezi sidebarem a inspektorem, tenčí písmo a ikony (pokyn uživatele). Zbývá: schválení hlavičky skupiny a zalomení, M3-05.U blokováno (`BannerStore` mimo API), doplnit fixture (M2-04) pro shodu s mockupem.
