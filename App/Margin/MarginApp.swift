@@ -16,6 +16,7 @@ struct MarginApp: App {
                 ScreenGallery()
             }
         }
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(requestedScreen == nil ? .automatic : .contentSize)
     }
 }
