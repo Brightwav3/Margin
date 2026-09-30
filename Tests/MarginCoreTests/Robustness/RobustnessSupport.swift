@@ -5,7 +5,7 @@ import Testing
 /// Every robustness suite lives in here so that they run one at a time: each opens whole vaults with
 /// their own watchers, and side by side they starve the timing-sensitive watcher tests of the rest of
 /// the package on a small machine.
-@Suite(.serialized) enum Robustness {}
+@Suite(.serialized, .tags(.slow)) enum Robustness {}
 
 /// A `FileSystem` that fails on demand, the way a real disk does: `ENOSPC` while writing, `EACCES`
 /// on a folder, `EIO` when a volume disappears. Unlike `FaultInjectingFileSystem` (fail the n-th

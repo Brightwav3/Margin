@@ -129,7 +129,7 @@ private func randomDocument(_ r: inout FuzzRNG) -> String {
 
 private func bytes(_ s: String) -> [UInt8] { Array(s.utf8) }
 
-@Suite("Frontmatter fuzz") struct FrontmatterFuzzTests {
+@Suite("Frontmatter fuzz", .tags(.slow)) struct FrontmatterFuzzTests {
     static let count = 10_000
 
     @Test func parseRenderIsByteIdentical() {

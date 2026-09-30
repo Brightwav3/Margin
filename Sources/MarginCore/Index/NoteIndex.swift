@@ -16,6 +16,13 @@ public actor NoteIndex {
     private let scanner = MarkdownScanner()
     private let wikilinks = WikilinkExtractor()
     private var source: (any NoteContentSource)?
+    /// Counts every change of the index and remembers, per path, when it was last changed. The
+    /// actor is re-entrant while `update(path:)` awaits the file read, so a rename or removal of
+    /// the same path (the app's own write, an undo) may slip in between the read and the insert;
+    /// the epochs let the update notice that and read again instead of resurrecting stale content.
+    private var epoch = 0
+    private var changedAt: [String: Int] = [:]
+    private var rebuiltAt = 0
 
     private var byPath: [String: NoteRecord] = [:]
     /// Note id -> path. Duplicate ids: the lexicographically smallest path wins.
@@ -60,7 +67,9 @@ public actor NoteIndex {
 
     /// Replaces the index with the given notes.
     public func build(entries: [(path: String, content: String)]) {
-        byPath = [:]; idToPath = [:]; taskPaths = [:]; pathsByName = [:]; linkers = [:]
+        epoch += 1
+        rebuiltAt = epoch
+        byPath = [:]; changedAt = [:]; idToPath = [:]; taskPaths = [:]; pathsByName = [:]; linkers = [:]
         byPath.reserveCapacity(entries.count)
         for e in entries where Self.isMarkdown(e.path) {
             let record = makeRecord(path: e.path, text: e.content)
@@ -85,10 +94,17 @@ public actor NoteIndex {
     @discardableResult
     public func update(path: String) async throws -> Bool {
         guard let source else { throw MarginError.invalid("NoteIndex has no content source") }
-        do {
-            return update(path: path, content: try await source.read(path))
-        } catch MarginError.notFound {
-            return remove(path: path)
+        var attempts = 0
+        while true {
+            let started = epoch
+            let content: String?
+            do { content = try await source.read(path) } catch MarginError.notFound { content = nil }
+            attempts += 1
+            // The index changed this path (or was rebuilt) while the file was being read: what was
+            // read may already be outdated, so read again. Bounded, the last read wins.
+            if attempts < 8, rebuiltAt > started || (changedAt[path] ?? 0) > started { continue }
+            guard let content else { return remove(path: path) }
+            return update(path: path, content: content)
         }
     }
 
@@ -110,19 +126,17 @@ public actor NoteIndex {
         return true
     }
 
-    /// Applies watcher output: created/modified re-read the file, deleted removes it.
+    /// Applies watcher output: every change re-reads the file (a missing one is removed). A watcher batch
+    /// is a snapshot that may be applied after the app itself moved the file back (undo of an
+    /// archive, a rename and its undo), so a "deleted" note is only dropped when the file is really
+    /// gone: `update(path:)` reads it again and removes the note only when the source reports it missing.
     /// Non-markdown paths are ignored. Returns the paths whose read failed (other than missing).
     @discardableResult
     public func apply(_ changes: [FileChange]) async -> [String: MarginError] {
         var failures: [String: MarginError] = [:]
         for change in changes where Self.isMarkdown(change.path) {
-            switch change.kind {
-            case .deleted:
-                remove(path: change.path)
-            case .created, .modified:
-                do { try await update(path: change.path) }
-                catch { failures[change.path] = (error as? MarginError) ?? .io("\(error)") }
-            }
+            do { try await update(path: change.path) }
+            catch { failures[change.path] = (error as? MarginError) ?? .io("\(error)") }
         }
         return failures
     }
@@ -278,6 +292,8 @@ public actor NoteIndex {
     }
 
     private func insert(_ record: NoteRecord) {
+        epoch += 1
+        changedAt[record.path] = epoch
         byPath[record.path] = record
         if let existing = idToPath[record.id], existing < record.path {} else {
             idToPath[record.id] = record.path
@@ -290,6 +306,8 @@ public actor NoteIndex {
     }
 
     private func detach(_ record: NoteRecord) {
+        epoch += 1
+        changedAt[record.path] = epoch
         byPath[record.path] = nil
         if idToPath[record.id] == record.path {
             idToPath[record.id] = byPath.values.filter { $0.id == record.id }.map(\.path).min()

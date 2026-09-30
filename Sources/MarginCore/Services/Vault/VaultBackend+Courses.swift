@@ -132,6 +132,7 @@ extension VaultBackend {
             await index.rename(from: record.path, to: moved)
             touched += [record.path, moved]
         }
+        await resyncIndex(afterMovingFolderFrom: from.rawValue, to: to.rawValue)
         for rewritten in await rewriter.lastReport.notesRewritten {
             _ = try? await index.update(path: rewritten.rawValue)
             touched.append(rewritten.rawValue)
