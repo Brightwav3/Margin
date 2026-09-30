@@ -219,10 +219,19 @@ private struct ScrollZoom: NSViewRepresentable {
         var onScroll: (CGFloat) -> Void = { _ in }
         private var monitor: Any?
 
+        // The monitor is removed when the view leaves its window. Not in `removeFromSuperview`:
+        // AppKit calls that from `dealloc`, when Swift properties are already gone (crash).
+        override func viewWillMove(toWindow newWindow: NSWindow?) {
+            super.viewWillMove(toWindow: newWindow)
+            if newWindow == nil, let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            if let monitor { NSEvent.removeMonitor(monitor) }
-            guard window != nil else { return }
+            guard window != nil, monitor == nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                 guard let self, let window = self.window, event.window == window else { return event }
                 let p = self.convert(event.locationInWindow, from: nil)
@@ -230,12 +239,6 @@ private struct ScrollZoom: NSViewRepresentable {
                 self.onScroll(event.scrollingDeltaY)
                 return nil
             }
-        }
-
-        override func removeFromSuperview() {
-            if let monitor { NSEvent.removeMonitor(monitor) }
-            monitor = nil
-            super.removeFromSuperview()
         }
     }
 }
