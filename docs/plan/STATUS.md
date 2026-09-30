@@ -47,7 +47,7 @@ Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone 
 | Q5 | Identita úkolu: hash vs. `^id` | M5 | ✅ | **rozhodnuto: stabilní `^id`** (D-012) |
 | Q6 | Ikony: Lucide (jako Obsidian) | M0 | ✅ | **rozhodnuto: Lucide** (D-006) |
 | Q7 | Developer ID pro notarizaci | M12 | ⬜ | zjistit před M11 |
-| Q8 | Výchozí model a poskytovatel vnitřního agenta, klíč v Keychainu, lokální modely | MA3 | ⬜ | Claude API, jen adaptér |
+| Q8 | Výchozí model a poskytovatel vnitřního agenta, klíč v Keychainu, lokální modely | MA3 | ✅ | **rozhodnuto 2026-09-30**: lokální CLI agent (Claude Code, Codex, …) jako Claudian, bez vlastního API klíče; D-023 |
 | Q9 | Výchozí profil nové identity | MA2 | ⬜ | `propose` |
 | Q10 | Soukromí: co smí do modelu odejít | MA3 | ⬜ | jen zvolené předměty, výslovný souhlas |
 | Q11 | MCP server i při zavřené aplikaci (pomocný démon) | MA1 | ⬜ | jen za běhu aplikace |
@@ -71,3 +71,4 @@ _(žádné)_
 - 2026-09-30: Opraveny nestabilní testy jádra (index po undo přesunu složky, AG-03/M5-07; sweep externích zápisů, AG-04), SHA-256 přes CryptoKit (M5-06), konformitní vaulty bez F_FULLFSYNC. Nový `scripts/test.sh` (quick ~25 s, full ~3 min místo ~5 min).
 - 2026-09-30: Uživatel dodal mockupy menu (`Margin Menus.dc.html`, `Margin Menu.dc.html`) a schválil jejich zařazení do plánu UI: nový milestone M10d (M10-24…M10-33, váha 37), celkem 871 (BE 405 / UI 466).
 - 2026-10-01: Uživatel dodal mockup menu baru (`Margin Menu Bar.dc.html`, v `Margin Menus` sekce 5a–5k) a zadal ho k realizaci: M10-34…M10-36 v M10d (+8), celkem 879 (UI 474).
+- 2026-09-30: Uživatel rozhodl podobu vnitřního agenta (Q8): lokální CLI nad vaultem jako Claudian (D-023, R-22). Důsledek: aplikace bez App Sandboxu; MA3 se přepracuje zvlášť.

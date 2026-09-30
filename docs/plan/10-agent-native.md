@@ -132,6 +132,8 @@ Testovací sada **30 injekčních útoků** (v poznámkách, PDF, názvech soubo
 
 ## 8. Vnitřní agent (v aplikaci)
 
+> **Změna D-023 (2026-09-30):** vnitřní agent je lokální CLI (Claude Code, Codex, …) spouštěné s vaultem jako pracovní složkou, jako Obsidian plugin Claudian. Body níže o `AgentService`, Claude API a `ToolRegistry` pro vnitřního agenta platí jen pro vnější agenty; přepracování MA3 podle D-023 je samostatný úkol plánu.
+
 - **Provider-agnostic** `AgentService` s adaptérem pro Claude API (výchozí model volí uživatel v nastavení; klíč v Keychainu). Tool-use smyčka běží nad `ToolRegistry` se stejnými oprávněními jako vnější agent (profil „In-app agent“).
 - **Kontext:** aktuální poznámka, předmět, Today; rozpočet tokenů; citace zdrojů jako `[[odkazy]]`.
 - **Skills:** pojmenované postupy definované v `.margin/agent/skills/*.md` (např. „Kartičky z přednášky“, „Plán učení před zkouškou“, „Týdenní přehled“); jdou spustit z ⌘K a z inspektoru.
