@@ -6,7 +6,7 @@ import Testing
 /// interrupted at ANY step. Every call the store makes is failed in turn, both as a survivable
 /// error and as a simulated crash (no cleanup possible), before and after the call executes, and
 /// with a half-written temp file for the write step.
-@Suite struct VaultStoreInterruptedWriteTests {
+@Suite(.tags(.slow)) struct VaultStoreInterruptedWriteTests {
     static let oldBytes = trickyBytes(seed: "orig", kilobytes: 64)
     static let newContent = String(decoding: trickyBytes(seed: "new", kilobytes: 96), as: UTF8.self)
     static var newBytes: Data { Data(newContent.utf8) }

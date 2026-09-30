@@ -1,0 +1,9 @@
+# Pomalé testy: jedno místo pravdy pro scripts/test.sh (režimy quick / slow / changed).
+# Formát: <tier> <regex>. Regex se porovnává s ID testu `Modul.Suite/test()`
+# (viz `swift test --skip-build list`). Vnořené suity mají ID `Modul.Rodič/Suite/test()`.
+# `swift test` z CLI neumí filtrovat podle Tagů, proto seznam; v kódu jim odpovídá
+# `.tags(.slow)` (Tests/MarginCoreTests/TestTags.swift). Nový pomalý test = řádek tady + tag.
+perf         ^MarginCoreTests\.PerfSuites/
+robustness   ^MarginCoreTests\.Robustness/
+robustness   ^MarginCoreTests\.VaultStoreInterruptedWriteTests/
+fuzz         ^MarginCoreTests\.FrontmatterFuzzTests/

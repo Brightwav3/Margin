@@ -63,6 +63,7 @@ scripts/check.sh                       # lint plánu + commitů + swift build + 
 python3 scripts/lint-plan.py           # konzistence váhy/ID/STATUS
 python3 scripts/lint-commit.py --range main..HEAD   # commity větve
 swift build && swift test              # jen jádro
+scripts/test.sh [quick|changed|failed|slow|full|tiers] [-f REGEX] [--repeat N]   # rychlé vrstvené testy (vývoj: changed/-f, před commitem: quick), viz docs/git-workflow.md
 scripts/land.sh <větev> "<type>(<scope>): <popis>"  # lokální squash merge do main (dokud není GitHub)
 scripts/install-hooks.sh               # zapnutí git hooků (dělá se automaticky při startu session)
 ```

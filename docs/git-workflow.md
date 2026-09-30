@@ -149,6 +149,20 @@ Minimum před merge: PR míří do `main`, `check` zelený, žádná tajemství,
 
 **Ruleset `main`** (`.github/rulesets/protect-main.json`, aplikuje `scripts/gh-setup.sh`): PR povinný, required check `check`, zákaz force push a mazání `main`.
 
+## Rychlé testy během vývoje (`scripts/test.sh`)
+Plný `swift test` (~1000 testů, výkonové rozpočty, robustnost, souběh) trvá několik minut. Při práci proto používej vrstvy; **plná brána zůstává `scripts/check.sh`** (pre-push a CI ji pouštějí beze změny).
+
+| Kdy | Příkaz | Co běží |
+|---|---|---|
+| Při psaní kódu | `scripts/test.sh changed` nebo `scripts/test.sh -f NázevSuity` | jen testy k souborům změněným proti `main` (mapování podle složek, u nejasností `quick`) / jen vybraná suita |
+| Před commitem | `scripts/test.sh quick` (výchozí) | vše kromě pomalých vrstev |
+| Po pádu testu | `scripts/test.sh failed` | jen testy, které selhaly naposledy |
+| Podezření na flaky test | `scripts/test.sh -f NázevSuity --repeat 20` | opakuje výběr, zastaví se na prvním selhání |
+| Po změně souběhu, zápisu, výkonu | `scripts/test.sh slow` | jen pomalé vrstvy |
+| Před PR / v CI | `scripts/check.sh` (= `full`) | úplně vše |
+
+Pomalé vrstvy (výkon, robustnost, souběh, injekce chyb, fuzz) definuje `scripts/test-tiers.txt` (regexy ID testů; `swift test` neumí filtrovat podle tagů, proto seznam). V kódu jim odpovídá tag `.slow` (`Tests/MarginCoreTests/TestTags.swift`); nový pomalý test = řádek v seznamu + tag. `scripts/test.sh tiers` vypíše počty testů ve vrstvách, `-n` jen ukáže výběr. Plný log je v `.build/test-logs/last.log`, na terminál jde shrnutí (selhané testy se `soubor:řádek`, čas).
+
 ## Releasy a verze
 [SemVer](https://semver.org/): MAJOR = zpětně nekompatibilní změna veřejného API/formátu dat (vault!), MINOR = nová funkce, PATCH = oprava. Před 1.0 `0.x.y`. Zdroj verze: `Package.swift`/`Info.plist` aplikace; tag `v0.3.0` odpovídá.
 

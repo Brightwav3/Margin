@@ -5,7 +5,7 @@ import Testing
 /// performance tests run at the same time and they do not compete with each other for CPU.
 /// Other (non-performance) suites still run in parallel, so each budget is additionally judged on
 /// the median of several runs after a warm-up (see `perfSamples`), never on a single measurement.
-@Suite(.serialized) enum PerfSuites {}
+@Suite(.serialized, .tags(.slow)) enum PerfSuites {}
 
 /// Number of measured runs per budget (after one warm-up run).
 let perfRuns = 5
