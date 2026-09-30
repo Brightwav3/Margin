@@ -11,3 +11,4 @@
 | 2026-09-30 | 2c (stránky předmětu) | **Návrh M4-05:** stránky předmětu (Gallery, Tasks, Exam prep, Grades) přepíná sekce Views v sidebaru předmětu (jako `Sidebar.dc.html`), ne segmentovaný přepínač pod titulkem; záložka Agent v inspektoru je skrytá, dokud agent nemá obsah (MA3) | návrh ke schválení | |
 | 2026-09-30 | 3a (source) | Source režim ukazuje tělo poznámky; frontmatter je v panelu Properties (smlouva: `Note.text` je bez frontmatteru), ne jako `---` řádky | smlouva `Note` | |
 | 2026-09-30 | 3a (live) | Panel Properties je nad titulkem `# …` (v mockupu mezi titulkem a textem), protože titulek je součást textu poznámky | technické | |
+| 2026-09-30 | Today, Upcoming | **Návrh M7-01** (mockup chybí): Today = hodiny dne jako barevné karty + Overdue / Today; Upcoming = Tomorrow, dny týdne, Later; sidebar s filtrem předmětů. Schválit v CP1 | návrh ke schválení | |

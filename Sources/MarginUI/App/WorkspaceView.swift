@@ -27,7 +27,22 @@ public struct WorkspaceView: View {
             workspace.page(for: route)
                 .id(route.key)
         }
+        .overlay {
+            if workspace.capture.isOpen {
+                ZStack(alignment: .top) {
+                    Color(hex: 0x1C1E26, opacity: 0.32).ignoresSafeArea()
+                        .onTapGesture { workspace.capture.close() }
+                    QuickCaptureView(model: workspace.capture).padding(.top, 170)
+                }
+                .transition(.opacity)
+            }
+        }
         .overlay(alignment: .bottom) { ToastView(toast: workspace.toast).padding(.bottom, 28) }
+        .background {
+            Button("Quick capture") { workspace.capture.open() }
+                .keyboardShortcut(.space, modifiers: [.control, .option])
+                .opacity(0).allowsHitTesting(false)
+        }
         .task {
             await workspace.courses.load()
             workspace.refreshTabTitles()
@@ -53,6 +68,18 @@ extension Workspace {
             return courseChrome(id)
         case .note, .draft:
             return noteChrome(route)
+        case .inbox:
+            var chrome = tasksChrome(.today)
+            chrome.sidebar.title = "Inbox"
+            chrome.sidebar.actionTitle = "Capture"
+            chrome.sidebar.actionIcon = "bolt"
+            chrome.sidebar.sections[0].items = chrome.sidebar.sections[0].items.map { var i = $0; i.isOn = i.title == "Inbox"; return i }
+            chrome.sidebar.sections.removeLast()
+            return chrome
+        case .today:
+            return tasksChrome(.today)
+        case .upcoming:
+            return tasksChrome(.upcoming)
         default:
             return PageChrome(sidebar: coursesSidebar, inspector: nil)
         }
@@ -73,6 +100,12 @@ extension Workspace {
             CourseView(model: courseModel(id))
         case .note, .draft:
             NoteEditorView(model: editorModel(route))
+        case .inbox:
+            InboxView(model: inboxModel())
+        case .today:
+            TasksView(model: tasksModel(.today))
+        case .upcoming:
+            TasksView(model: tasksModel(.upcoming))
         default:
             PendingPage(course: nil, title: Self.title(of: route), detail: "Coming up next")
         }
