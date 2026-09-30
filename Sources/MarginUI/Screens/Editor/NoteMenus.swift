@@ -112,7 +112,7 @@ enum EditorMenus {
             add("Search for “\(text.prefix(24))”") { workspace.open(.search(text)) }
         case .link(let target):
             add("Open link") { workspace.openLink(target, from: model.courseID) }
-            add("Open in new tab") { workspace.openLink(target, from: model.courseID) }
+            add("Open in new tab") { workspace.openLink(target, from: model.courseID, newTab: true) }
             add("Copy link") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString("[[\(target)]]", forType: .string)

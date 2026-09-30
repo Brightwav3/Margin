@@ -17,7 +17,7 @@ struct Rail: View {
                     isOn: content.active == place.rawValue,
                     hasDot: place == .inbox && content.inboxHasItems
                 ) { onSelect(place.rawValue) }
-                .marginTooltip(place.title, shortcut: place.shortcut, placement: .trailing)
+                .marginTooltip(place.title, shortcut: place.shortcut.isEmpty ? nil : place.shortcut, placement: .trailing)
                 .accessibilityLabel(place.title)
             }
             MarginDivider(color: MarginColor.border).frame(width: 24).padding(.vertical, 6)

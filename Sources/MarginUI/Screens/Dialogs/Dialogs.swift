@@ -25,6 +25,7 @@ struct DialogHost: View {
                     case .palette: CommandPalette()
                     case .renameCourse(let c): RenameCourseDialog(course: c)
                     case .courseStyle(let c): CourseStyleDialog(course: c)
+                    case .help(let t): HelpDialog(topic: t)
                     }
                 }
                 .onExitCommand { workspace.dialog = nil }
@@ -733,7 +734,7 @@ struct CourseMenuItems: View {
 
     var body: some View {
         Button("New lecture note") { workspace.newNote(in: workspace.courseModel(course.id)) }
-        Button("Open in new tab") { workspace.open(course: course) }
+        Button("Open") { workspace.open(course: course) }
         Divider()
         Button("Rename…") { workspace.dialog = .renameCourse(course) }
         Button("Change colour and icon") { workspace.dialog = .courseStyle(course) }
@@ -743,5 +744,59 @@ struct CourseMenuItems: View {
         // Per-course archive and delete have no service yet; the semester archive (3a) exists.
         Button("Archive course") {}.disabled(true)
         Button("Delete course…") {}.disabled(true)
+    }
+}
+
+/// Help › Keyboard shortcuts, Markdown guide, What's new.
+struct HelpDialog: View {
+    let topic: Workspace.HelpTopic
+    @Environment(Workspace.self) private var workspace
+
+    private var rows: [(String, String)] {
+        switch topic {
+        case .shortcuts:
+            [("Command palette", "⌘K"), ("Quick capture from any app", "⇧⌘Space"), ("New note", "⌘N"),
+             ("New lecture note", "⌃⌘N"), ("Search vault", "⇧⌘F"), ("Reading view", "⌘E"), ("Source mode", "⇧⌘E"),
+             ("Sidebar", "⌘\\"), ("Right panel", "⌥⌘\\"), ("Today · Upcoming · Inbox · Schedule", "⌘1 · ⌘2 · ⌘3 · ⌘4"),
+             ("Back · Forward", "⌥⌘← · ⌥⌘→"), ("Next · previous lecture", "⌃⌘→ · ⌃⌘←"), ("Task", "⌘L"),
+             ("Link to note", "⇧⌘K"), ("Bold · Italic · Underline", "⌘B · ⌘I · ⌘U"), ("Checklist", "⇧⌘9")]
+        case .markdown:
+            [("# Heading", "Heading, ## smaller"), ("**bold**  *italic*", "Emphasis"), ("- item", "Bulleted list"),
+             ("- [ ] task @Fri", "Task with a due date (Today, Upcoming)"), ("[[Note]]", "Link to a note; [[Note|text]] shows text"),
+             ("#tag", "Tag"), ("> [!note]", "Callout"), ("```", "Code block"), ("$$ … $$", "Formula"), ("---", "Divider")]
+        case .whatsNew:
+            [("Menu bar", "Every command with its shortcut, Help finds them by name"), ("Tooltips", "Shortcuts and explanations on hover"),
+             ("Quick capture", "⇧⌘Space from any app, parsed course and date"), ("Your vault", "Plain Markdown files, Obsidian-compatible")]
+        }
+    }
+
+    private var title: String {
+        switch topic {
+        case .shortcuts: "Keyboard shortcuts"
+        case .markdown: "Markdown guide"
+        case .whatsNew: "What’s new in Margin \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")"
+        }
+    }
+
+    var body: some View {
+        DialogCard(title: title, width: 520) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(rows, id: \.0) { row in
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(row.0).font(topic == .markdown ? .system(size: 13, design: .monospaced) : .margin(14))
+                                .frame(width: 230, alignment: .leading)
+                            Text(row.1).font(.margin(14)).foregroundStyle(MarginColor.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 8)
+                        .overlay(alignment: .bottom) { MarginDivider(color: MarginColor.hover) }
+                    }
+                }
+            }
+            .frame(maxHeight: 420)
+        } footer: {
+            MarginButton("Done", kind: .primary) { workspace.dialog = nil }.keyboardShortcut(.defaultAction)
+        }
     }
 }

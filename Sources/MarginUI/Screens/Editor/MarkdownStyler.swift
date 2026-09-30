@@ -38,7 +38,11 @@ enum MarkdownStyler {
     /// Source: monospace 14, line height 1.75.
     static let sourceSize: CGFloat = 14
 
+    /// View › Zoom in / out: scales every editor size (1 = actual size).
+    static var scale: CGFloat = 1
+
     static func bodyFont(_ weight: NSFont.Weight = .regular, size: CGFloat = bodySize) -> NSFont {
+        let size = size * scale
         let w: Font.Weight = switch weight {
         case .bold: .bold
         case .semibold: .semibold
@@ -49,10 +53,12 @@ enum MarkdownStyler {
     }
 
     static func mono(_ size: CGFloat = sourceSize, bold: Bool = false) -> NSFont {
-        NSFont.monospacedSystemFont(ofSize: size, weight: bold ? .semibold : .regular)
+        let size = size * scale
+        return NSFont.monospacedSystemFont(ofSize: size, weight: bold ? .semibold : .regular)
     }
 
     static func paragraph(lineHeight: CGFloat, size: CGFloat, spacing: CGFloat = 0) -> NSParagraphStyle {
+        let size = size * scale
         let p = NSMutableParagraphStyle()
         p.minimumLineHeight = (size * lineHeight).rounded()
         p.maximumLineHeight = (size * lineHeight).rounded()

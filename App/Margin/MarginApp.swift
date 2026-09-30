@@ -34,6 +34,11 @@ struct MarginApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let state = AppState()
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Margin has its own tabs; the system window tabs (View › Show Tab Bar) would compete.
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Task { @MainActor in
             await state.shutdown()

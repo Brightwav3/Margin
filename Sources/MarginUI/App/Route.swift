@@ -56,6 +56,14 @@ public enum Route: Hashable, Sendable {
         }
     }
 
+    /// Notes and drafts live in tabs; everything else is a place.
+    public var isNote: Bool {
+        switch self {
+        case .note, .draft: true
+        default: false
+        }
+    }
+
     /// Rail entry that lights up for this route.
     var railID: String {
         switch self {

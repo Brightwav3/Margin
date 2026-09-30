@@ -90,7 +90,8 @@ struct CommandPalette: View {
         if hits.indices.contains(index) {
             let hit = hits[index]
             workspace.dialog = nil
-            workspace.open(.note(hit.id), title: hit.title)
+            workspace.open(.note(hit.id), title: hit.title, newTab: workspace.openInNewTab)
+            workspace.openInNewTab = false
             return
         }
         let j = index - hits.count
