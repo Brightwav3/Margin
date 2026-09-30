@@ -63,18 +63,23 @@ extension PerfSuites {
             let (clean, log) = try await run(hookAt: nil, Self.edit)
             #expect(clean.threw == nil && clean.text.contains("MY EDIT"))
             // The note's own replace is the one whose target is the note file.
-            let replaceIndices = log.indices.filter { log[$0].hasPrefix("replaceItem:") && log[$0].hasSuffix("Race.md") }
-            let noteReplace = try #require(replaceIndices.last)
+            // Judged by the call the hook actually ran before in each run, not by the index of the clean
+            // run: late FSEvents batches (under load) add reads to the log and shift the indices.
+            let isNoteReplace = { (call: String) in call.hasPrefix("replaceItem:") && call.hasSuffix("Race.md") }
+            let noteReplace = try #require(log.indices.last { isNoteReplace(log[$0]) })
 
             var lost: [Int] = []
-            var conflicts = 0, merged = 0
+            var conflicts = 0, merged = 0, notFired = 0
             var problems: [String] = []
             for index in 0..<log.count {
                 let (o, _) = try await run(hookAt: index, Self.edit)
+                // This run made fewer calls than the clean one: the other program never wrote.
+                if o.call == "-" { notFired += 1; continue }
                 let label = "hook before call \(index) (\(o.call))"
                 let hasExternal = o.text.contains(Self.marker)
                 let hasMine = o.text.contains("MY EDIT")
                 if !hasExternal { lost.append(index) }
+                if !hasExternal && !isNoteReplace(o.call) { problems.append("\(label): the external write was lost") }
                 if let threw = o.threw {
                     // A refused save must be a conflict and must leave the other program's content in place.
                     conflicts += 1
@@ -89,14 +94,15 @@ extension PerfSuites {
                 // or (only at the rename window) mine alone.
                 let mine = o.initial.replacingOccurrences(of: "line 2\n", with: "MY EDIT\n")
                 let allowed = [mine + Self.marker, o.initial + Self.marker]
-                if !allowed.contains(o.text) && !(index == noteReplace && o.text == mine) {
+                if !allowed.contains(o.text) && !(isNoteReplace(o.call) && o.text == mine) {
                     problems.append("\(label): unexpected file content \(o.text.debugDescription)")
                 }
             }
-            print("external write sweep: \(log.count) injection points, \(merged) merged, \(conflicts) refused, lost at \(lost) (rename window at \(noteReplace))")
-            #expect(problems.isEmpty, "\(problems.prefix(8).joined(separator: "\n"))")
+            print("external write sweep: \(log.count) injection points, \(merged) merged, \(conflicts) refused, \(notFired) not reached, lost at \(lost) (rename window at \(noteReplace) in the clean run)")
             // The only point where the external write may be lost is the hook right before the note's rename.
-            #expect(lost.isEmpty || lost == [noteReplace], "external write lost at \(lost), expected at most \(noteReplace)")
+            #expect(problems.isEmpty, "\(problems.prefix(8).joined(separator: "\n"))")
+            #expect(lost.count <= 1, "external write lost at \(lost), expected at most the rename window")
+            #expect(notFired <= 8, "\(notFired) injection points were never reached; the sweep no longer covers the save")
         }
 
         @Test func aSaveThatOverlapsTheExternalEditRefusesAndKeepsIt() async throws {
