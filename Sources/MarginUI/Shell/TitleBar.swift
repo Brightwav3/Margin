@@ -75,7 +75,8 @@ struct ChromeButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
-        .help(help)
+        .marginTooltip(help)
+        .accessibilityLabel(TooltipText.split(help, nil).0)
     }
 }
 
@@ -207,6 +208,7 @@ private struct TabItem: View {
         }
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
+        .marginTooltip(tab.title, detail: nil)
         // The active tab overlaps the card's top border by 1 px so the two read as one surface.
         .padding(.bottom, isActive ? -1 : 4)
     }
@@ -225,7 +227,7 @@ private struct TabCloseButton: View {
             .contentShape(Circle())
             .onHover { hovered = $0 }
             .highPriorityGesture(TapGesture().onEnded(action))
-            .help("Close tab (⌘W)")
+            .marginTooltip("Close tab (⌘W)")
             .accessibilityElement()
             .accessibilityLabel("Close tab")
             .accessibilityAddTraits(.isButton)
@@ -305,7 +307,8 @@ private struct InspectorTabButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
-        .help(tab.label)
+        .marginTooltip(tab.label)
+        .accessibilityLabel(tab.label)
     }
 }
 

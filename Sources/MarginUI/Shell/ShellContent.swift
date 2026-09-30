@@ -162,6 +162,24 @@ public struct RailContent: Sendable {
     public enum Place: String, CaseIterable, Sendable {
         case home, inbox, today, upcoming
 
+        var title: String {
+            switch self {
+            case .home: "Courses"
+            case .inbox: "Inbox"
+            case .today: "Today"
+            case .upcoming: "Upcoming"
+            }
+        }
+
+        var shortcut: String {
+            switch self {
+            case .home: "⌘1"
+            case .today: "⌘2"
+            case .upcoming: "⌘3"
+            case .inbox: "⌘4"
+            }
+        }
+
         var icon: String {
             switch self {
             case .home: "home"

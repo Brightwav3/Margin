@@ -139,6 +139,7 @@ struct GradesView: View {
                 Spacer()
                 MarginButton("Enter a grade", icon: "add", size: .small) { workspace.dialog = .grade(row.id) }
             }
+            GradeChart(grades: row.grades)
             ForEach(GradeGroups.make(course: row.course, grades: row.grades), id: \.label) { GradePartRow(part: $0) }
             if let need = model.needed(row) {
                 HStack(spacing: 8) {
@@ -192,6 +193,44 @@ struct ArchiveView: View {
             .padding(.horizontal, 36).padding(.vertical, 28)
             .frame(maxWidth: 820, alignment: .leading)
             .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+/// 3h: one bar per graded item; hover shows „Midterm · 41/50“ and „82% · counts 30%“.
+struct GradeChart: View {
+    let grades: [Grade]
+
+    var body: some View {
+        let items = grades.sorted { ($0.date ?? .init(daysSinceEpoch: 0)) < ($1.date ?? .init(daysSinceEpoch: 0)) }
+        if !items.isEmpty {
+            VStack(spacing: 6) {
+                HStack(alignment: .bottom, spacing: 14) {
+                    ForEach(items) { g in
+                        let pct = g.percent ?? 0
+                        VStack {
+                            Spacer(minLength: 0)
+                            UnevenRoundedRectangle(topLeadingRadius: 5, topTrailingRadius: 5)
+                                .fill(g.score == nil ? MarginColor.borderSubtle : MarginColor.accentRing)
+                                .frame(height: max(4, 150 * pct / 100))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .marginTooltip(g.score == nil ? g.item : "\(g.item) · \(CourseDetailModel.number(g.score ?? 0))/\(CourseDetailModel.number(g.max ?? 0))",
+                                       detail: g.score == nil ? (g.date.map { "Not graded yet · \(CourseDetailModel.day($0))" } ?? "Not graded yet")
+                                           : "\(Int(pct.rounded()))%\(g.weightPercent.map { " · counts \($0)%" } ?? "")",
+                                       placement: .top)
+                    }
+                }
+                .frame(height: 150)
+                .overlay(alignment: .bottom) { MarginDivider(color: MarginColor.borderCard) }
+                HStack(spacing: 14) {
+                    ForEach(items) { g in
+                        Text(g.item).font(.margin(11)).foregroundStyle(MarginColor.textTertiary).lineLimit(1).frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
         }
     }
 }

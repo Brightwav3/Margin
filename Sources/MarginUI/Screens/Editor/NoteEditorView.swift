@@ -32,6 +32,11 @@ struct NoteEditorView: View {
                     .frame(maxWidth: .infinity)
                 }
                 StatusBar(model: model) { workspace.open(.today) }
+                if model.mode != .reading {
+                    EditorTips()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                        .padding(.leading, 24).padding(.bottom, 44)
+                }
             }
             .overlay { EditorPopups(state: popup, model: model, handle: handle) }
         }

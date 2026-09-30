@@ -69,6 +69,7 @@ public struct TaskRow: View {
                 .foregroundStyle(status == nil && DueFormat.isUrgent(task.label) && !task.done ? MarginColor.due
                                                                                                : MarginColor.textSecondary)
                 .frame(minWidth: 72, alignment: .trailing)
+                .modifier(DueTooltip(task: task, status: status, from: from))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -76,6 +77,23 @@ public struct TaskRow: View {
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// 3b: the exact due date and where it comes from.
+private struct DueTooltip: ViewModifier {
+    let task: TaskItem
+    let status: String?
+    let from: String?
+
+    func body(content: Content) -> some View {
+        if let due = task.due, status == nil {
+            let title = "\(task.kind == .exam ? "Exam" : "Due") \(CoursesFormat.weekday(due.weekday)) \(due.day) \(CoursesFormat.month(due.month))"
+            let detail = from.map { "Written in \($0). Change the @date there, or right-click the task." }
+            content.marginTooltip(title, detail: detail, placement: .bottom)
+        } else {
+            content
+        }
     }
 }
 

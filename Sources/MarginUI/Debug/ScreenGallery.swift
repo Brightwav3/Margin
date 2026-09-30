@@ -82,6 +82,7 @@ public enum MarginScreens {
         MarginScreen("screens/1b", "Search results with filters", milestone: "M11") { AnyView(WorkspaceView(env: .fixture(), start: .search("membrane"))) },
         MarginScreen("screens/1f", "Past semesters", milestone: "M11") { AnyView(WorkspaceView(env: .fixture(), start: .archive)) },
         MarginScreen("screens/1g", "Settings", milestone: "M11") { AnyView(WorkspaceView(env: .fixture(), start: .settings)) },
+        MarginScreen("menus/3", "Tooltips and hover cards (3a–3h)", milestone: "M10d") { AnyView(MenusSheet()) },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
 
