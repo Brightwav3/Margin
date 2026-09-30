@@ -27,7 +27,8 @@ MainActor.assumeIsolated {
     window.orderFrontRegardless()
     host.layoutSubtreeIfNeeded()
     // Let SwiftUI settle (fonts, lazy grids) before capturing.
-    RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+    // Screens load their data in `.task`; give the fixture services time to answer.
+    RunLoop.main.run(until: Date().addingTimeInterval(1.5))
     guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { exit(1) }
     host.cacheDisplay(in: host.bounds, to: rep)
     guard let png = rep.representation(using: .png, properties: [:]) else { exit(1) }
