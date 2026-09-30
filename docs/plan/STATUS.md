@@ -28,10 +28,11 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 | MA3 | Agent v aplikaci | 30 | 25 | 55 | — | — | ⬜ | `checks/MA3.md` | |  |
 | M10b | Popupy: data a organizace | 12 | 18 | 30 | — | — | 🟦 | `checks/M10b.md` | |  |
 | M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | — | — | ⬜ | `checks/M10c.md` | |  |
+| M10d | Menu, dropdowny a tooltipy | 0 | 37 | 37 | — | — | ⬜ | `checks/M10d.md` | | menu se zapojují k obrazovkám průběžně |
 | M11 | Obrazovky a stavy | 21 | 37 | 58 | — | — | 🟦 | `checks/M11.md` | | CP4 |
 | MA4 | Agent: odolnost | 32 | 3 | 35 | — | — | ⬜ | `checks/MA4.md` | |  |
 | M12 | Dokončení a vydání | 18 | 22 | 40 | — | — | ⬜ | `checks/M12.md` | |  |
-| | **Σ** | **405** | **429** | **834** | | | | | | |
+| | **Σ** | **405** | **466** | **871** | | | | | | |
 
 Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone — · průměrné čekání na schválení — · cena běhu celkem —
 
@@ -68,3 +69,4 @@ _(žádné)_
 - 2026-09-29: Dokončeno M0-02: Xcode projekt pro arm64, sandbox a hardened runtime; ověřen build na macOS 27.
 - 2026-09-29: Uživatel rozhodl Q2: rychlý zápis bude dostupný bez okna aplikace přes menu bar; implementace M8-05 zůstává samostatným úkolem (D-019).
 - 2026-09-30: Opraveny nestabilní testy jádra (index po undo přesunu složky, AG-03/M5-07; sweep externích zápisů, AG-04), SHA-256 přes CryptoKit (M5-06), konformitní vaulty bez F_FULLFSYNC. Nový `scripts/test.sh` (quick ~25 s, full ~3 min místo ~5 min).
+- 2026-09-30: Uživatel dodal mockupy menu (`Margin Menus.dc.html`, `Margin Menu.dc.html`) a schválil jejich zařazení do plánu UI: nový milestone M10d (M10-24…M10-33, váha 37), celkem 871 (BE 405 / UI 466).
