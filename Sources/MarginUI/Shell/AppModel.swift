@@ -64,9 +64,21 @@ public final class AppModel {
     public var inspectorOpen: Bool
     public var sidebarPage: SidebarPage
     public var inspectorTab: InspectorTab
+    /// User-chosen panel widths; nil = the default for the current content.
+    public private(set) var sidebarWidth: CGFloat? {
+        didSet { store(sidebarWidth, Self.sidebarWidthKey) }
+    }
+    public private(set) var inspectorWidth: CGFloat? {
+        didSet { store(inspectorWidth, Self.inspectorWidthKey) }
+    }
+
+    public static let sidebarWidthRange: ClosedRange<CGFloat> = 180...440
+    public static let inspectorWidthRange: ClosedRange<CGFloat> = 240...520
 
     private let defaults: UserDefaults?
     private static let collapsedKey = "shell.sidebarCollapsed"
+    private static let sidebarWidthKey = "shell.sidebarWidth"
+    private static let inspectorWidthKey = "shell.inspectorWidth"
 
     /// `defaults: nil` keeps the model in memory only (gallery, tests).
     public init(
@@ -81,6 +93,8 @@ public final class AppModel {
         self.inspectorOpen = inspectorOpen
         self.sidebarPage = sidebarPage
         self.inspectorTab = inspectorTab
+        self.sidebarWidth = defaults?.object(forKey: Self.sidebarWidthKey) as? CGFloat
+        self.inspectorWidth = defaults?.object(forKey: Self.inspectorWidthKey) as? CGFloat
     }
 
     public var activeTab: ShellTab? { tabs.first { $0.id == activeTabID } }
@@ -116,5 +130,19 @@ public final class AppModel {
     }
 
     public func toggleSidebar() { sidebarCollapsed.toggle() }
+
+    /// Sets the sidebar width (clamped); nil restores the default.
+    public func setSidebarWidth(_ width: CGFloat?) {
+        sidebarWidth = width.map { min(max($0, Self.sidebarWidthRange.lowerBound), Self.sidebarWidthRange.upperBound) }
+    }
+
+    /// Sets the inspector width (clamped); nil restores the default.
+    public func setInspectorWidth(_ width: CGFloat?) {
+        inspectorWidth = width.map { min(max($0, Self.inspectorWidthRange.lowerBound), Self.inspectorWidthRange.upperBound) }
+    }
+
+    private func store(_ value: CGFloat?, _ key: String) {
+        if let value { defaults?.set(Double(value), forKey: key) } else { defaults?.removeObject(forKey: key) }
+    }
     public func toggleInspector() { inspectorOpen.toggle() }
 }

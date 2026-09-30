@@ -19,6 +19,9 @@ struct WindowConfigurator: NSViewRepresentable {
             window.titleVisibility = .hidden
             window.styleMask.insert(.fullSizeContentView)
             window.isMovableByWindowBackground = false
+            // AppKit would turn any drag in the title bar area into a window move, stealing tab
+            // drags. The window moves only from `WindowDragArea` (empty parts of the bar).
+            window.isMovable = false
             let names: [Notification.Name] = [
                 NSWindow.didResizeNotification, NSWindow.didEndLiveResizeNotification,
                 NSWindow.didExitFullScreenNotification, NSWindow.didBecomeKeyNotification,
@@ -49,5 +52,18 @@ struct WindowConfigurator: NSViewRepresentable {
                 button.setFrameOrigin(NSPoint(x: 16 - inset + CGFloat(i) * 20, y: y))
             }
         }
+    }
+}
+
+/// Empty title bar area: drag moves the window, double-click zooms (like a system title bar).
+/// The window itself is not movable (see `WindowConfigurator`), so drags that start on tabs reach
+/// the tab reorder gesture instead of moving the window.
+struct WindowDragArea: View {
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(WindowDragGesture())
+            .onTapGesture(count: 2) { NSApp.keyWindow?.performZoom(nil) }
+            .allowsWindowActivationEvents(true)
     }
 }

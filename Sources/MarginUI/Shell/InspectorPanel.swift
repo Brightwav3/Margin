@@ -36,10 +36,15 @@ struct InspectorPanel: View {
             }
             Spacer(minLength: 0)
         }
-        .frame(width: Shell.inspectorWidth)
+        .frame(width: model.inspectorWidth ?? Shell.inspectorWidth)
         .frame(maxHeight: .infinity)
         .background(MarginColor.inspector)
         .overlay(alignment: .leading) { MarginDivider(.vertical) }
+        .overlay(alignment: .leading) {
+            ResizeHandle(edge: .leading, width: model.inspectorWidth ?? Shell.inspectorWidth,
+                         onChange: { model.setInspectorWidth($0) },
+                         onReset: { model.setInspectorWidth(nil) })
+        }
         .foregroundStyle(MarginColor.ink)
     }
 }
