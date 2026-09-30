@@ -41,6 +41,12 @@ public enum MarginScreens {
                                        inspector: ShellPresets.noteInspector, collapsed: true, inspectorOpen: true,
                                        inspectorTab: .outline))
         },
+        MarginScreen("1a", "Courses home: card grid", milestone: "M3") {
+            AnyView(CoursesScreen(env: .fixture(), mode: .grid))
+        },
+        MarginScreen("1b", "Courses home: timetable", milestone: "M3") {
+            AnyView(CoursesScreen(env: .fixture(), mode: .timetable))
+        },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
 
