@@ -34,7 +34,7 @@ enum TooltipText {
         if let shortcut { return (title, shortcut) }
         guard title.hasSuffix(")"), let open = title.range(of: " (", options: .backwards) else { return (title, nil) }
         let key = String(title[open.upperBound..<title.index(before: title.endIndex)])
-        let symbols = CharacterSet(charactersIn: "⌘⌥⌃⇧↵⎋⇥←→↑↓,.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ Space")
+        let symbols = CharacterSet(charactersIn: "⌘⌥⌃⇧↵⎋⇥←→↑↓,.\\/;`[]+−0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ Space")
         guard key.unicodeScalars.allSatisfy({ symbols.contains($0) }) else { return (title, nil) }
         return (String(title[..<open.lowerBound]), key)
     }
@@ -185,7 +185,9 @@ private struct TooltipAnchor: NSViewRepresentable {
 final class TooltipWindow {
     static let shared = TooltipWindow()
     private let panel: NSPanel
-    private let host = NSHostingView(rootView: AnyView(EmptyView()))
+    /// Measures content outside any window; the shown view is a fresh host added after the panel is placed.
+    private let measure = NSHostingView(rootView: AnyView(EmptyView()))
+    private let container = NSView()
     private weak var owner: NSView?
     private var hideTimer: Timer?
     private var hovering = false
@@ -198,22 +200,23 @@ final class TooltipWindow {
         panel.level = .popUpMenu
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.transient, .ignoresCycle]
-        // The panel is sized by hand from `fittingSize`. With sizing options the hosting view drives
-        // the window's content size limits and can re-enter constraint updates (AppKit exception).
-        host.sizingOptions = []
-        panel.contentView = host
+        panel.contentView = container
     }
 
     func show(_ content: AnyView, at anchor: NSRect, placement: TooltipPlacement, isCard: Bool, owner: NSView, parent: NSWindow) {
         hideTimer?.invalidate()
         self.owner = owner
         let gap: CGFloat = isCard ? 6 : 8
-        host.rootView = AnyView(
+        let view = AnyView(
             content
                 .onHover { [weak self] inside in self?.hovering = inside; if !inside { self?.hide(owner: owner, grace: 0.15) } }
         )
         panel.ignoresMouseEvents = !isCard
-        let size = host.fittingSize
+        // A hosting view that is measured or moved while in this small window re-enters constraint
+        // updates until AppKit throws; so measure off-window, place the panel, then add the view.
+        measure.rootView = view
+        let size = measure.fittingSize
+        measure.rootView = AnyView(EmptyView())
         guard size.width > 0, size.height > 0 else { return }
         let screen = (parent.screen ?? NSScreen.main)?.visibleFrame ?? .infinite
         var p = placement
@@ -229,7 +232,13 @@ final class TooltipWindow {
         }
         origin.x = min(max(origin.x, screen.minX + 4), screen.maxX - size.width - 4)
         origin.y = min(max(origin.y, screen.minY + 4), screen.maxY - size.height - 4)
-        panel.setFrame(NSRect(origin: origin, size: size), display: true)
+        container.subviews.forEach { $0.removeFromSuperview() }
+        panel.setFrame(NSRect(origin: origin, size: size), display: false)
+        let host = NSHostingView(rootView: view)
+        host.sizingOptions = []
+        host.frame = NSRect(origin: .zero, size: size)
+        host.autoresizingMask = [.width, .height]
+        container.addSubview(host)
         if panel.parent !== parent { panel.parent?.removeChildWindow(panel); parent.addChildWindow(panel, ordered: .above) }
         panel.orderFront(nil)
     }
@@ -249,6 +258,7 @@ final class TooltipWindow {
     private func close() {
         panel.parent?.removeChildWindow(panel)
         panel.orderOut(nil)
+        container.subviews.forEach { $0.removeFromSuperview() }
         owner = nil
         hovering = false
     }
