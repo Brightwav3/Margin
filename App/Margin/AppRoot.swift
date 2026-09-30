@@ -107,6 +107,7 @@ final class AppState {
 /// screen with the pointer, closes on save, ⎋ or losing focus.
 final class CapturePanel: NSPanel {
     private let model: CaptureModel
+    private var host: NSView?
 
     init(model: CaptureModel) {
         self.model = model
@@ -120,8 +121,11 @@ final class CapturePanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         hidesOnDeactivate = false
         let host = NSHostingView(rootView: CapturePanelContent(model: model) { [weak self] in self?.orderOut(nil) })
-        host.sizingOptions = [.intrinsicContentSize]
+        // Sized by hand in `present()`; sizing options would let the hosting view drive the window's
+        // size limits from inside a layout pass.
+        host.sizingOptions = []
         contentView = host
+        self.host = host
     }
 
     override var canBecomeKey: Bool { true }
@@ -129,8 +133,12 @@ final class CapturePanel: NSPanel {
     func present() {
         model.open()
         let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
+        // Room below for chips and an error line that appear while typing (the panel is transparent).
+        var size = host?.fittingSize ?? NSSize(width: 660, height: 260)
+        size.height += 90
         if let frame = screen?.visibleFrame {
-            setFrameOrigin(NSPoint(x: frame.midX - 330, y: frame.maxY - frame.height * 0.28 - 200))
+            setFrame(NSRect(x: frame.midX - size.width / 2, y: frame.maxY - frame.height * 0.28 - size.height,
+                            width: size.width, height: size.height), display: true)
         }
         makeKeyAndOrderFront(nil)
     }
@@ -154,6 +162,7 @@ private struct CapturePanelContent: View {
     var body: some View {
         QuickCaptureView(model: model, showsHint: false)
             .padding(20)
+            .frame(maxHeight: .infinity, alignment: .top)
             .onChange(of: model.isOpen) { _, open in if !open { dismiss() } }
     }
 }

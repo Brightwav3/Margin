@@ -198,7 +198,9 @@ final class TooltipWindow {
         panel.level = .popUpMenu
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.transient, .ignoresCycle]
-        host.sizingOptions = [.intrinsicContentSize]
+        // The panel is sized by hand from `fittingSize`. With sizing options the hosting view drives
+        // the window's content size limits and can re-enter constraint updates (AppKit exception).
+        host.sizingOptions = []
         panel.contentView = host
     }
 
@@ -212,6 +214,7 @@ final class TooltipWindow {
         )
         panel.ignoresMouseEvents = !isCard
         let size = host.fittingSize
+        guard size.width > 0, size.height > 0 else { return }
         let screen = (parent.screen ?? NSScreen.main)?.visibleFrame ?? .infinite
         var p = placement
         // Flip when there is no room (bottom near the Dock, trailing near the screen edge).
