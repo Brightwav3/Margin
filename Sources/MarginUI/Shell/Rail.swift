@@ -5,6 +5,8 @@ import SwiftUI
 struct Rail: View {
     let content: RailContent
     var onSelect: (String) -> Void = { _ in }
+    /// Present in the app window (not in shell-only gallery screens): gives circles the course menu.
+    @Environment(Workspace.self) private var workspace: Workspace?
 
     var body: some View {
         VStack(spacing: 6) {
@@ -40,6 +42,11 @@ struct Rail: View {
                 }
                 .buttonStyle(.plain)
                 .help(course.name)
+                .contextMenu {
+                    if let workspace, let c = workspace.courses.course(id: course.id) {
+                        CourseMenuItems(course: c).environment(workspace)
+                    }
+                }
             }
             Spacer(minLength: 0)
             Icon("help", size: 22, color: MarginColor.textSecondary)

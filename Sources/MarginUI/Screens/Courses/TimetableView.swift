@@ -6,6 +6,8 @@ import SwiftUI
 struct TimetableView: View {
     @Bindable var model: CoursesOverviewModel
     var onOpen: (SessionOccurrence) -> Void = { _ in }
+    /// 1k: right click on a block — reschedule or cancel (3c).
+    var onReschedule: (SessionOccurrence) -> Void = { _ in }
 
     /// Mockup geometry (`H`, `START`, 10 hour labels).
     static let hourHeight: CGFloat = 56
@@ -83,7 +85,7 @@ struct TimetableView: View {
                     DayColumn(blocks: model.blocks.filter { $0.occurrence.date == day },
                               isToday: day == today,
                               now: day == today ? model.clock.localNow.time : nil,
-                              onOpen: onOpen)
+                              onOpen: onOpen, onReschedule: onReschedule)
                 }
             }
         }
@@ -111,6 +113,7 @@ private struct DayColumn: View {
     /// Wall-clock time for the „now“ line (today only).
     let now: LocalTime?
     let onOpen: (SessionOccurrence) -> Void
+    let onReschedule: (SessionOccurrence) -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -120,6 +123,10 @@ private struct DayColumn: View {
                 let frame = TimetableView.blockFrame(start: block.occurrence.session.start,
                                                      lengthHours: block.occurrence.session.lengthHours)
                 SessionBlock(block: block) { onOpen(block.occurrence) }
+                    .contextMenu {
+                        Button("Open note") { onOpen(block.occurrence) }
+                        Button("Reschedule or cancel…") { onReschedule(block.occurrence) }
+                    }
                     .frame(height: max(0, frame.height))
                     .padding(.horizontal, 3)
                     .offset(y: frame.top)

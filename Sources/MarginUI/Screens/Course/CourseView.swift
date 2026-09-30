@@ -53,7 +53,6 @@ struct CourseView: View {
                 }
                 .controlMenu()
                 MarginButton("New note", icon: "add", kind: .primary) { newNote() }
-                    .keyboardShortcut("n", modifiers: .command)
             }
         }
     }

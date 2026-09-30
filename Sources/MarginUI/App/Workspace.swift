@@ -27,6 +27,8 @@ public final class Workspace {
         case session(SessionOccurrence)
         case history(NoteID)
         case palette
+        case renameCourse(Course)
+        case courseStyle(Course)
 
         public var id: String {
             switch self {
@@ -40,6 +42,8 @@ public final class Workspace {
             case .session(let o): "session/\(o.id)"
             case .history(let n): "history/\(n)"
             case .palette: "palette"
+            case .renameCourse(let c): "rename/\(c.id)"
+            case .courseStyle(let c): "style/\(c.id)"
             }
         }
     }
@@ -250,6 +254,77 @@ public final class Workspace {
         }
     }
 
+    // MARK: Commands (⌘K, M10-02)
+
+    /// App commands for the palette; ids are run by `run(command:)`.
+    public let commands: CommandRegistry = {
+        var r = CommandRegistry()
+        let list: [(String, String, [String], String, String?)] = [
+            ("capture", "Quick capture", ["new task", "inbox", "add"], "Create", "⌃⌥Space"),
+            ("new-note", "New note in this course", ["create", "write"], "Create", "⌘N"),
+            ("new-course", "New course", ["add course", "subject"], "Create", nil),
+            ("today", "Go to Today", ["tasks", "due"], "Go to", nil),
+            ("upcoming", "Go to Upcoming", ["tasks", "week", "exams"], "Go to", nil),
+            ("inbox", "Go to Inbox", ["triage", "captured"], "Go to", nil),
+            ("courses", "Go to Courses", ["home", "grid"], "Go to", nil),
+            ("timetable", "Show timetable", ["week", "schedule", "sessions"], "Go to", nil),
+            ("graph", "Open graph map", ["links", "connections"], "Go to", nil),
+            ("grades", "Open grades", ["average", "gpa", "marks"], "Go to", nil),
+            ("archive", "Past semesters", ["archive", "old"], "Go to", nil),
+            ("settings", "Open settings", ["preferences", "options"], "Go to", "⌘,"),
+            ("grade", "Enter a grade", ["mark", "score"], "Course", nil),
+            ("syllabus", "Import syllabus", ["schedule", "exams", "pdf"], "Course", nil),
+            ("toggle-sidebar", "Toggle sidebar", ["panel"], "View", "⌥⌘S"),
+            ("toggle-inspector", "Toggle inspector", ["panel", "outline"], "View", "⌥⌘I"),
+        ]
+        for c in list { try? r.register(Command(id: c.0, title: c.1, keywords: c.2, group: c.3, shortcut: c.4)) }
+        return r
+    }()
+
+    /// Course of the active page (course detail, a note of a course, a draft).
+    public var currentCourse: CourseID? {
+        switch route {
+        case .course(let id), .draft(let id, _, _): id
+        case .note(let id): courses.courseID(ofNote: id)
+        default: nil
+        }
+    }
+
+    public func run(command id: String) {
+        switch id {
+        case "capture": capture.open()
+        case "new-note":
+            if let c = currentCourse ?? courses.cards.first?.id { newNote(in: courseModel(c)) }
+        case "new-course": dialog = .newCourse
+        case "today": open(.today)
+        case "upcoming": open(.upcoming)
+        case "inbox": open(.inbox)
+        case "courses": courses.mode = .grid; open(.courses)
+        case "timetable": courses.mode = .timetable; open(.courses)
+        case "graph": open(.graph)
+        case "grades": open(.grades)
+        case "archive": open(.archive)
+        case "settings": open(.settings)
+        case "grade": if let c = currentCourse ?? courses.cards.first?.id { dialog = .grade(c) }
+        case "syllabus": if let c = currentCourse ?? courses.cards.first?.id { dialog = .syllabus(c) }
+        case "toggle-sidebar": shell.toggleSidebar()
+        case "toggle-inspector": shell.toggleInspector()
+        default: break
+        }
+    }
+
+    /// Closes the tabs of a route (a deleted note).
+    func closeTabs(of route: Route) {
+        for tab in shell.tabs where tab.route == route.key { shell.close(tab.id) }
+        forget(route.key)
+    }
+
+    /// Reloads an open editor after its note changed from a dialog (restore).
+    func reloadEditor(_ id: NoteID) async {
+        if let m = models[Route.note(id).key] as? NoteEditorModel { await m.load() }
+        await refreshAfterWrite()
+    }
+
     func graphModel() -> GraphModel { model("graph") { GraphModel(env: env) } }
 
     /// Local graph around a note (note menu „Open linked view“, M9-08).
@@ -259,6 +334,34 @@ public final class Workspace {
     }
 
     func inboxModel() -> InboxModel { model("inbox") { InboxModel(env: env) } }
+
+    // MARK: Reminders (1i)
+
+    /// A class starting soon: shown as a toast with its note (the system notification is scheduled
+    /// by `ReminderService` in the app).
+    public var soonClass: SessionOccurrence?
+    @ObservationIgnored private var announced: Set<String> = []
+
+    /// Checks every 30 s for a class starting within `Settings.reminderMinutes`.
+    public func watchUpcomingClasses() async {
+        while !Task.isCancelled {
+            let minutes = await env.settings.get(Settings.reminderMinutes)
+            let now = env.clock.localNow
+            if let semester = courses.semester, let week = env.clock.weekOfSemester(semester),
+               let sessions = try? await env.courses.sessions(week: week) {
+                let soon = sessions.first { s in
+                    guard !s.isCancelled, s.date == now.date else { return false }
+                    let delta = s.session.start.minutesSinceMidnight - now.time.minutesSinceMidnight
+                    return delta > 0 && delta <= minutes
+                }
+                if let soon, !announced.contains(soon.id) {
+                    announced.insert(soon.id)
+                    soonClass = soon
+                }
+            }
+            try? await Task.sleep(for: .seconds(30))
+        }
+    }
 
     // MARK: Messages
 
