@@ -22,6 +22,14 @@ struct GraphView: View {
                     }
                     .onTapGesture(coordinateSpace: .local) { p in model.select(model.node(at: p, in: geo.size)?.id) }
                     .gesture(TapGesture(count: 2).onEnded { open(model.selectedNode) })
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Graph of \(model.noteCount) notes and \(model.graph.edges.count) links")
+                    .accessibilityChildren {
+                        ForEach(model.graph.nodes) { n in
+                            Button(n.label) { open(n) }
+                                .accessibilityHint(n.kind == .course ? "Course" : "\(model.degree(n.id)) links")
+                        }
+                    }
                     .background(ScrollZoom { dy in
                         model.zoom = min(6, max(0.2, model.zoom * (1 - dy / 300)))
                     })
@@ -136,7 +144,7 @@ struct GraphView: View {
             HStack {
                 Text("Orphan notes").marginFont(MarginTextSize.base)
                 Spacer()
-                SwitchView(isOn: $model.showOrphans)
+                SwitchView(isOn: $model.showOrphans, label: "Orphan notes")
             }
         }
         .padding(16)

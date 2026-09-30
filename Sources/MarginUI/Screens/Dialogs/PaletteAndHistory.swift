@@ -21,6 +21,7 @@ struct CommandPalette: View {
                 Icon("search", size: 20, color: MarginColor.textSecondary)
                 TextField("Search notes and commands", text: $query)
                     .textFieldStyle(.plain).marginFont(17).focused($focused)
+                    .accessibilityIdentifier("palette-field")
                     .onSubmit { run(selection) }
                 Text("esc").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary)
                     .padding(.horizontal, 6).padding(.vertical, 2)

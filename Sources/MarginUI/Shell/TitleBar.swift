@@ -209,6 +209,10 @@ private struct TabItem: View {
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
         .marginTooltip(tab.title, detail: nil)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Tab \(tab.title)")
+        .accessibilityAddTraits(isActive ? [.isSelected, .isButton] : .isButton)
+        .accessibilityIdentifier("tab-\(tab.title)")
         // The active tab overlaps the card's top border by 1 px so the two read as one surface.
         .padding(.bottom, isActive ? -1 : 4)
     }

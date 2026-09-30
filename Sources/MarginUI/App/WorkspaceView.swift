@@ -176,6 +176,7 @@ struct ToastView: View {
                 HStack(spacing: 10) {
                     Icon(toast.icon, size: 18, color: toast.isError ? MarginColor.due : .white)
                     Text(toast.text).marginFont(MarginTextSize.sm).foregroundStyle(.white).lineLimit(2)
+                        .accessibilityIdentifier("toast")
                 }
                 .padding(.horizontal, 16)
                 .frame(minHeight: 40)

@@ -25,6 +25,8 @@ final class AppState {
 
     /// Reopens the remembered vault; otherwise shows the welcome screen.
     func start() {
+        // `--sample`: straight into sample data (UI tests, demos); never touches the vault.
+        if ProcessInfo.processInfo.arguments.contains("--sample") { openSample(); return }
         if let url = VaultLocation.restore() { open(url) } else { phase = .welcome }
         registerHotkey()
     }

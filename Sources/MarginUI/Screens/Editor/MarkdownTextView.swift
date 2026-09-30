@@ -123,6 +123,8 @@ struct MarkdownTextView: NSViewRepresentable {
         tv.insertionPointColor = NSColor(MarginColor.accent)
         tv.selectedTextAttributes = [.backgroundColor: NSColor(MarginColor.accentRing)]
         tv.linkTextAttributes = [:]
+        tv.setAccessibilityIdentifier("note-editor")
+        tv.setAccessibilityLabel("Note text")
         handle.textView = tv
         context.coordinator.load(text, mode: mode, into: tv)
         return tv
