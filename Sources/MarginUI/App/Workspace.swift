@@ -250,6 +250,14 @@ public final class Workspace {
         }
     }
 
+    func graphModel() -> GraphModel { model("graph") { GraphModel(env: env) } }
+
+    /// Local graph around a note (note menu „Open linked view“, M9-08).
+    public func openLocalGraph(_ note: NoteID) {
+        graphModel().focus = note
+        open(.graph)
+    }
+
     func inboxModel() -> InboxModel { model("inbox") { InboxModel(env: env) } }
 
     // MARK: Messages
