@@ -134,16 +134,16 @@ public enum MarginIcons {
     }
 }
 
-/// Stroke weight. Mockups use Material weight 300; `regular` matches it at 16–22 px.
+/// Stroke weight. Thinner than the mockups' Material weight 300 (user's call, like the ChatGPT app).
 public enum IconWeight: Sendable {
     case light, regular, bold
 
     /// Stroke width in the 24-unit viewBox.
     var viewBoxStroke: CGFloat {
         switch self {
-        case .light: 1.5
-        case .regular: 1.75
-        case .bold: 2.25
+        case .light: 1.25
+        case .regular: 1.5
+        case .bold: 2
         }
     }
 }

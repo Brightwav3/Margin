@@ -57,7 +57,8 @@ private let mockups = repoRoot.appendingPathComponent("docs/design/mockups")
         #expect(CTFontCopyFamilyName(font) as String == "Inter")
     }
 
-    @Test(arguments: [(Font.Weight.regular, 400.0), (.medium, 500), (.semibold, 600), (.bold, 700)])
+    // Lighter than the mockups by the user's call (DEVIATIONS.md, 2026-09-30).
+    @Test(arguments: [(Font.Weight.regular, 370.0), (.medium, 460), (.semibold, 540), (.bold, 620)])
     func weightIsAppliedThroughVariationAxis(weight: Font.Weight, expected: Double) {
         let font = MarginFonts.ctFont(size: 20, weight: weight)
         let variation = CTFontCopyVariation(font) as? [NSNumber: NSNumber] ?? [:]

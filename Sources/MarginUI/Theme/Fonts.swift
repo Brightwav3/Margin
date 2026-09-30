@@ -54,17 +54,19 @@ public enum MarginFonts {
         return NSFont.systemFont(ofSize: size, weight: nsWeight(weight)) as CTFont
     }
 
+    /// Inter's `wght` value for a weight. Lighter than the CSS numbers of the mockups (by the
+    /// user's call, like the ChatGPT app): 400 → 370, 500 → 460, 600 → 540, 700 → 620.
     static func numericWeight(_ weight: Font.Weight) -> CGFloat {
         switch weight {
         case .ultraLight: 200
         case .thin: 100
         case .light: 300
-        case .medium: 500
-        case .semibold: 600
-        case .bold: 700
-        case .heavy: 800
-        case .black: 900
-        default: 400
+        case .medium: 460
+        case .semibold: 540
+        case .bold: 620
+        case .heavy: 760
+        case .black: 860
+        default: 370
         }
     }
 

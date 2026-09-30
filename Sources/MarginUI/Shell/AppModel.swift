@@ -8,11 +8,14 @@ public struct ShellTab: Identifiable, Hashable, Sendable {
     public var title: String
     /// Course dot colour (`#RRGGBB`); grey for app pages (Courses, Inbox, Graph).
     public var dot: String
+    /// What the tab shows (`course/bio`, `session/bio-tuesday-1000@2026-09-29`); nil = not addressable.
+    public var route: String?
 
-    public init(id: UUID = UUID(), title: String, dot: String = "#9A9DA6") {
+    public init(id: UUID = UUID(), title: String, dot: String = "#9A9DA6", route: String? = nil) {
         self.id = id
         self.title = title
         self.dot = dot
+        self.route = route
     }
 }
 
@@ -111,6 +114,16 @@ public final class AppModel {
         tabs.insert(tab, at: index)
         activeTabID = tab.id
         return tab.id
+    }
+
+    /// Activates the tab showing `tab.route` when one is open, else opens `tab`.
+    @discardableResult
+    public func show(_ tab: ShellTab) -> UUID {
+        if let route = tab.route, let existing = tabs.first(where: { $0.route == route }) {
+            activeTabID = existing.id
+            return existing.id
+        }
+        return open(tab)
     }
 
     /// Closing the active tab activates its right neighbour, else the left one.

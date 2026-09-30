@@ -9,14 +9,17 @@ struct MarginApp: App {
     var body: some Scene {
         WindowGroup {
             if let id = requestedScreen, let screen = MarginScreens.screen(id: id) {
-                // `--screen <id>`: open one screen at mockup size.
+                // `--screen <id>`: open one screen at mockup size; the window can still be resized,
+                // zoomed and made full screen.
                 screen.view()
-                    .frame(width: MarginScreens.size.width, height: MarginScreens.size.height)
+                    .frame(minWidth: 820, idealWidth: MarginScreens.size.width, maxWidth: .infinity,
+                           minHeight: 560, idealHeight: MarginScreens.size.height, maxHeight: .infinity)
             } else {
                 ScreenGallery()
             }
         }
         .windowStyle(.hiddenTitleBar)
-        .windowResizability(requestedScreen == nil ? .automatic : .contentSize)
+        .defaultSize(width: MarginScreens.size.width, height: MarginScreens.size.height)
+        .windowResizability(.contentMinSize)
     }
 }
