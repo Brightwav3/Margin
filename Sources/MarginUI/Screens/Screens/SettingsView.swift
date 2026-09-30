@@ -127,7 +127,7 @@ struct SettingsView: View {
             row("Quick capture", "Capture a task or note from any app.") { Text("⌘⇧Space").monospaced() }
         case .editor:
             row("Readable line length", "Limit the width of notes and pages so lines stay easy to read. Turn off to use the full window width.") {
-                SwitchView(isOn: $model.readableLineLength)
+                SwitchView(isOn: $model.readableLineLength, label: "Readable line length")
             }
             row("Default view for new tabs", "Editing shows formatting except on the line you are on.") {
                 Picker("", selection: $model.defaultView) {
@@ -137,11 +137,11 @@ struct SettingsView: View {
                 }
                 .labelsHidden().fixedSize()
             }
-            row("Show properties", "Show note properties above the title.") { SwitchView(isOn: $model.showProperties) }
-            row("Show line numbers", "Only in source mode.") { SwitchView(isOn: $model.showLineNumbers) }
+            row("Show properties", "Show note properties above the title.") { SwitchView(isOn: $model.showProperties, label: "Show properties") }
+            row("Show line numbers", "Only in source mode.") { SwitchView(isOn: $model.showLineNumbers, label: "Show line numbers") }
         case .files:
             row("Update links on rename", "When a note or a course folder is renamed, links in other notes follow.") {
-                SwitchView(isOn: $model.rewriteLinks)
+                SwitchView(isOn: $model.rewriteLinks, label: "Update links on rename")
             }
         case .semesters:
             ForEach(model.semesters) { s in SemesterEditor(semester: s, model: model) }

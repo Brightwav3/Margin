@@ -84,12 +84,15 @@ public struct Badge: View {
 public struct CheckboxView: View {
     @Binding var isOn: Bool
     let size: CGFloat
+    /// What VoiceOver reads („Problem set 4“); the row usually provides it.
+    let label: String?
     @Environment(\.isEnabled) private var isEnabled
     @State private var hovered = false
 
-    public init(isOn: Binding<Bool>, size: CGFloat = 16) {
+    public init(isOn: Binding<Bool>, size: CGFloat = 16, label: String? = nil) {
         _isOn = isOn
         self.size = size
+        self.label = label
     }
 
     public var body: some View {
@@ -115,17 +118,21 @@ public struct CheckboxView: View {
         .opacity(isEnabled ? 1 : 0.5)
         .onHover { hovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isOn)
-        .accessibilityAddTraits(isOn ? .isSelected : [])
+        .accessibilityLabel(label ?? "Done")
+        .accessibilityValue(isOn ? "checked" : "unchecked")
+        .accessibilityAddTraits(.isToggle)
     }
 }
 
 /// 36×20 switch with a 16 px thumb.
 public struct SwitchView: View {
     @Binding var isOn: Bool
+    let label: String?
     @Environment(\.isEnabled) private var isEnabled
 
-    public init(isOn: Binding<Bool>) {
+    public init(isOn: Binding<Bool>, label: String? = nil) {
         _isOn = isOn
+        self.label = label
     }
 
     public var body: some View {
@@ -145,6 +152,8 @@ public struct SwitchView: View {
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.5)
         .animation(.easeOut(duration: 0.16), value: isOn)
+        .accessibilityLabel(label ?? "Switch")
+        .accessibilityValue(isOn ? "on" : "off")
         .accessibilityAddTraits(.isToggle)
     }
 }

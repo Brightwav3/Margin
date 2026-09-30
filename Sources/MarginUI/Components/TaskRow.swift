@@ -30,7 +30,8 @@ public struct TaskRow: View {
             if task.kind == .exam {
                 Icon("quiz", size: 16, color: MarginColor.due).alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
             } else {
-                CheckboxView(isOn: Binding(get: { task.done }, set: { _ in onToggle() }))
+                CheckboxView(isOn: Binding(get: { task.done }, set: { _ in onToggle() }), label: task.text)
+                    .accessibilityIdentifier("task-\(task.text)")
                     .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
             }
             VStack(alignment: .leading, spacing: 3) {

@@ -62,6 +62,7 @@ struct CourseCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(named: "Open", onOpen)
+        .accessibilityIdentifier("course-card-\(data.id)")
     }
 }
 

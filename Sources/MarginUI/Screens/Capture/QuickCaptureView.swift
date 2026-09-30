@@ -40,6 +40,8 @@ public struct QuickCaptureView: View {
                         .lineSpacing(4)
                         .foregroundStyle(model.text.isEmpty ? MarginColor.textTertiary : .clear)
                         .focused($focused)
+                        .accessibilityIdentifier("capture-field")
+                        .accessibilityLabel("Quick capture")
                         .onSubmit { Task { await model.save() } }
                 }
             }
