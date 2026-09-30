@@ -25,7 +25,7 @@ struct TitleBar: View {
             if model.inspectorOpen, let inspector {
                 InspectorTabBar(model: model, tabs: inspector.tabs)
                     // Aligned with the inspector: its left edge sits at W − 8 − 300.
-                    .frame(width: Shell.inspectorWidth - 30, alignment: .leading)
+                    .frame(width: (model.inspectorWidth ?? Shell.inspectorWidth) - 30, alignment: .leading)
             }
         }
         .padding(.leading, 16)
@@ -39,6 +39,7 @@ struct TitleBar: View {
             .padding(.trailing, 12)
         }
         .frame(height: Self.height)
+        .background { WindowDragArea() }
     }
 }
 
@@ -69,6 +70,7 @@ private struct TabStrip: View {
     let onNewTab: () -> Void
     @State private var dragging: UUID?
     @State private var dragOffset: CGFloat = 0
+    @State private var dragFrom = 0
 
     private static let maxWidth: CGFloat = 188
     private static let minWidth: CGFloat = 72
@@ -86,6 +88,9 @@ private struct TabStrip: View {
     var body: some View {
         GeometryReader { geo in
             let width = tabWidth(available: geo.size.width)
+            let step = width + Self.spacing
+            let target = TabReorder.target(from: dragFrom, translation: dragOffset, step: step,
+                                           count: model.tabs.count)
             HStack(alignment: .bottom, spacing: Self.spacing) {
                 ForEach(Array(model.tabs.enumerated()), id: \.element.id) { index, tab in
                     let active = tab.id == model.activeTabID
@@ -96,20 +101,30 @@ private struct TabStrip: View {
                         onClose: { withAnimation(.easeOut(duration: 0.16)) { model.close(tab.id) } }
                     )
                     .frame(width: width)
-                    .offset(x: dragging == tab.id ? dragOffset : 0)
+                    // The dragged tab follows the pointer; the others slide aside live (like Chrome).
+                    .offset(x: dragging == tab.id
+                        ? dragOffset
+                        : dragging == nil ? 0 : TabReorder.shift(index: index, from: dragFrom, to: target, step: step))
+                    .animation(dragging == tab.id ? nil : .easeOut(duration: 0.16), value: target)
                     .zIndex(dragging == tab.id ? 2 : active ? 1 : 0)
                     .onTapGesture { model.select(tab.id) }
                     .gesture(
                         DragGesture(minimumDistance: 6)
                             .onChanged { value in
-                                dragging = tab.id
+                                if dragging == nil {
+                                    dragging = tab.id
+                                    dragFrom = index
+                                    model.select(tab.id)
+                                }
                                 dragOffset = value.translation.width
-                                model.select(tab.id)
                             }
                             .onEnded { value in
-                                let delta = Int((value.translation.width / (width + Self.spacing)).rounded())
-                                withAnimation(.easeOut(duration: 0.18)) {
-                                    model.move(tab.id, to: index + delta)
+                                let to = TabReorder.target(from: dragFrom, translation: value.translation.width,
+                                                           step: step, count: model.tabs.count)
+                                // Layout moves and offsets reset in one animation: the neighbours'
+                                // two changes cancel out (they stay put), the dragged tab settles.
+                                withAnimation(.easeOut(duration: 0.16)) {
+                                    model.move(tab.id, to: to)
                                     dragging = nil
                                     dragOffset = 0
                                 }
@@ -124,8 +139,12 @@ private struct TabStrip: View {
             .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
         }
         // Never wider than the space it is given, so the bar cannot push the window content.
+        // Clip sideways only: the active tab reaches 2 px below the bar to merge with the card.
         .frame(minWidth: 0, maxWidth: .infinity)
-        .clipped()
+        .mask(Rectangle().padding(.bottom, -3))
+        // Clicking or dragging a tab of an inactive window acts immediately (like Chrome).
+        .allowsWindowActivationEvents(true)
+
     }
 }
 
@@ -137,7 +156,6 @@ private struct TabItem: View {
     @State private var hovered = false
 
     var body: some View {
-        let shape = UnevenRoundedRectangle(topLeadingRadius: 9, topTrailingRadius: 9)
         HStack(spacing: 8) {
             Circle().fill(Color(hexString: tab.dot)).frame(width: 7, height: 7)
             Text(tab.title)
@@ -158,22 +176,65 @@ private struct TabItem: View {
         .frame(height: isActive ? 37 : 32)
         .background {
             if isActive {
+                // Chrome-style: the tab flows into the content card through concave feet, with no
+                // edge or separator between them. Feet reach `ChromeTabShape.foot` past the frame.
+                let shape = ChromeTabShape()
                 shape.fill(MarginColor.surface)
-                shape.stroke(MarginColor.borderSubtle)
-                // Hide the bottom edge so the active tab merges with the content card.
-                MarginColor.surface.frame(height: 2).frame(maxHeight: .infinity, alignment: .bottom).offset(y: 1)
+                    .padding(.horizontal, -ChromeTabShape.foot)
+                shape.outline.stroke(MarginColor.borderSubtle, lineWidth: 1)
+                    .padding(.horizontal, -ChromeTabShape.foot)
             } else if hovered {
-                shape.fill(MarginColor.tabHover)
+                RoundedRectangle(cornerRadius: MarginRadius.sm).fill(MarginColor.tabHover)
             }
         }
         .overlay(alignment: .trailing) {
             if showSeparator && !hovered {
-                MarginDivider(.vertical, color: MarginColor.border).frame(height: 14).offset(x: 2)
+                MarginDivider(.vertical, color: MarginColor.border).frame(height: 14).offset(x: 1)
             }
         }
-        .contentShape(shape)
+        .contentShape(Rectangle())
         .onHover { hovered = $0 }
+        // The active tab overlaps the card's top border by 1 px so the two read as one surface.
         .padding(.bottom, isActive ? -1 : 4)
+    }
+}
+
+/// Active tab outline as in Chrome: rounded top corners and concave feet that curve out into the
+/// content card's top edge. The rect passed in includes the feet (`foot` on each side).
+struct ChromeTabShape: Shape {
+    static let foot: CGFloat = 12
+    static let radius: CGFloat = 10
+
+    /// Closed shape for the fill; it reaches 1 px below the frame to cover the card's top border.
+    func path(in rect: CGRect) -> Path {
+        var p = outlinePath(in: rect)
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY + 1))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY + 1))
+        p.closeSubpath()
+        return p
+    }
+
+    /// Open outline without the bottom edge, for the stroke.
+    var outline: some Shape { Outline() }
+
+    private struct Outline: Shape {
+        func path(in rect: CGRect) -> Path { ChromeTabShape().outlinePath(in: rect) }
+    }
+
+    func outlinePath(in rect: CGRect) -> Path {
+        let f = Self.foot, r = Self.radius
+        // Stroke centre sits on the card border line (0.5 px above the bottom).
+        let bottom = rect.maxY - 0.5
+        let left = rect.minX + f, right = rect.maxX - f
+        // Circular arcs tangent to each edge, so the curves flow without kinks (as in Chrome).
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: bottom))
+        p.addArc(tangent1End: CGPoint(x: left, y: bottom), tangent2End: CGPoint(x: left, y: rect.minY), radius: f)
+        p.addArc(tangent1End: CGPoint(x: left, y: rect.minY), tangent2End: CGPoint(x: right, y: rect.minY), radius: r)
+        p.addArc(tangent1End: CGPoint(x: right, y: rect.minY), tangent2End: CGPoint(x: right, y: bottom), radius: r)
+        p.addArc(tangent1End: CGPoint(x: right, y: bottom), tangent2End: CGPoint(x: rect.maxX, y: bottom), radius: f)
+        p.addLine(to: CGPoint(x: rect.maxX, y: bottom))
+        return p
     }
 }
 
@@ -210,5 +271,22 @@ private struct InspectorTabButton: View {
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
         .help(tab.label)
+    }
+}
+
+/// Index math for dragging a tab: where it would land and how far the others slide meanwhile.
+enum TabReorder {
+    /// Landing index for a tab dragged from `from` by `translation`, clamped to the strip.
+    static func target(from: Int, translation: CGFloat, step: CGFloat, count: Int) -> Int {
+        guard step > 0, count > 0 else { return from }
+        let delta = Int((translation / step).rounded())
+        return min(max(from + delta, 0), count - 1)
+    }
+
+    /// Offset of the tab at `index` while another tab is dragged from `from` towards `to`.
+    static func shift(index: Int, from: Int, to: Int, step: CGFloat) -> CGFloat {
+        if from < to, index > from, index <= to { return -step }
+        if to < from, index >= to, index < from { return step }
+        return 0
     }
 }

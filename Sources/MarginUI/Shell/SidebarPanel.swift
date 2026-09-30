@@ -7,7 +7,8 @@ struct SidebarPanel: View {
     let content: SidebarContent
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var width: CGFloat { content.notes == nil ? 220 : 280 }
+    /// Default 220 px, 280 px with a Notes space (mockup); the user can drag it wider or narrower.
+    var width: CGFloat { model.sidebarWidth ?? (content.notes == nil ? 220 : 280) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,12 +24,30 @@ struct SidebarPanel: View {
                 .offset(x: content.notes == nil ? 0 : -CGFloat(model.sidebarPage.rawValue) * geo.size.width)
             }
             .clipped()
+            // Lists scroll clear of the floating space dots.
+            .safeAreaPadding(.bottom, content.notes == nil ? 0 : 34)
+        }
+        .overlay(alignment: .bottom) {
             if let notes = content.notes {
                 SpaceSwitcher(page: model.sidebarPage, title: content.title, notes: notes) { go($0) }
+                    .padding(.bottom, 12)
             }
         }
         .frame(width: width)
         .overlay(alignment: .trailing) { MarginDivider(.vertical) }
+        .overlay(alignment: .trailing) {
+            ResizeHandle(edge: .trailing, width: width,
+                         onChange: { model.setSidebarWidth($0) },
+                         onReset: { model.setSidebarWidth(nil) })
+        }
+        .overlay {
+            if content.notes != nil {
+                HorizontalSwipe { step in
+                    let next = SidebarPage(rawValue: model.sidebarPage.rawValue + step) ?? model.sidebarPage
+                    if next != model.sidebarPage { go(next) }
+                }
+            }
+        }
     }
 
     private func go(_ page: SidebarPage) {
@@ -169,10 +188,10 @@ private struct NotesPage: View {
             }
             .marginFont(MarginTextSize.base)
             .foregroundStyle(MarginColor.textTertiary)
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 12)
             .frame(height: 36)
-            .background(MarginColor.surface, in: RoundedRectangle(cornerRadius: MarginRadius.sm))
-            .overlay { RoundedRectangle(cornerRadius: MarginRadius.sm).strokeBorder(MarginColor.border) }
+            // Liquid Glass (macOS 27 SDK): reacts to hover and press, capsule like system search.
+            .glassEffect(.regular.interactive(), in: Capsule())
 
             HStack(spacing: 4) {
                 ForEach(["All", "Lectures", "Tasks"], id: \.self) { name in
@@ -226,7 +245,7 @@ private struct NoteRow: View {
     }
 }
 
-/// Two dots at the bottom of the sidebar: the current place and Notes.
+/// Two small dots floating at the bottom of the sidebar: the current place and Notes.
 private struct SpaceSwitcher: View {
     let page: SidebarPage
     let title: String
@@ -234,37 +253,28 @@ private struct SpaceSwitcher: View {
     let go: (SidebarPage) -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            dot(.navigation, icon: notes.courseStyle.icon,
-                bg: Color(hexString: notes.courseStyle.background), fg: Color(hexString: notes.courseStyle.foreground),
-                name: title)
-            dot(.notes, icon: "description", bg: MarginColor.accentSoft, fg: MarginColor.accentText, name: "Notes",
-                ring: MarginColor.accent)
+        // Liquid Glass (macOS 27 SDK): the dots share one container so their glass blends.
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
+                dot(.navigation, icon: notes.courseStyle.icon,
+                    bg: Color(hexString: notes.courseStyle.background),
+                    fg: Color(hexString: notes.courseStyle.foreground), name: title)
+                dot(.notes, icon: "description", bg: MarginColor.accentSoft, fg: MarginColor.accentText,
+                    name: "Notes")
+            }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 48)
-        .overlay(alignment: .top) { MarginDivider(color: MarginColor.hover) }
     }
 
-    private func dot(_ target: SidebarPage, icon: String, bg: Color, fg: Color, name: String,
-                     ring: Color? = nil) -> some View {
+    private func dot(_ target: SidebarPage, icon: String, bg: Color, fg: Color, name: String) -> some View {
         let on = page == target
         return Button { go(target) } label: {
-            Circle()
-                .fill(on ? bg : .clear)
-                .frame(width: 28, height: 28)
-                .overlay { Icon(icon, size: 16, color: on ? fg : MarginColor.textTertiary) }
-                .overlay {
-                    if on {
-                        Circle().strokeBorder(MarginColor.surface, lineWidth: 2).padding(-2)
-                        Circle().strokeBorder(ring ?? fg, lineWidth: 1.5).padding(-3.5)
-                    } else {
-                        Circle().strokeBorder(MarginColor.border)
-                    }
-                }
+            Icon(icon, size: 13, weight: on ? .bold : .regular, color: on ? fg : MarginColor.textTertiary)
+                .frame(width: 24, height: 24)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        // The active space is tinted with its colour; the other is clear glass.
+        .glassEffect(on ? .regular.tint(bg).interactive() : .regular.interactive(), in: Circle())
         .help(name)
         .animation(.easeOut(duration: 0.2), value: on)
     }
