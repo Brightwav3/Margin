@@ -12,6 +12,9 @@ extension Workspace {
             default: .note("")
             }
             let m = NoteEditorModel(env: env, target: target)
+            m.readableLineLength = editorDefaults.readableLineLength
+            m.setMode(editorDefaults.mode)
+            m.showsProperties = editorDefaults.showProperties
             m.onLoaded = { [weak self] summary in self?.retitle(route: .note(summary.id), title: summary.title) }
             m.onCreated = { [weak self, weak m] summary in
                 guard let self, let m else { return }

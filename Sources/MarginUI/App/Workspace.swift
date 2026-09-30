@@ -325,6 +325,55 @@ public final class Workspace {
         await refreshAfterWrite()
     }
 
+    // MARK: First run and index
+
+    /// Onboarding shows while the vault has no semester, until the user continues past step 3.
+    public var onboardingDone = false
+    public var needsOnboarding: Bool {
+        !onboardingDone && courses.isLoaded && courses.semesters.isEmpty
+            || (!onboardingDone && startedOnboarding)
+    }
+    @ObservationIgnored private var startedOnboarding = false
+
+    func finishOnboarding() {
+        onboardingDone = true
+        Task { await courses.load() }
+    }
+
+    /// Latest index progress; complete (or nil) hides the loading screen.
+    public private(set) var indexProgress: IndexProgress?
+
+    public func watchIndex() async {
+        for await p in env.indexStatus.progress {
+            indexProgress = p
+            if p.isComplete { await refreshAfterWrite() }
+        }
+    }
+
+    /// Editor defaults from Settings (readable line length, first view, properties panel).
+    public private(set) var editorDefaults = EditorDefaults()
+
+    public struct EditorDefaults: Sendable {
+        public var readableLineLength = true
+        public var mode: EditorMode = .live
+        public var showProperties = true
+    }
+
+    public func applySettings() {
+        Task { @MainActor in
+            let view = await env.settings.get(Settings.defaultView)
+            editorDefaults = EditorDefaults(
+                readableLineLength: await env.settings.get(Settings.readableLineLength),
+                mode: view == .reading ? .reading : view == .source ? .source : .live,
+                showProperties: await env.settings.get(Settings.showProperties))
+            for case let m as NoteEditorModel in models.values { m.readableLineLength = editorDefaults.readableLineLength }
+        }
+    }
+
+    func gradesModel() -> GradesModel { model("grades") { GradesModel(env: env) } }
+    func settingsModel() -> SettingsModel { model("settings") { SettingsModel(env: env) } }
+    func searchModel(_ query: String) -> SearchModel { model(Route.search(query).key) { SearchModel(env: env, query: query) } }
+
     func graphModel() -> GraphModel { model("graph") { GraphModel(env: env) } }
 
     /// Local graph around a note (note menu „Open linked view“, M9-08).

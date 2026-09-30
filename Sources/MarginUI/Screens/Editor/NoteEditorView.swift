@@ -18,7 +18,7 @@ struct NoteEditorView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         if let error = model.error { ErrorBanner(text: error) }
                         // `Note.text` is the body; the frontmatter lives in this panel in every mode.
-                        if !model.properties.isEmpty || model.noteID != nil {
+                        if model.showsProperties, !model.properties.isEmpty || model.noteID != nil {
                             PropertiesPanel(model: model)
                         }
                         MarkdownTextView(text: model.text, revision: model.revision, mode: model.mode,
