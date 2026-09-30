@@ -380,6 +380,18 @@ actor VaultBackend {
         for record in await index.allNotes where record.path.hasPrefix(prefix) {
             await index.rename(from: record.path, to: to + "/" + record.path.dropFirst(prefix.count))
         }
+        await resyncIndex(afterMovingFolderFrom: from, to: to)
+    }
+
+    /// Makes the index agree with the disk for a folder the app just moved. Renaming the records the
+    /// index knows is not enough: the watcher may have read the old location between the move and
+    /// this call, seen it empty and dropped those notes, so there is nothing left to rename. The
+    /// files at the new place are read again (unchanged ones are a no-op), and records still
+    /// under the old place are dropped when their file is gone.
+    func resyncIndex(afterMovingFolderFrom from: String, to: String) async {
+        let listed = (try? await store.list().map(\.rawValue)) ?? []
+        for path in listed where path.hasPrefix(to + "/") { _ = try? await index.update(path: path) }
+        for record in await index.allNotes where record.path.hasPrefix(from + "/") { _ = try? await index.update(path: record.path) }
     }
 
     /// After a transaction failed and was rolled back, the code that ran inside it may already have
