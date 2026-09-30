@@ -58,6 +58,7 @@ struct CourseCard: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .onTapGesture(perform: onOpen)
+        .contextMenu { CourseMenuItems(course: data.course) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(named: "Open", onOpen)
@@ -74,10 +75,7 @@ private struct CourseCardMenu: View {
         Menu {
             Button("Open", action: onOpen)
             Divider()
-            // TODO(M10-12.U): rename, change colour, archive from the course context menu (2f).
-            Button("Rename…") {}.disabled(true)
-            Button("Change colour…") {}.disabled(true)
-            Button("Archive") {}.disabled(true)
+            CourseMenuItems(course: course)
         } label: {
             Icon("more_horiz", size: 20, color: hovered ? MarginColor.ink : MarginColor.textSecondary)
                 .frame(width: 24, height: 24)

@@ -37,11 +37,26 @@ public struct WorkspaceView: View {
                 .transition(.opacity)
             }
         }
+        .overlay { DialogHost() }
+        .animation(.easeOut(duration: 0.15), value: workspace.dialog)
         .overlay(alignment: .bottom) { ToastView(toast: workspace.toast).padding(.bottom, 28) }
+        .overlay(alignment: .topTrailing) {
+            if let soon = workspace.soonClass { ClassReminderCard(occurrence: soon).padding(.top, 56).padding(.trailing, 20) }
+        }
         .background {
-            Button("Quick capture") { workspace.capture.open() }
-                .keyboardShortcut(.space, modifiers: [.control, .option])
-                .opacity(0).allowsHitTesting(false)
+            Group {
+                Button("Quick capture") { workspace.capture.open() }
+                    .keyboardShortcut(.space, modifiers: [.control, .option])
+                Button("Command palette") { workspace.dialog = .palette }
+                    .keyboardShortcut("k", modifiers: .command)
+                Button("New note") { workspace.run(command: "new-note") }
+                    .keyboardShortcut("n", modifiers: .command)
+                Button("Settings") { workspace.open(.settings) }
+                    .keyboardShortcut(",", modifiers: .command)
+                Button("Search") { workspace.open(.search("")) }
+                    .keyboardShortcut("f", modifiers: [.command, .shift])
+            }
+            .opacity(0).allowsHitTesting(false)
         }
         .task {
             await workspace.courses.load()
@@ -49,6 +64,7 @@ public struct WorkspaceView: View {
         }
         .task { await workspace.courses.observe() }
         .task { await workspace.refreshInbox() }
+        .task { await workspace.watchUpcomingClasses() }
         .environment(workspace)
     }
 }
@@ -109,7 +125,8 @@ extension Workspace {
                 CoursesGridView(model: courses, onOpen: { [weak self] in self?.open(course: $0) },
                                 onNewCourse: { [weak self] in self?.dialog = .newCourse })
             case .timetable:
-                TimetableView(model: courses, onOpen: { [weak self] in self?.open(session: $0) })
+                TimetableView(model: courses, onOpen: { [weak self] in self?.open(session: $0) },
+                              onReschedule: { [weak self] in self?.dialog = .session($0) })
             }
         case .course(let id):
             CourseView(model: courseModel(id))
@@ -148,5 +165,38 @@ struct ToastView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: toast)
+    }
+}
+
+/// 1i Lecture reminder: „Cell Biology · in 10 min“ with Open note and Snooze.
+struct ClassReminderCard: View {
+    let occurrence: SessionOccurrence
+    @Environment(Workspace.self) private var workspace
+
+    var body: some View {
+        let course = workspace.courses.course(id: occurrence.session.courseID)
+        let minutes = occurrence.session.start.minutesSinceMidnight - workspace.env.clock.localNow.time.minutesSinceMidnight
+        HStack(alignment: .top, spacing: 12) {
+            if let course { CourseTile(style: course.style, size: 36) }
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(course?.name ?? "Class") · in \(max(1, minutes)) min").marginFont(MarginTextSize.sm, .semibold)
+                Text(workspace.courses.title(of: occurrence)).marginFont(MarginTextSize.sm)
+                if let room = occurrence.session.room ?? course?.room {
+                    Text(room).marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textSecondary)
+                }
+                HStack(spacing: 8) {
+                    MarginButton("Open note", kind: .primary, size: .small) {
+                        workspace.open(session: occurrence); workspace.soonClass = nil
+                    }
+                    MarginButton("Snooze", size: .small) { workspace.soonClass = nil }
+                }
+                .padding(.top, 6)
+            }
+        }
+        .padding(14)
+        .frame(width: 320, alignment: .leading)
+        .background(MarginColor.surface, in: RoundedRectangle(cornerRadius: MarginRadius.md))
+        .overlay { RoundedRectangle(cornerRadius: MarginRadius.md).strokeBorder(MarginColor.borderCard) }
+        .marginShadow(.popover)
     }
 }
