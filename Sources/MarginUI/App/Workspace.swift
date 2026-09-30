@@ -44,8 +44,12 @@ public final class Workspace {
 
     @ObservationIgnored private var models: [String: AnyObject] = [:]
 
-    public init(env: AppEnvironment, shell: AppModel? = nil, start: Route = .courses) {
+    /// Folder of the vault on disk; nil on fixture data.
+    public let vaultURL: URL?
+
+    public init(env: AppEnvironment, shell: AppModel? = nil, start: Route = .courses, vaultURL: URL? = nil) {
         self.env = env
+        self.vaultURL = vaultURL
         self.courses = CoursesOverviewModel(env: env)
         self.shell = shell ?? AppModel()
         if self.shell.tabs.isEmpty {
@@ -68,6 +72,15 @@ public final class Workspace {
     }
 
     func forget(_ key: String) { models[key] = nil }
+
+    /// Moves a screen model to another route (a draft that became a note).
+    func adopt(_ model: AnyObject, from: Route, to: Route) {
+        models[from.key] = nil
+        models[to.key] = model
+    }
+
+    /// Note routes that already switched the sidebar to the Notes space once.
+    @ObservationIgnored var notesPageShown: Set<String> = []
 
     // MARK: Navigation
 
@@ -116,6 +129,15 @@ public final class Workspace {
         }
     }
 
+    /// Sets the title (and dot) of the tabs showing `route`.
+    func retitle(route: Route, title: String) {
+        for index in shell.tabs.indices where shell.tabs[index].route == route.key {
+            if shell.tabs[index].title != title { shell.tabs[index].title = title }
+            let dot = dot(of: route)
+            if shell.tabs[index].dot != dot { shell.tabs[index].dot = dot }
+        }
+    }
+
     /// Course tabs opened before the catalog loaded get their name and colour.
     func refreshTabTitles() {
         for index in shell.tabs.indices {
@@ -123,6 +145,32 @@ public final class Workspace {
             if case .course(let id) = route, let course = courses.course(id: id) {
                 shell.tabs[index].title = course.name
                 shell.tabs[index].dot = course.style.dot
+            }
+        }
+    }
+
+    /// Note id of a `[[target]]` (title, file name or alias).
+    public func resolve(link target: String) async -> NoteID? {
+        let name = target.split(separator: "#").first.map(String.init) ?? target
+        let found = (try? await env.search.suggestLinks(prefix: name, course: nil, note: nil, limit: 20)) ?? []
+        return found.first { $0.kind != .create && $0.title.caseInsensitiveCompare(name) == .orderedSame }?.noteID
+            ?? found.first { $0.kind == .alias }?.noteID
+    }
+
+    /// Follows a wikilink; a link to a note that does not exist yet creates it in the same course.
+    public func openLink(_ target: String, from course: CourseID?) {
+        let name = target.split(separator: "#").first.map(String.init) ?? target
+        Task { @MainActor in
+            if let id = await resolve(link: name) {
+                open(.note(id), title: name)
+            } else if let course = course ?? courses.cards.first?.id {
+                perform("Create note") {
+                    let change = try await self.env.notes.create(course: course, title: name, kind: .study,
+                                                                 text: "# \(name)\n\n", actor: .user, baseVersion: nil,
+                                                                 dryRun: false, idempotencyKey: nil)
+                    if let id = change.entries.first?.noteID { self.open(.note(id), title: name) }
+                    await self.courses.load()
+                }
             }
         }
     }

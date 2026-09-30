@@ -75,7 +75,9 @@ private struct InspectorRowView: View {
         }
         .padding(EdgeInsets(top: 7, leading: row.indent, bottom: 7, trailing: 8))
         .background(hovered ? MarginColor.hover : .clear, in: RoundedRectangle(cornerRadius: MarginRadius.sm))
+        .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
+        .onTapGesture { row.action?() }
     }
 }
 
