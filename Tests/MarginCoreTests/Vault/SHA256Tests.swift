@@ -53,4 +53,14 @@ import Testing
         #expect(try JSONDecoder().decode([ContentHash].self, from: json) == [h])
         #expect(throws: (any Error).self) { try JSONDecoder().decode([ContentHash].self, from: Data("[\"zz\"]".utf8)) }
     }
+
+    /// The portable digest (used on Linux) agrees with the platform one for lengths around every
+    /// padding boundary and for a larger random buffer.
+    @Test func portableDigestMatchesThePlatformDigest() {
+        var generator = SystemRandomNumberGenerator()
+        for n in Array(0...130) + [1_000, 65_537] {
+            let data = Data((0..<n).map { _ in UInt8.random(in: 0...255, using: &generator) })
+            #expect(SHA256.portableDigest(of: data) == SHA256.digest(of: data), "length \(n)")
+        }
+    }
 }

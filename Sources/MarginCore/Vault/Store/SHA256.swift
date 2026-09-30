@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#endif
 
 /// Content version of a vault file: lowercase hex SHA-256 of the exact file bytes.
 ///
@@ -45,8 +48,10 @@ public struct ContentHash: Codable, Sendable, Hashable, Comparable, CustomString
     }
 }
 
-/// Pure-Swift SHA-256 (FIPS 180-4). CryptoKit is not available on Linux and MarginCore takes no
-/// third-party dependencies (D-007), so the digest is implemented here and covered by test vectors.
+/// SHA-256 (FIPS 180-4). On Apple platforms through CryptoKit (system framework, hardware-accelerated;
+/// the pure-Swift version is ~100x slower in debug builds and dominated the stress tests). CryptoKit is
+/// not available on Linux and MarginCore takes no third-party dependencies (D-007), so the portable
+/// pure-Swift digest stays here, covered by test vectors and by a comparison with CryptoKit.
 public enum SHA256 {
     private static let k: [UInt32] = [
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -61,6 +66,15 @@ public enum SHA256 {
 
     /// The 32-byte digest of `data`.
     public static func digest(of data: Data) -> [UInt8] {
+        #if canImport(CryptoKit)
+        return Array(CryptoKit.SHA256.hash(data: data))
+        #else
+        return portableDigest(of: data)
+        #endif
+    }
+
+    /// The pure-Swift digest, used where CryptoKit is missing (Linux).
+    static func portableDigest(of data: Data) -> [UInt8] {
         var h: [UInt32] = [
             0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
         ]
