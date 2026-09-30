@@ -219,7 +219,11 @@ private struct NotesPage: View {
                 Icon("description", size: 18, color: MarginColor.ink)
                 Text("Notes").marginFont(MarginTextSize.md, .semibold)
                 Spacer(minLength: 0)
-                Icon("add", size: 20, color: MarginColor.textSecondary)
+                Button { notes.onNew?() } label: {
+                    Icon("add", size: 20, color: MarginColor.textSecondary).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("New note")
             }
             .padding(.horizontal, 8)
             .padding(.top, 4)
@@ -284,7 +288,9 @@ private struct NoteRow: View {
         .padding(.vertical, 9)
         .background(note.isSelected ? MarginColor.accentSoft : (hovered ? MarginColor.hover : .clear),
                     in: RoundedRectangle(cornerRadius: MarginRadius.sm))
+        .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
+        .onTapGesture { note.action?() }
     }
 }
 

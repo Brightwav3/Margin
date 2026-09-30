@@ -169,6 +169,18 @@ public final class CoursesOverviewModel {
 
     public func course(id: CourseID) -> Course? { cards.first { $0.id == id }?.course }
 
+    /// The note of a class (same course, same date), if one exists.
+    public func note(for occurrence: SessionOccurrence) -> NoteSummary? {
+        notesByCourse[occurrence.session.courseID]?.first { $0.date == occurrence.date }
+    }
+
+    /// Course of a known note.
+    public func courseID(ofNote id: NoteID) -> CourseID? {
+        notesByCourse.first { $0.value.contains { $0.id == id } }?.key
+    }
+
+    public func notes(of course: CourseID) -> [NoteSummary] { notesByCourse[course] ?? [] }
+
     /// Monday–Friday range of a week („28 Sep – 2 Oct“).
     public func range(ofWeek week: Int) -> String {
         guard let semester else { return "" }

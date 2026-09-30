@@ -74,23 +74,29 @@ public struct NotesSpace: Sendable {
         public var snippet: String
         public var time: String
         public var isSelected: Bool
+        public var action: (@MainActor @Sendable () -> Void)?
 
-        public init(_ title: String, snippet: String, time: String, isSelected: Bool = false) {
+        public init(_ title: String, snippet: String, time: String, isSelected: Bool = false,
+                    action: (@MainActor @Sendable () -> Void)? = nil) {
             self.title = title
             self.snippet = snippet
             self.time = time
             self.isSelected = isSelected
+            self.action = action
         }
     }
 
     public var courseName: String
     public var courseStyle: CourseStyle
     public var groups: [(title: String, notes: [Note])]
+    public var onNew: (@MainActor @Sendable () -> Void)?
 
-    public init(courseName: String, courseStyle: CourseStyle, groups: [(title: String, notes: [Note])]) {
+    public init(courseName: String, courseStyle: CourseStyle, groups: [(title: String, notes: [Note])],
+                onNew: (@MainActor @Sendable () -> Void)? = nil) {
         self.courseName = courseName
         self.courseStyle = courseStyle
         self.groups = groups
+        self.onNew = onNew
     }
 }
 
@@ -141,7 +147,11 @@ public struct InspectorContent: Sendable {
         self.placeholder = placeholder
     }
 
-    var tabs: [InspectorTab] { kind == .course ? InspectorTab.course : InspectorTab.note }
+    /// The Agent tab shows only when it has something (the in-app agent is a later milestone).
+    var tabs: [InspectorTab] {
+        let all = kind == .course ? InspectorTab.course : InspectorTab.note
+        return chat.isEmpty && suggestions.isEmpty ? all.filter { $0 != .agent } : all
+    }
 }
 
 /// Rail entries: fixed places plus one circle per course.

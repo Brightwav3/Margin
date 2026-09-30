@@ -280,7 +280,8 @@ private struct InspectorTabBar: View {
     var body: some View {
         HStack(spacing: 2) {
             ForEach(tabs, id: \.self) { tab in
-                InspectorTabButton(tab: tab, isOn: tab == model.inspectorTab) { model.inspectorTab = tab }
+                let current = tabs.contains(model.inspectorTab) ? model.inspectorTab : tabs.first
+                InspectorTabButton(tab: tab, isOn: tab == current) { model.inspectorTab = tab }
             }
         }
         .padding(.leading, 4)
