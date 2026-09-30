@@ -7,12 +7,14 @@
 
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* MarginApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* MarginApp.swift */; };
+		A10000000000000000000009 /* AppRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* AppRoot.swift */; };
 		A10000000000000000000002 /* MarginUI in Frameworks */ = {isa = PBXBuildFile; productRef = A70000000000000000000001 /* MarginUI */; };
 		A10000000000000000000003 /* MarginPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = A70000000000000000000002 /* MarginPlatform */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A20000000000000000000001 /* MarginApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarginApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* AppRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoot.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* Margin.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Margin.entitlements; sourceTree = "<group>"; };
 		A20000000000000000000003 /* Margin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Margin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -42,6 +44,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000001 /* MarginApp.swift */,
+				A20000000000000000000009 /* AppRoot.swift */,
 				A20000000000000000000002 /* Margin.entitlements */,
 			);
 			name = App;
@@ -123,6 +126,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000001 /* MarginApp.swift in Sources */,
+				A10000000000000000000009 /* AppRoot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -2,7 +2,7 @@ import MarginCore
 import SwiftUI
 
 /// 5a Quick entry: the line with highlighted course and date, chips, Task/Note, and the save button.
-/// Shown over the window (dimmed) and in the global panel (⌃⌥Space, from any app).
+/// Shown over the window (dimmed) and in the global panel (⌘⇧Space, from any app).
 public struct QuickCaptureView: View {
     @Bindable var model: CaptureModel
     var showsHint = true
@@ -51,7 +51,7 @@ public struct QuickCaptureView: View {
                 Segmented([(InboxKind.task, "Task"), (InboxKind.note, "Note")], selection: $model.kind)
                     .fixedSize()
                 if showsHint {
-                    Text("⌃⌥Space from anywhere").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("⌘⇧Space from anywhere").frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     Spacer()
                 }

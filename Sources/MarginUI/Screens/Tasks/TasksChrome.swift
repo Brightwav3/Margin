@@ -25,7 +25,7 @@ extension Workspace {
                                  isOn: m.course == card.id) { m.course = card.id })
         }
         let sidebar = SidebarContent(title: scope == .today ? "Today" : "Upcoming", actionTitle: "New task",
-                                     actionIcon: "add_task", actionKey: "⌃⌥Space",
+                                     actionIcon: "add_task", actionKey: "⌘⇧Space",
                                      sections: [.init("Places", places), .init("Courses", filters)],
                                      onAction: { [weak self] in self?.capture.open() })
         return PageChrome(sidebar: sidebar, inspector: nil)

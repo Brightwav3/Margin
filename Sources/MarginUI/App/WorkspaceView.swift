@@ -68,7 +68,7 @@ public struct WorkspaceView: View {
         .background {
             Group {
                 Button("Quick capture") { workspace.capture.open() }
-                    .keyboardShortcut(.space, modifiers: [.control, .option])
+                    .keyboardShortcut(.space, modifiers: [.command, .shift])
                 Button("Command palette") { workspace.dialog = .palette }
                     .keyboardShortcut("k", modifiers: .command)
                 Button("New note") { workspace.run(command: "new-note") }
