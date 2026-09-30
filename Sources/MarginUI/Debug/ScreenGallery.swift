@@ -65,6 +65,16 @@ public enum MarginScreens {
         MarginScreen("3a-reading", "Note editor: reading view", milestone: "M6a") {
             AnyView(EditorModeScreen(mode: .reading))
         },
+        MarginScreen("today", "Today: overdue, today, classes (proposal)", milestone: "M7") {
+            AnyView(WorkspaceView(env: .fixture(), start: .today))
+        },
+        MarginScreen("upcoming", "Upcoming: next days and later (proposal)", milestone: "M7") {
+            AnyView(WorkspaceView(env: .fixture(), start: .upcoming))
+        },
+        MarginScreen("5a", "Quick entry over the Inbox", milestone: "M8") { AnyView(CaptureScreen()) },
+        MarginScreen("5b", "Inbox triage", milestone: "M8") {
+            AnyView(WorkspaceView(env: .fixture(), start: .inbox))
+        },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
     ]
 
@@ -142,6 +152,19 @@ struct EditorModeScreen: View {
     init(mode: EditorMode) {
         let w = Workspace(env: .fixture(), start: .note("bio/lecture-8"))
         w.editorModel(.note("bio/lecture-8")).setMode(mode)
+        _workspace = State(initialValue: w)
+    }
+
+    var body: some View { WorkspaceView(workspace: workspace) }
+}
+
+/// Gallery: quick entry open with the mockup's sentence.
+struct CaptureScreen: View {
+    @State private var workspace: Workspace
+
+    init() {
+        let w = Workspace(env: .fixture(), start: .inbox)
+        w.capture.open(prefill: "Read ch. 6 before wed for bio #reading")
         _workspace = State(initialValue: w)
     }
 

@@ -9,6 +9,8 @@ public final class Workspace {
     public let env: AppEnvironment
     public let shell: AppModel
     public let courses: CoursesOverviewModel
+    /// Quick capture over the window (5a).
+    public let capture: CaptureModel
     /// Short-lived message at the bottom of the window (1i toasts).
     public var toast: Toast?
     /// Modal dialog over the window (M10c).
@@ -51,7 +53,13 @@ public final class Workspace {
         self.env = env
         self.vaultURL = vaultURL
         self.courses = CoursesOverviewModel(env: env)
+        self.capture = CaptureModel(env: env)
         self.shell = shell ?? AppModel()
+        capture.onSaved = { [weak self] _, toInbox in
+            guard let self else { return }
+            self.show(toInbox ? "Added to Inbox" : "Saved", icon: toInbox ? "inbox" : "check_circle")
+            Task { await self.refreshAfterWrite() }
+        }
         if self.shell.tabs.isEmpty {
             self.shell.open(ShellTab(title: Self.title(of: start), dot: Self.grey, route: start.key))
         }
@@ -227,6 +235,22 @@ public final class Workspace {
     public func refreshInbox() async {
         inboxCount = (try? await env.inbox.items().count) ?? 0
     }
+
+    /// After a write from outside a page (capture, dialogs): refresh what lists it.
+    func refreshAfterWrite() async {
+        await refreshInbox()
+        await courses.load()
+        for (key, model) in models {
+            switch model {
+            case let m as TasksModel: await m.load()
+            case let m as CourseDetailModel: await m.load()
+            case let m as InboxModel: await m.load()
+            default: _ = key
+            }
+        }
+    }
+
+    func inboxModel() -> InboxModel { model("inbox") { InboxModel(env: env) } }
 
     // MARK: Messages
 
