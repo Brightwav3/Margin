@@ -112,7 +112,7 @@ struct InboxView: View {
         Group {
             if model.isLoaded && model.items.isEmpty {
                 EmptyState(icon: "inbox", title: "Inbox is empty",
-                           text: "Everything you capture with ⌃⌥Space or from your phone lands here until you file it into a course.",
+                           text: "Everything you capture with ⌘⇧Space or from your phone lands here until you file it into a course.",
                            action: ("Capture something", { workspace.capture.open() }))
                     .frame(maxHeight: .infinity)
             } else {

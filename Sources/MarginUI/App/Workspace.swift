@@ -241,7 +241,7 @@ public final class Workspace {
     }
 
     /// After a write from outside a page (capture, dialogs): refresh what lists it.
-    func refreshAfterWrite() async {
+    public func refreshAfterWrite() async {
         await refreshInbox()
         await courses.load()
         for (key, model) in models {
@@ -260,7 +260,7 @@ public final class Workspace {
     public let commands: CommandRegistry = {
         var r = CommandRegistry()
         let list: [(String, String, [String], String, String?)] = [
-            ("capture", "Quick capture", ["new task", "inbox", "add"], "Create", "⌃⌥Space"),
+            ("capture", "Quick capture", ["new task", "inbox", "add"], "Create", "⌘⇧Space"),
             ("new-note", "New note in this course", ["create", "write"], "Create", "⌘N"),
             ("new-course", "New course", ["add course", "subject"], "Create", nil),
             ("today", "Go to Today", ["tasks", "due"], "Go to", nil),

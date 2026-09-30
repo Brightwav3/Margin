@@ -124,7 +124,7 @@ struct SettingsView: View {
                 Text(workspace.vaultURL?.path(percentEncoded: false) ?? "Sample data (not saved to disk)")
                     .marginFont(MarginTextSize.sm).foregroundStyle(MarginColor.textSecondary).lineLimit(2)
             }
-            row("Quick capture", "Capture a task or note from any app.") { Text("⌃⌥Space").monospaced() }
+            row("Quick capture", "Capture a task or note from any app.") { Text("⌘⇧Space").monospaced() }
         case .editor:
             row("Readable line length", "Limit the width of notes and pages so lines stay easy to read. Turn off to use the full window width.") {
                 SwitchView(isOn: $model.readableLineLength)
@@ -162,7 +162,7 @@ struct SettingsView: View {
                 }
             }
         case .hotkeys:
-            ForEach([("Command palette", "⌘K"), ("Quick capture (anywhere)", "⌃⌥Space"), ("New note", "⌘N"),
+            ForEach([("Command palette", "⌘K"), ("Quick capture (anywhere)", "⌘⇧Space"), ("New note", "⌘N"),
                      ("Search", "⌘⇧F"), ("Reading view", "⌘E"), ("Toggle sidebar", "⌥⌘S"),
                      ("Toggle inspector", "⌥⌘I"), ("New tab", "⌘T"), ("Close tab", "⌘W"), ("Settings", "⌘,")], id: \.0) { k in
                 row(k.0, nil) { Text(k.1).monospaced().foregroundStyle(MarginColor.textSecondary) }
