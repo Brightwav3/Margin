@@ -20,6 +20,28 @@ public struct WorkspaceView: View {
     public var body: some View {
         let route = workspace.route
         let chrome = workspace.chrome(for: route)
+        Group {
+            if workspace.needsOnboarding {
+                OnboardingView().overlay { DialogHost() }
+            } else if let p = workspace.indexProgress, !p.isComplete, p.filesTotal > 0 {
+                LoadingView(progress: p)
+            } else {
+                shell(route: route, chrome: chrome)
+            }
+        }
+        .task {
+            await workspace.courses.load()
+            workspace.refreshTabTitles()
+        }
+        .task { await workspace.courses.observe() }
+        .task { await workspace.refreshInbox() }
+        .task { await workspace.watchIndex() }
+        .task { await workspace.watchUpcomingClasses() }
+        .task { workspace.applySettings() }
+        .environment(workspace)
+    }
+
+    private func shell(route: Route, chrome: PageChrome) -> some View {
         MarginShell(model: workspace.shell, rail: workspace.rail, sidebar: chrome.sidebar,
                     inspector: chrome.inspector,
                     onRail: { workspace.railSelect($0) },
@@ -58,14 +80,6 @@ public struct WorkspaceView: View {
             }
             .opacity(0).allowsHitTesting(false)
         }
-        .task {
-            await workspace.courses.load()
-            workspace.refreshTabTitles()
-        }
-        .task { await workspace.courses.observe() }
-        .task { await workspace.refreshInbox() }
-        .task { await workspace.watchUpcomingClasses() }
-        .environment(workspace)
     }
 }
 
@@ -84,6 +98,8 @@ extension Workspace {
             return courseChrome(id)
         case .note, .draft:
             return noteChrome(route)
+        case .search, .grades, .archive, .settings:
+            return PageChrome(sidebar: coursesSidebar, inspector: nil)
         case .inbox:
             var chrome = tasksChrome(.today)
             chrome.sidebar.title = "Inbox"
@@ -111,8 +127,6 @@ extension Workspace {
             return tasksChrome(.today)
         case .upcoming:
             return tasksChrome(.upcoming)
-        default:
-            return PageChrome(sidebar: coursesSidebar, inspector: nil)
         }
     }
 
@@ -132,6 +146,14 @@ extension Workspace {
             CourseView(model: courseModel(id))
         case .note, .draft:
             NoteEditorView(model: editorModel(route))
+        case .search(let q):
+            SearchView(model: searchModel(q))
+        case .grades:
+            GradesView(model: gradesModel())
+        case .archive:
+            ArchiveView()
+        case .settings:
+            SettingsView(model: settingsModel())
         case .inbox:
             InboxView(model: inboxModel())
         case .graph:
@@ -140,8 +162,6 @@ extension Workspace {
             TasksView(model: tasksModel(.today))
         case .upcoming:
             TasksView(model: tasksModel(.upcoming))
-        default:
-            PendingPage(course: nil, title: Self.title(of: route), detail: "Coming up next")
         }
     }
 }

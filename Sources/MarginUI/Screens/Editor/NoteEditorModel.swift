@@ -21,6 +21,8 @@ public final class NoteEditorModel {
     /// Edit mode to return to from reading.
     private var lastEditMode: EditorMode = .live
     public var readableLineLength = true
+    /// Settings › Editor › Show properties.
+    public var showsProperties = true
     public private(set) var isLoaded = false
     public private(set) var saving = false
     public private(set) var lastSaved: LocalDateTime?
