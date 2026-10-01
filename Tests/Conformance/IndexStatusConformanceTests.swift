@@ -28,6 +28,20 @@ private func assertMonotonic(_ seen: [IndexProgress], sourceLocation: SourceLoca
 /// `IndexStatus` (M11-07.B): the fixture and the vault, plus the index build itself.
 @Suite struct IndexStatusConformanceTests {
     @Test(arguments: HarnessKind.allCases)
+    func vaultStatsCountNotesAndHistory(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let before = try await h.indexStatus.vaultStats()
+            #expect(before.noteCount > 0 && before.noteBytes > 0)
+            _ = try await h.notes.create(course: "bio", title: "Stats probe", kind: .note, text: "Hello stats\n", actor: .user,
+                                         baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            _ = try await h.history.snapshot(note: "bio/lecture-9", reason: .close)
+            let after = try await h.indexStatus.vaultStats()
+            #expect(after.noteCount == before.noteCount + 1 && after.noteBytes > before.noteBytes)
+            #expect(after.historyBytes > before.historyBytes)
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
     func aStreamGivesTheFinishedStateAndEnds(kind: HarnessKind) async throws {
         try await withHarness(kind) { h in
             // Ends on its own: `collect` returns when the stream ends, or at the complete element.

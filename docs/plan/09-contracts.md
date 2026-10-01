@@ -31,11 +31,11 @@ Backend (`MarginCore`) a UI (`MarginUI`) se potkávají **jen tady**. Díky tomu
 | `SearchService` | Hledání | `search(query, filter) → [Hit]`, `suggestLinks(prefix)`, `excerpt(note)` | ⌘K, `[[`, 1b, hover |
 | `CommandRegistry` | Příkazy palety a slash | `commands(matching:)`, `run(id)` | 1a, 2a |
 | `GradeService` | Známky | `grades(course)`, `average(course)`, `add(grade)` | 1e, 2e |
-| `HistoryService` | Verze poznámek | `versions(note)`, `diff(a,b)`, `restore(version)` | 2e |
-| `SettingsStore` | Nastavení | typované klíče, `changes: AsyncStream` | 2g, Settings |
+| `HistoryService` | Verze poznámek | `versions(note)`, `recentVersions(limit)` (File recovery), `diff(a,b)`, `restore(version)` | 2e, Settings › Vault and files |
+| `SettingsStore` | Nastavení a lokální profil | typované klíče (`Settings.profile`, obecné, editor, vzhled, soubory, semestry), `changes: AsyncStream` | 2g, Settings, účet (Account v3) |
 | `ReminderService` | Notifikace | `schedule(for:)`, `cancel`, `permission` | 1i |
 | `ExportService` | Export | `export(note, format)` (`pdf`, `md`) | 3b |
-| `IndexStatus` | Stav indexace | `progress: AsyncStream<IndexProgress>` | 2c loading |
+| `IndexStatus` | Stav indexace a velikost vaultu | `progress: AsyncStream<IndexProgress>`, `vaultStats()` | 2c loading, Settings › Vault and files |
 | `AgentService` | Vnitřní agent (reálný, MA3) | `converse(context) → AsyncStream`, `suggestions(for:)`, `runSkill(id)` | Agent tab, 1d, 3d |
 | `ToolRegistry` | Katalog nástrojů generovaný ze služeb | `tools`, `call(tool, args, actor, dryRun, idempotencyKey)` | MCP, CLI, vnitřní agent |
 | `IdentityService` | Agentní identity (role, profil, rozsah, limity, politika převzetí) | `identities`, `create`, `update`, `templates` (jen UI/člověk) | správa identit |

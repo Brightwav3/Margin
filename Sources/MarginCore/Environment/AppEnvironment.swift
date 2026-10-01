@@ -70,7 +70,7 @@ public struct AppEnvironment: Sendable {
             graph: FixtureGraphService(world: Fixtures.week5),
             courseWriter: FixtureCourseCatalogWriter(store: store),
             settings: settings, semesters: FixtureSemesterStore(store: store),
-            indexStatus: FixtureIndexStatus(),
+            indexStatus: FixtureIndexStatus(store: store),
             grades: FixtureGradeService(store: store),
             history: FixtureHistoryService(store: store, clock: clock),
             reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),

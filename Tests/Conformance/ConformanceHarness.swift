@@ -77,7 +77,7 @@ struct Harness: Sendable {
                 inbox: FixtureInboxService(store: store), properties: FixturePropertyService(store: store),
                 analysis: FixtureNoteAnalysis(store: store), graph: FixtureGraphService(world: Fixtures.week5),
                 courseWriter: FixtureCourseCatalogWriter(store: store), settings: FixtureSettingsStore(),
-                semesters: FixtureSemesterStore(store: store), indexStatus: FixtureIndexStatus(),
+                semesters: FixtureSemesterStore(store: store), indexStatus: FixtureIndexStatus(store: store),
                 grades: FixtureGradeService(store: store),
                 history: FixtureHistoryService(store: store, clock: clock),
                 reminders: CatalogReminderService(courses: FixtureCourseCatalog(store: store), center: reminderCenter, clock: clock),
