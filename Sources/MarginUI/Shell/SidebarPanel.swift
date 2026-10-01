@@ -251,6 +251,8 @@ private struct NotesPage: View {
     @State private var filter = "All"
     @Environment(Workspace.self) private var workspace: Workspace?
 
+    private var order: [NoteSummary] { notes.groups.flatMap { $0.notes.compactMap(\.summary) } }
+
     /// 1b: New note, Sort notes ▸.
     @ViewBuilder private var notesMenu: some View {
         MenuItem("New note", "edit_square") { notes.onNew?() }
@@ -328,7 +330,7 @@ private struct NotesPage: View {
                                 .marginFont(MarginTextSize.sm, .semibold)
                                 .foregroundStyle(MarginColor.textSecondary)
                                 .padding(EdgeInsets(top: 4, leading: 6, bottom: 6, trailing: 6))
-                            ForEach(group.notes) { NoteRow(note: $0) }
+                            ForEach(group.notes) { NoteRow(note: $0, order: order) }
                         }
                     }
                 }
@@ -343,8 +345,13 @@ private struct NotesPage: View {
 
 private struct NoteRow: View {
     let note: NotesSpace.Note
+    /// Every note of the list in the order shown (⇧-click ranges).
+    var order: [NoteSummary] = []
     @State private var hovered = false
     @Environment(Workspace.self) private var workspace: Workspace?
+
+    private var inSelection: Bool { note.summary.map { workspace?.isSelected(note: $0.id) ?? false } ?? false }
+    private var highlighted: Bool { workspace?.noteSelection.isEmpty == false ? inSelection : note.isSelected }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -361,14 +368,24 @@ private struct NoteRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
-        .background(note.isSelected ? MarginColor.accentSoft : (hovered ? MarginColor.hover : .clear),
+        .background(highlighted ? MarginColor.accentSoft : (hovered ? MarginColor.hover : .clear),
                     in: RoundedRectangle(cornerRadius: MarginRadius.sm))
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
-        .onTapGesture { note.action?() }
-        .contextMenu {
-            if let workspace, let summary = note.summary { NoteMenuItems(note: summary).environment(workspace) }
+        .onTapGesture {
+            guard let workspace, let summary = note.summary else { note.action?(); return }
+            workspace.click(note: summary, in: order, modifiers: NSEvent.modifierFlags) { note.action?() }
         }
+        .contextMenu {
+            if let workspace, let summary = note.summary {
+                if workspace.noteSelection.count > 1, inSelection {
+                    MultiNoteMenuItems(notes: workspace.noteSelection).environment(workspace)
+                } else {
+                    NoteMenuItems(note: summary).environment(workspace)
+                }
+            }
+        }
+        .accessibilityAddTraits(highlighted ? .isSelected : [])
         .modifier(FullTitleTooltip(title: note.title, detail: nil, isLong: note.title.count > 26))
     }
 }

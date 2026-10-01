@@ -22,7 +22,11 @@ struct DialogHost: View {
                     switch dialog {
                     case .newCourse: NewCourseDialog()
                     case .deleteNote(let n): DeleteNoteDialog(note: n)
-                    case .moveNote(let n): MoveNoteDialog(note: n)
+                    case .moveNote(let n): MoveNoteDialog(notes: [n])
+                    case .moveNotes(let n): MoveNoteDialog(notes: n)
+                    case .deleteNotes(let n): DeleteNotesDialog(notes: n)
+                    case .mergeNotes(let n): MergeNotesDialog(notes: n)
+                    case .tagNotes(let n): AddTagDialog(notes: n)
                     case .grade(let c): GradeDialog(courseID: c)
                     case .syllabus(let c): SyllabusDialog(courseID: c)
                     case .share(let n): ShareDialog(note: n)
@@ -279,7 +283,8 @@ struct DeleteNoteDialog: View {
 // MARK: 2c Move note
 
 struct MoveNoteDialog: View {
-    let note: NoteSummary
+    let notes: [NoteSummary]
+    private var note: NoteSummary { notes[0] }
     @Environment(Workspace.self) private var workspace
     @State private var query = ""
     @State private var selection = 0
@@ -298,7 +303,7 @@ struct MoveNoteDialog: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 Icon("drive_file_move", size: 20, color: MarginColor.textSecondary)
-                TextField("Move “\(CourseDetailModel.split(note).0)” to…", text: $query)
+                TextField(notes.count == 1 ? "Move “\(CourseDetailModel.split(note).0)” to…" : "Move \(notes.count) notes to…", text: $query)
                     .textFieldStyle(.plain).marginFont(16)
                     .onSubmit { if targets.indices.contains(selection) { move(targets[selection]) } }
             }
@@ -311,7 +316,7 @@ struct MoveNoteDialog: View {
                         HStack(spacing: 10) {
                             Circle().fill(Color(hexString: c.style.dot)).frame(width: 7, height: 7)
                             Text(c.name).frame(maxWidth: .infinity, alignment: .leading)
-                            if c.id == note.courseID { Text("current").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary) }
+                            if notes.allSatisfy({ $0.courseID == c.id }) { Text("current").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary) }
                             else if i == selection { Text("↵").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary) }
                         }
                         .marginFont(14).padding(.horizontal, 8).frame(height: 32)
@@ -319,7 +324,7 @@ struct MoveNoteDialog: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(c.id == note.courseID)
+                    .disabled(notes.allSatisfy { $0.courseID == c.id })
                 }
                 ForEach(archivedMatches) { c in
                     HStack(spacing: 10) {
@@ -346,10 +351,13 @@ struct MoveNoteDialog: View {
     }
 
     private func move(_ course: Course) {
-        workspace.perform("Move note") {
-            _ = try await workspace.env.notes.move(id: note.id, toCourse: course.id, actor: .user, baseVersion: nil,
-                                                   dryRun: false, idempotencyKey: nil)
+        workspace.perform(notes.count == 1 ? "Move note" : "Move notes") {
+            for note in notes where note.courseID != course.id {
+                _ = try await workspace.env.notes.move(id: note.id, toCourse: course.id, actor: .user, baseVersion: nil,
+                                                       dryRun: false, idempotencyKey: nil)
+            }
             workspace.dialog = nil
+            workspace.noteSelection = []
             workspace.show("Moved to \(course.name)", icon: "drive_file_move")
             await workspace.refreshAfterWrite()
         }
