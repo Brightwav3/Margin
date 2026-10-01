@@ -46,7 +46,8 @@ extension Workspace {
                 if semester.isArchived { self?.open(.archive) }
             }
         }
-        return .init("Semesters", items)
+        let add = SidebarContent.Item("New semester…", icon: "add") { [weak self] in self?.dialog = .newSemester }
+        return .init("Semesters", items + [add])
     }
 
     var weeksSection: SidebarContent.Section {

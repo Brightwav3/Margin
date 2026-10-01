@@ -32,6 +32,9 @@ public final class Workspace {
         case palette
         case renameCourse(Course)
         case courseStyle(Course)
+        case courseSettings(Course)
+        case deleteCourse(Course)
+        case newSemester
         case help(HelpTopic)
 
         public var id: String {
@@ -48,6 +51,9 @@ public final class Workspace {
             case .palette: "palette"
             case .renameCourse(let c): "rename/\(c.id)"
             case .courseStyle(let c): "style/\(c.id)"
+            case .courseSettings(let c): "settings/\(c.id)"
+            case .deleteCourse(let c): "deleteCourse/\(c.id)"
+            case .newSemester: "newSemester"
             case .help(let t): "help/\(t.rawValue)"
             }
         }
@@ -291,6 +297,7 @@ public final class Workspace {
             ("capture", "Quick capture", ["new task", "inbox", "add"], "Create", "⌘⇧Space"),
             ("new-note", "New note in this course", ["create", "write"], "Create", "⌘N"),
             ("new-course", "New course", ["add course", "subject"], "Create", nil),
+            ("new-semester", "New semester", ["add semester", "term", "semestr"], "Create", nil),
             ("today", "Go to Today", ["tasks", "due"], "Go to", nil),
             ("upcoming", "Go to Upcoming", ["tasks", "week", "exams"], "Go to", nil),
             ("inbox", "Go to Inbox", ["triage", "captured"], "Go to", nil),
@@ -324,6 +331,7 @@ public final class Workspace {
         case "new-note":
             if let c = currentCourse ?? courses.cards.first?.id { newNote(in: courseModel(c)) }
         case "new-course": dialog = .newCourse
+        case "new-semester": dialog = .newSemester
         case "today": open(.today)
         case "upcoming": open(.upcoming)
         case "inbox": open(.inbox)
@@ -348,6 +356,28 @@ public final class Workspace {
         if shell.tabs.isEmpty, route.isNote, let course = courses.courseID(ofNote: route.key.replacingOccurrences(of: "note/", with: "")) {
             shell.showPlace(Route.course(course).key)
         }
+    }
+
+    /// Archives or restores one course; its tabs close when it goes to the archive.
+    func setCourseArchived(_ course: Course, _ archived: Bool) {
+        perform(archived ? "Archive course" : "Restore course") {
+            _ = try await self.env.courseWriter.setArchived(course: course.id, archived, actor: .user, baseVersion: nil,
+                                                            dryRun: false, idempotencyKey: nil)
+            if archived { self.leave(course: course.id) }
+            await self.refreshAfterWrite()
+            self.show(archived ? "Archived \(course.name) · find it in Archive" : "Restored \(course.name)",
+                      icon: archived ? "inventory_2" : "unarchive")
+        }
+    }
+
+    /// Closes the tabs of a course's notes and leaves its page (after archive or delete).
+    func leave(course id: CourseID) {
+        for tab in shell.tabs {
+            if let key = tab.route, let route = Route(key: key), case .note(let n) = route, courses.courseID(ofNote: n) == id { shell.close(tab.id) }
+            if let key = tab.route, let route = Route(key: key), case .draft(let c, _, _) = route, c == id { shell.close(tab.id) }
+        }
+        if route == .course(id) { shell.showPlace(Route.courses.key) }
+        forget(Route.course(id).key)
     }
 
     /// Reloads an open editor after its note changed from a dialog (restore).
