@@ -14,6 +14,45 @@ import Testing
         LectureNoteResolver(clock: FixedClock(local: LocalDateTime(date: .literal(2026, month, day), time: .literal(hour, minute))))
     }
 
+    // MARK: Cancelled and moved classes
+
+    /// Bio's classes of the week 28 Sep – 4 Oct, as `CourseCatalog.sessions(week:)` gives them.
+    private func week(cancelTuesday: Bool = false, moveTuesdayTo moved: LocalDate? = nil) -> [SessionOccurrence] {
+        bio.sessions.compactMap { s -> SessionOccurrence? in
+            let date: LocalDate = s.day == .tuesday ? .literal(2026, 9, 29) : .literal(2026, 10, 1)
+            if s.day == .tuesday, let moved { return SessionOccurrence(session: s, date: moved, originalDate: date) }
+            return SessionOccurrence(session: s, date: date, isCancelled: s.day == .tuesday && cancelTuesday)
+        }
+    }
+
+    @Test func occurrencesWithoutOverridesMatchTheSchedule() throws {
+        let t = try #require(LectureNoteResolver(clock: FixedClock()).resolve(course: bio, notes: notes, occurrences: week()))
+        #expect(t.date == .literal(2026, 9, 29) && t.noteID == "bio/lecture-9")
+    }
+
+    @Test func aCancelledLectureIsSkipped() throws {
+        let t = try #require(LectureNoteResolver(clock: FixedClock()).resolve(course: bio, notes: notes, occurrences: week(cancelTuesday: true)))
+        #expect(t.date == .literal(2026, 10, 1))
+        #expect(t.noteID == nil && t.isUpcoming)
+    }
+
+    @Test func aMovedLectureCountsOnItsNewDay() throws {
+        // Tuesday's lecture moved to Wednesday 30 Sep: on Wednesday at 9:00 it is the nearest one.
+        let t = try #require(resolver(30, 9).resolve(course: bio, notes: notes, occurrences: week(moveTuesdayTo: .literal(2026, 9, 30))))
+        #expect(t.date == .literal(2026, 9, 30) && t.isUpcoming)
+    }
+
+    @Test func otherCoursesClassesAreIgnored() throws {
+        let other = week().map { o -> SessionOccurrence in
+            var o = o
+            o.session = Session(courseID: "math", day: o.session.day, start: o.session.start, lengthHours: 1.5, kind: "Lecture")
+            return o
+        }
+        // Only another course's classes: no lecture in reach, so the nearest dated lecture note.
+        let t = try #require(LectureNoteResolver(clock: FixedClock()).resolve(course: bio, notes: notes, occurrences: other))
+        #expect(t.start == nil && t.noteID == "bio/lecture-9")
+    }
+
     // MARK: Before, during and after a lecture
 
     @Test func mondayPicksTomorrowsLecture() throws {
