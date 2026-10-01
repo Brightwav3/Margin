@@ -145,6 +145,7 @@ struct SettingsView: View {
             }
         case .semesters:
             ForEach(model.semesters) { s in SemesterEditor(semester: s, model: model) }
+            MarginButton("New semester…", icon: "add") { workspace.dialog = .newSemester }
             row("Week starts on", "Used by Today, Upcoming and the timetable.") { Text("Monday") }
             row("Grading scale", "Letter grades from percentages.") { Text("A–F, 93 / 90 / 87…") }
             row("Archive when the semester ends", "Courses become read-only after the last exam.") {

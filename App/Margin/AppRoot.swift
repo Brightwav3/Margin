@@ -271,6 +271,7 @@ struct MarginCommands: Commands {
             Button("New lecture note") { w?.newLectureNote() }.keyboardShortcut("n", modifiers: [.control, .command]).disabled(w == nil)
             Button("New folder") {}.keyboardShortcut("n", modifiers: [.shift, .command]).disabled(true)
             Button("New course…") { w?.run(command: "new-course") }.disabled(w == nil)
+            Button("New semester…") { w?.dialog = .newSemester }.disabled(w == nil)
             Button("Quick capture") { state.showCapture() }.keyboardShortcut(.space, modifiers: [.shift, .command])
             Divider()
             Button("Open vault…") { state.chooseVault() }.keyboardShortcut("o", modifiers: [.shift, .command])

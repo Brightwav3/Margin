@@ -25,6 +25,9 @@ struct DialogHost: View {
                     case .palette: CommandPalette()
                     case .renameCourse(let c): RenameCourseDialog(course: c)
                     case .courseStyle(let c): CourseStyleDialog(course: c)
+                    case .courseSettings(let c): CourseSettingsDialog(course: c)
+                    case .deleteCourse(let c): DeleteCourseDialog(course: c)
+                    case .newSemester: NewSemesterDialog()
                     case .help(let t): HelpDialog(topic: t)
                     }
                 }
@@ -173,6 +176,17 @@ struct SessionEditorRow: View {
     @Binding var session: NewSession
     let remove: () -> Void
 
+    /// Usual class lengths (45, 60, 90, 100 minutes …) plus the session's own.
+    static func lengths(including current: Double) -> [Double] {
+        let usual = [0.75, 1, 1.5, 1.67, 2, 2.5, 3, 3.67, 4]
+        return usual.contains(where: { abs($0 - current) < 0.01 }) ? usual : (usual + [current]).sorted()
+    }
+
+    static func lengthLabel(_ hours: Double) -> String {
+        let minutes = Int((hours * 60).rounded())
+        return minutes % 60 == 0 ? "\(minutes / 60) h" : "\(minutes) min"
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             Icon("event_repeat", size: 16, color: MarginColor.textSecondary)
@@ -184,13 +198,18 @@ struct SessionEditorRow: View {
                                               set: { if let t = LocalTime(string: $0) { session.start = t } }))
                 .textFieldStyle(.roundedBorder).frame(width: 60)
             Picker("", selection: $session.lengthHours) {
-                ForEach([1.0, 1.5, 2.0, 3.0], id: \.self) { Text("\(CourseDetailModel.number($0)) h").tag($0) }
+                ForEach(Self.lengths(including: session.lengthHours), id: \.self) { Text(Self.lengthLabel($0)).tag($0) }
             }
-            .labelsHidden().frame(width: 70)
-            Picker("", selection: $session.kind) {
-                ForEach(["Lecture", "Lab", "Seminar", "Tutorial"], id: \.self) { Text($0).tag($0) }
+            .labelsHidden().frame(width: 84)
+            HStack(spacing: 2) {
+                TextField("Lecture", text: $session.kind).textFieldStyle(.roundedBorder).frame(width: 92)
+                Menu {
+                    ForEach(["Lecture", "Seminar", "Lab", "Tutorial", "Přednáška", "Seminář", "Cvičení"], id: \.self) { k in
+                        Button(k) { session.kind = k }
+                    }
+                } label: { Icon("expand_more", size: 14, color: MarginColor.textSecondary) }
+                    .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
             }
-            .labelsHidden().frame(width: 96)
             TextField("Room", text: Binding(get: { session.room ?? "" }, set: { session.room = $0.isEmpty ? nil : $0 }))
                 .textFieldStyle(.roundedBorder)
             Button(action: remove) { Icon("close", size: 14, color: MarginColor.textTertiary) }.buttonStyle(.plain)
@@ -703,14 +722,14 @@ struct CourseMenuItems: View {
         Button("New lecture note") { workspace.newNote(in: workspace.courseModel(course.id)) }
         Button("Open") { workspace.open(course: course) }
         Divider()
+        Button("Course settings…") { workspace.dialog = .courseSettings(course) }
         Button("Rename…") { workspace.dialog = .renameCourse(course) }
         Button("Change colour and icon") { workspace.dialog = .courseStyle(course) }
         Button("Import syllabus…") { workspace.dialog = .syllabus(course.id) }
         Button("Enter a grade…") { workspace.dialog = .grade(course.id) }
         Divider()
-        // Per-course archive and delete have no service yet; the semester archive (3a) exists.
-        Button("Archive course") {}.disabled(true)
-        Button("Delete course…") {}.disabled(true)
+        Button("Archive course") { workspace.setCourseArchived(course, true) }
+        Button("Delete course…", role: .destructive) { workspace.dialog = .deleteCourse(course) }
     }
 }
 

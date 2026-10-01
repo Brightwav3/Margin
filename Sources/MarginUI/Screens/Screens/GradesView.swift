@@ -160,6 +160,7 @@ struct GradesView: View {
 /// Screens 1f Past semesters: archived semesters, read-only, with restore (M11-04.U).
 struct ArchiveView: View {
     @Environment(Workspace.self) private var workspace
+    @State private var archivedCourses: [Course] = []
 
     var body: some View {
         let archived = workspace.courses.semesters.filter(\.isArchived)
@@ -168,6 +169,29 @@ struct ArchiveView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Archive").marginFont(MarginTextSize.page, .bold).tracking(-0.6)
                     Text("Read-only. Notes stay searchable and linkable.").marginFont(MarginTextSize.base).foregroundStyle(MarginColor.textSecondary)
+                }
+                if !archivedCourses.isEmpty {
+                    Text("Archived courses").marginFont(MarginTextSize.md, .semibold)
+                    ForEach(archivedCourses) { c in
+                        HStack(spacing: 14) {
+                            CourseTile(style: c.style, size: 36)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(c.name).marginFont(MarginTextSize.md, .semibold)
+                                Text([c.code, c.professor].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · "))
+                                    .marginFont(MarginTextSize.sm).foregroundStyle(MarginColor.textSecondary)
+                            }
+                            Spacer()
+                            MarginButton("Restore", icon: "unarchive", size: .small) {
+                                workspace.setCourseArchived(c, false)
+                                archivedCourses.removeAll { $0.id == c.id }
+                            }
+                            MarginButton("Delete…", size: .small) { workspace.dialog = .deleteCourse(c) }
+                        }
+                        .padding(16)
+                        .background(MarginColor.surface, in: RoundedRectangle(cornerRadius: MarginRadius.md))
+                        .overlay { RoundedRectangle(cornerRadius: MarginRadius.md).strokeBorder(MarginColor.borderCard) }
+                    }
+                    Text("Past semesters").marginFont(MarginTextSize.md, .semibold).padding(.top, 8)
                 }
                 if archived.isEmpty {
                     EmptyState(icon: "inventory_2", title: "No past semesters",
@@ -193,6 +217,9 @@ struct ArchiveView: View {
             .padding(.horizontal, 36).padding(.vertical, 28)
             .frame(maxWidth: 820, alignment: .leading)
             .frame(maxWidth: .infinity)
+        }
+        .task(id: workspace.dialog == nil) {
+            archivedCourses = (try? await workspace.env.courses.archivedCourses()) ?? []
         }
     }
 }
