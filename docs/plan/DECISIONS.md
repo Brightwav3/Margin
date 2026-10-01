@@ -133,6 +133,12 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** CLI s přímými souborovými nástroji vypnutými a zápisy jen přes MCP Marginu (zachová oprávnění/undo/audit); vlastní `AgentService` nad Claude API s klíčem v Keychainu.
 **Důsledky / riziko:** aplikace nesmí běžet v App Sandboxu (spouštění `claude`/`codex`), distribuce jen mimo Mac App Store (Developer ID + notarizace, Q7). Zápisy vnitřního agenta jdou mimo `ToolRegistry`, schvalovací frontu, `ChangeSet` a undo z MA0/MA2; Margin je vidí jen jako externí změny souborů (file watcher, historie verzí). Vnější agenti přes MCP/CLI (MA1–MA2) zůstávají beze změny. Riziko R-22.
 
+### D-024 · 2026-10-01 · Přijato — Ikona předmětu i jako emoji, paleta 18 barev
+**Rozhodnutí:** `icon:` v `_course.md` smí být název ikony (celá sada Lucide, Material aliasy) nebo jedno emoji; paleta má 18 klíčů (6 z mockupů + 12 nových). Výběr v UI: barvy, záložky Ikona (návrhy podle názvu předmětu včetně českých, hledání v celé sadě) a Emoji (návrhy, skupiny, vlastní emoji, systémová paleta znaků).
+**Důvod:** požadavek uživatele (2026-10-01); se 6 barvami se 9 předmětů semestru opakovalo.
+**Alternativy:** jen Lucide ikony; barva jako libovolný hex.
+**Důsledky / riziko:** rozšíření formátu vaultu je zpětně kompatibilní (staré soubory platí beze změny); Obsidian emoji ve frontmatteru čte jako text.
+
 ---
 
 ## Šablona
