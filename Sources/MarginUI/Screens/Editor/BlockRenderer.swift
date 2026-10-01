@@ -41,6 +41,11 @@ final class BlockRenderer: NSObject, WKNavigationDelegate {
         return true
     }
 
+    /// Mermaid is fetched by `scripts/fetch-render-libs.sh` (over the repository's file size limit).
+    nonisolated static var hasMermaid: Bool {
+        Bundle.module.url(forResource: "mermaid.min", withExtension: "js", subdirectory: "Render/mermaid") != nil
+    }
+
     static func key(_ kind: Kind, _ source: String) -> String { kind.rawValue + "\u{1}" + source }
 
     /// The picture of a block, or `nil` while it is rendering (`onRendered` follows).
