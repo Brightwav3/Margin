@@ -158,6 +158,28 @@ private let mockups = repoRoot.appendingPathComponent("docs/design/mockups")
         #expect(CourseIconSuggester.suggest(name: name, usedKeys: []).icon == icon)
     }
 
+    @Test(arguments: [("Společnost ve filmu", "clapperboard"), ("Akademické psaní a dovednosti", "pen-line"),
+                      ("Napoleonské války a zrod nové Evropy", "crown"), ("Úvod do mezinárodních vztahů", "globe"),
+                      ("Základy evropské integrace", "euro"), ("Mikroekonomie 1", "chart-line")])
+    func czechNamesGetAFittingIcon(name: String, icon: String) {
+        let s = CourseIconSuggester.suggest(name: name, usedKeys: [])
+        #expect(s.icon == icon)
+        #expect(LucideIcons.shared.canonicalName(s.icon) != nil)
+        #expect(!s.emoji.isEmpty && s.emoji.allSatisfy(Icon.isEmoji))
+    }
+
+    @Test func everySuggestedIconAndEmojiExists() {
+        for subject in CourseIconSuggester.subjects {
+            for icon in subject.icons { #expect(LucideIcons.shared.canonicalName(icon) != nil, "\(icon)") }
+            for e in subject.emoji { #expect(Icon.isEmoji(e), "\(e)") }
+        }
+        for group in CourseIconSuggester.emojiGroups {
+            for e in group.emoji { #expect(Icon.isEmoji(e), "\(group.title) \(e)") }
+        }
+        #expect(CourseIconSuggester.palette.count == 18)
+        #expect(!Icon.isEmoji("chart-line") && Icon.isEmoji("🎬"))
+    }
+
     @Test func colourIsFirstUnusedThenStable() {
         let used = Set(CourseIconSuggester.palette.prefix(6).map(\.id))
         #expect(CourseIconSuggester.suggest(name: "Anything", usedKeys: used).swatch.id == "teal")
