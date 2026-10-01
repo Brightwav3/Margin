@@ -55,7 +55,8 @@ public protocol NoteRepository: Sendable {
     /// The bytes of an embedded file (`![[slides.png]]`), found like Obsidian does: next to the note,
     /// in `_files/` beside it, then anywhere in the vault by file name (case-insensitive). `name` may
     /// be a vault-relative path. `.notFound` when there is no such file, `.invalid` for a name that
-    /// leaves the vault or points into `.margin/`, or a file over 25 MB. The fixture has no files.
+    /// leaves the vault or points into `.margin/`, or a file over 25 MB. The fixture has one picture,
+    /// `bilayer-diagram.png`.
     func attachment(named name: String, near note: NoteID?) async throws -> Data
 
     /// Replaces the body of a note. Saving identical text returns an empty `ChangeSet`.
