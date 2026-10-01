@@ -48,32 +48,42 @@ struct GraphView: View {
 
     private func canvas(_ size: CGSize) -> some View {
         let hot = model.hot
-        let courses = Dictionary(workspace.courses.cards.map { ($0.id, $0.course.style) }, uniquingKeysWith: { a, _ in a })
+        // Colours per course, resolved once per frame instead of once per node.
+        let palette = Dictionary(workspace.courses.cards.map { card in
+            (card.id, (dot: Color(hexString: card.course.style.dot), background: Color(hexString: card.course.style.background)))
+        }, uniquingKeysWith: { a, _ in a })
+        let grey = (dot: Color(hexString: "#9A9DA6"), background: Color(hexString: "#E9EAEE"), ring: Color(hexString: "#C4C7CF"))
+        let positions = model.positions
         return Canvas { ctx, _ in
+            let project = model.projection(in: size)
+            // Plain edges in one path, highlighted ones in another: two strokes instead of thousands.
+            var plain = Path(), lit = Path()
             for e in model.graph.edges {
-                guard let a = model.positions[e.source], let b = model.positions[e.target] else { continue }
-                var path = Path()
-                path.move(to: model.point(a, in: size))
-                path.addLine(to: model.point(b, in: size))
-                let isHot = hot.contains(e.source) && hot.contains(e.target) && !hot.isEmpty
-                ctx.stroke(path, with: .color(isHot ? Color(hex: 0x8FB0F3) : Color(hex: 0xD5D7DD)), lineWidth: isHot ? 1.5 : 1)
+                guard let a = positions[e.source], let b = positions[e.target] else { continue }
+                let isHot = !hot.isEmpty && hot.contains(e.source) && hot.contains(e.target)
+                if isHot { lit.move(to: project(a)); lit.addLine(to: project(b)) }
+                else { plain.move(to: project(a)); plain.addLine(to: project(b)) }
             }
+            ctx.stroke(plain, with: .color(Color(hex: 0xD5D7DD)), lineWidth: 1)
+            ctx.stroke(lit, with: .color(Color(hex: 0x8FB0F3)), lineWidth: 1.5)
+            let visible = CGRect(origin: .zero, size: size).insetBy(dx: -40, dy: -40)
             for n in model.graph.nodes {
-                guard let p0 = model.positions[n.id] else { continue }
-                let p = model.point(p0, in: size)
-                let style = n.courseID.flatMap { courses[$0] }
+                guard let p0 = positions[n.id] else { continue }
+                let p = project(p0)
+                guard visible.contains(p) else { continue }
+                let style = n.courseID.flatMap { palette[$0] }
                 let r = model.radius(n)
                 let rect = CGRect(x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r)
                 let isFocus = n.id == model.selected || n.id == model.focus
                 let dim = !hot.isEmpty && !hot.contains(n.id)
                 let fill: Color = isFocus ? MarginColor.accent
-                    : n.kind == .course ? Color(hexString: style?.dot ?? "#9A9DA6")
-                    : Color(hexString: style?.background ?? "#E9EAEE")
-                let stroke: Color = isFocus ? MarginColor.accentRing : Color(hexString: style?.dot ?? "#C4C7CF")
+                    : n.kind == .course ? (style?.dot ?? grey.dot)
+                    : (style?.background ?? grey.background)
+                let stroke: Color = isFocus ? MarginColor.accentRing : (style?.dot ?? grey.ring)
                 ctx.opacity = dim ? 0.35 : 1
                 ctx.fill(Path(ellipseIn: rect), with: .color(fill))
                 ctx.stroke(Path(ellipseIn: rect.insetBy(dx: isFocus ? -2 : 0, dy: isFocus ? -2 : 0)), with: .color(stroke), lineWidth: isFocus ? 4 : 1.5)
-                if model.showsLabel(n) {
+                if model.showsLabel(n, hot: hot) {
                     let text = Text(n.label)
                         .font(.margin(n.kind == .course ? 13 : 12, n.kind == .course ? .semibold : .regular))
                         .foregroundColor(isFocus ? MarginColor.accentText : n.kind == .course ? MarginColor.ink : MarginColor.textSecondary)

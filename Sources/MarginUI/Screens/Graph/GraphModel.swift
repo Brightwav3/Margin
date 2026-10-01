@@ -6,9 +6,19 @@ import SwiftUI
 /// around one note, zoom/pan and the preview of the selected node.
 @MainActor @Observable
 public final class GraphModel {
-    public private(set) var graph = Graph()
+    public private(set) var graph = Graph() {
+        didSet {
+            var d: [String: Int] = [:]
+            for e in graph.edges { d[e.source, default: 0] += 1; d[e.target, default: 0] += 1 }
+            degrees = d
+        }
+    }
     /// Positions shown (the backend's, then the force layout's snapshots when there are none).
-    public private(set) var positions: [String: CGPoint] = [:]
+    public private(set) var positions: [String: CGPoint] = [:] { didSet { bounds = Self.bounds(of: positions) } }
+    /// Links per node, counted once per graph (the canvas and accessibility ask for every node).
+    @ObservationIgnored private var degrees: [String: Int] = [:]
+    /// Bounding box of `positions`, kept with them: every drawn point needs it.
+    @ObservationIgnored private(set) var bounds = CGRect(origin: .zero, size: GraphModel.canvas)
     public var hiddenCourses: Set<CourseID> = [] { didSet { Task { await reload() } } }
     public var showOrphans = true { didSet { Task { await reload() } } }
     /// Local graph: a note in the middle and its neighbours up to `depth` hops.
@@ -73,7 +83,7 @@ public final class GraphModel {
         return set
     }
 
-    public func degree(_ id: String) -> Int { graph.edges.filter { $0.source == id || $0.target == id }.count }
+    public func degree(_ id: String) -> Int { degrees[id] ?? 0 }
 
     public var selectedNode: GraphNode? { graph.nodes.first { $0.id == selected } }
 
@@ -88,21 +98,24 @@ public final class GraphModel {
     }
 
     /// Screen point of a node for the current zoom and pan inside `size`.
-    func point(_ p: CGPoint, in size: CGSize) -> CGPoint {
-        let fit = fitScale(size)
-        let s = fit * zoom
+    func point(_ p: CGPoint, in size: CGSize) -> CGPoint { projection(in: size)(p) }
+
+    /// Screen mapping for one frame: computed once, applied to every node.
+    func projection(in size: CGSize) -> (CGPoint) -> CGPoint {
+        let s = fitScale(size) * zoom
         // Centred in the space right of the filter panel (220 px at 32 px from the edge).
-        let cx = (size.width + 252) / 2, cy = size.height / 2 + 30
+        let cx = (size.width + 252) / 2 + offset.width, cy = size.height / 2 + 30 + offset.height
         let bx = bounds.midX, by = bounds.midY
-        return CGPoint(x: cx + (p.x - bx) * s + offset.width, y: cy + (p.y - by) * s + offset.height)
+        return { p in CGPoint(x: cx + (p.x - bx) * s, y: cy + (p.y - by) * s) }
     }
 
     /// Node under a screen point (hit radius grows with the node).
     func node(at location: CGPoint, in size: CGSize) -> GraphNode? {
         var best: (GraphNode, CGFloat)?
+        let project = projection(in: size)
         for n in graph.nodes {
             guard let p = positions[n.id] else { continue }
-            let q = point(p, in: size)
+            let q = project(p)
             let d = hypot(q.x - location.x, q.y - location.y)
             let r = radius(n) * max(1, zoom) + 6
             if d <= r, d < (best?.1 ?? .infinity) { best = (n, d) }
@@ -110,11 +123,11 @@ public final class GraphModel {
         return best?.0
     }
 
-    var bounds: CGRect {
-        let pts = positions.values
-        guard let minX = pts.map(\.x).min(), let maxX = pts.map(\.x).max(),
-              let minY = pts.map(\.y).min(), let maxY = pts.map(\.y).max() else {
-            return CGRect(origin: .zero, size: Self.canvas)
+    private static func bounds(of positions: [String: CGPoint]) -> CGRect {
+        guard !positions.isEmpty else { return CGRect(origin: .zero, size: canvas) }
+        var minX = CGFloat.infinity, maxX = -CGFloat.infinity, minY = CGFloat.infinity, maxY = -CGFloat.infinity
+        for p in positions.values {
+            minX = min(minX, p.x); maxX = max(maxX, p.x); minY = min(minY, p.y); maxY = max(maxY, p.y)
         }
         return CGRect(x: minX, y: minY, width: max(1, maxX - minX), height: max(1, maxY - minY))
     }
@@ -136,7 +149,7 @@ public final class GraphModel {
     }
 
     /// Labels: hubs always; notes when zoomed in enough or the graph is small (M9-09 LOD).
-    func showsLabel(_ n: GraphNode) -> Bool {
-        n.kind == .course || hot.contains(n.id) || (graph.nodes.count < 300 ? zoom >= 0.6 : zoom >= 1.6)
+    func showsLabel(_ n: GraphNode, hot: Set<String>? = nil) -> Bool {
+        n.kind == .course || (hot ?? self.hot).contains(n.id) || (graph.nodes.count < 300 ? zoom >= 0.6 : zoom >= 1.6)
     }
 }
