@@ -16,7 +16,7 @@ public enum VaultLocation {
         guard let url = try? URL(resolvingBookmarkData: data, options: [.withSecurityScope], relativeTo: nil,
                                  bookmarkDataIsStale: &stale) else { return nil }
         guard url.startAccessingSecurityScopedResource() else { return nil }
-        if stale { remember(url) }
+        remember(url)   // refreshes a stale bookmark and keeps the vault first in the recents
         return url
     }
 
@@ -43,10 +43,82 @@ public enum VaultLocation {
         UserDefaults.standard.removeObject(forKey: bookmarkKey)
     }
 
-    private static func remember(_ url: URL) {
-        if let data = try? url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil) {
-            UserDefaults.standard.set(data, forKey: bookmarkKey)
-        }
+    /// Makes `url` the vault opened at launch and puts it first in the recent vaults.
+    public static func remember(_ url: URL) {
+        guard let data = try? url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+        else { return }
+        UserDefaults.standard.set(data, forKey: bookmarkKey)
+        var list = recentEntries().filter { $0.path != url.path }
+        list.insert(RecentEntry(path: url.path, bookmark: data, opened: Date()), at: 0)
+        save(Array(list.prefix(12)))
+    }
+
+    // MARK: Recent vaults (account popup › Switch vault, Manage vaults 3a)
+
+    /// A vault opened before: its folder name, path and when it was last opened.
+    public struct Recent: Identifiable, Sendable, Hashable {
+        public var id: String { path }
+        public let name: String
+        public let path: String
+        public let opened: Date
+    }
+
+    private struct RecentEntry: Codable {
+        var path: String
+        var bookmark: Data
+        var opened: Date
+    }
+
+    private static let recentsKey = "vault.recents"
+
+    private static func recentEntries() -> [RecentEntry] {
+        guard let data = UserDefaults.standard.data(forKey: recentsKey),
+              let list = try? JSONDecoder().decode([RecentEntry].self, from: data) else { return [] }
+        return list
+    }
+
+    private static func save(_ list: [RecentEntry]) {
+        if let data = try? JSONEncoder().encode(list) { UserDefaults.standard.set(data, forKey: recentsKey) }
+    }
+
+    /// Recent vaults, last opened first.
+    public static func recents() -> [Recent] {
+        recentEntries().map { Recent(name: URL(fileURLWithPath: $0.path).lastPathComponent, path: $0.path, opened: $0.opened) }
+    }
+
+    /// Resolves a recent vault with sandbox access; nil when its folder is gone.
+    public static func resolve(_ recent: Recent) -> URL? {
+        guard let entry = recentEntries().first(where: { $0.path == recent.path }) else { return nil }
+        var stale = false
+        guard let url = try? URL(resolvingBookmarkData: entry.bookmark, options: [.withSecurityScope], relativeTo: nil,
+                                 bookmarkDataIsStale: &stale), url.startAccessingSecurityScopedResource() else { return nil }
+        return url
+    }
+
+    /// Takes a vault off the list. The folder and its files stay on disk (3b).
+    public static func removeFromList(_ recent: Recent) {
+        save(recentEntries().filter { $0.path != recent.path })
+    }
+
+    /// Asks for a name and place, makes the folder and remembers it (3a „Create new vault“).
+    public static func createNew() -> URL? {
+        let panel = NSSavePanel()
+        panel.title = "Create new vault"
+        panel.prompt = "Create"
+        panel.nameFieldLabel = "Vault name:"
+        panel.nameFieldStringValue = "Margin"
+        panel.message = "A new folder for Markdown notes. Margin keeps everything in it."
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        do { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true) } catch { return nil }
+        _ = url.startAccessingSecurityScopedResource()
+        remember(url)
+        return url
+    }
+
+    /// Shows the vault folder in Finder.
+    public static func reveal(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 }
 #endif
