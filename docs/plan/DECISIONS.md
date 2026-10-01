@@ -109,6 +109,12 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** rychlý zápis dostupný jen při otevřeném okně aplikace.
 **Důsledky:** M8-05 se implementuje jako menu bar povrch; toto rozhodnutí samo o sobě jeho implementaci nedokončuje.
 
+### D-023 · 2026-09-30 · Přijato — Vnitřní agent jako Claudian (lokální CLI nad vaultem)
+**Rozhodnutí:** záložka Agent v inspektoru funguje jako Obsidian plugin [Claudian](https://github.com/yishentu/claudian): spouští lokální CLI agenta (Claude Code, Codex CLI, případně další) s vaultem jako pracovní složkou; agent čte, zapisuje, hledá a spouští příkazy vlastními nástroji. Margin dodává UI (chat v inspektoru, inline úprava s náhledem změn, `/` příkazy a skills, `@` zmínky souborů, víc konverzací). Nahrazuje vlastní `AgentService` nad Claude API (§8 v `10-agent-native.md`) a mění Q8.
+**Důvod:** rozhodnutí uživatele (2026-09-30), zvolena varianta „čistý Claudian“ před CLI omezeným na MCP Marginu a před vlastním API adaptérem.
+**Alternativy:** CLI s přímými souborovými nástroji vypnutými a zápisy jen přes MCP Marginu (zachová oprávnění/undo/audit); vlastní `AgentService` nad Claude API s klíčem v Keychainu.
+**Důsledky / riziko:** aplikace nesmí běžet v App Sandboxu (spouštění `claude`/`codex`), distribuce jen mimo Mac App Store (Developer ID + notarizace, Q7). Zápisy vnitřního agenta jdou mimo `ToolRegistry`, schvalovací frontu, `ChangeSet` a undo z MA0/MA2; Margin je vidí jen jako externí změny souborů (file watcher, historie verzí). Vnější agenti přes MCP/CLI (MA1–MA2) zůstávají beze změny. Riziko R-22.
+
 ---
 
 ## Šablona
