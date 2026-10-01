@@ -1,5 +1,4 @@
-// UNVERIFIED: written on Linux, compile and test on macOS
-// TODO(M5-07): verify on macOS (compile, FileWatcherTests against this watcher, rename/dir moves)
+// Verified on macOS: `FSEventsFileWatcherTests` (create, modify, delete, renames, folder moves).
 import Foundation
 
 #if os(macOS)
