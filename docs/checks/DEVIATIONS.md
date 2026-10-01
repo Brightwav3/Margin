@@ -18,5 +18,6 @@
 | 2026-10-01 | 1h Obrázek | „Explain with agent“ vypnuté (agent MA3); „Replace…“ vypnuté (chybí služba pro přidání souboru do vaultu); „Extract text“ vloží rozpoznaný text pod obrázek jako citaci | agent odložen, smlouva | |
 | 2026-10-01 | 2d Výběr předmětu | Archivované předměty jsou v seznamu jen pro čtení; předměty jiných (nearchivovaných) semestrů chybí, `CourseCatalog.courses` vrací jen aktuální semestr | smlouva | |
 | 2026-10-01 | 2e Oprávnění | Sdílení a oprávnění zatím nejsou (potřebují server) | pokyn uživatele: nic serverového | |
-| 2026-10-01 | 1l, 1o, 1r | Kartičky, odpověď agenta a vícenásobný výběr poznámek zatím nejsou | agent a kartičky odloženy | |
+| 2026-10-01 | 1l, 1o | Kartičky a odpověď agenta zatím nejsou | agent a kartičky odloženy | |
+| 2026-10-01 | 1r | Sloučení: první poznámka zůstane, ostatní jako sekce `## Název` a jdou do koše; odkazy na ně zůstanou nevyřešené. Export = kopie / jeden `.md` soubor (PDF jen u jedné poznámky) | bez nové služby | |
 
