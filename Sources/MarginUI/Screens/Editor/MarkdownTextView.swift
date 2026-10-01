@@ -473,8 +473,35 @@ final class MarginTextView: NSTextView {
         return result
     }
 
+    /// Round bullets over the invisible `-` of list items.
+    private func bullets(in dirty: NSRect) -> [NSRect] {
+        guard let storage = textStorage, let layout = layoutManager, let container = textContainer else { return [] }
+        var result: [NSRect] = []
+        let glyphs = layout.glyphRange(forBoundingRect: dirty, in: container)
+        let chars = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        storage.enumerateAttribute(.marginBullet, in: chars) { value, range, _ in
+            guard value as? Bool == true else { return }
+            for i in 0..<range.length {
+                let g = layout.glyphRange(forCharacterRange: NSRange(location: range.location + i, length: 1), actualCharacterRange: nil)
+                var r = layout.boundingRect(forGlyphRange: g, in: container)
+                r.origin.x += textContainerOrigin.x
+                r.origin.y += textContainerOrigin.y
+                let side: CGFloat = 5.5 * MarkdownStyler.scale
+                // On the x-height of the text, not the middle of the tall line box.
+                let line = layout.lineFragmentRect(forGlyphAt: g.location, effectiveRange: nil)
+                // `location(forGlyphAt:)` is the baseline within the line fragment (flipped view).
+                let baseline = line.minY + layout.location(forGlyphAt: g.location).y + textContainerOrigin.y
+                let y = baseline - MarkdownStyler.bodyFont().xHeight / 2 - side / 2
+                result.append(NSRect(x: r.midX - side / 2, y: y, width: side, height: side))
+            }
+        }
+        return result
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        NSColor(MarginColor.textTertiary).setFill()
+        for dot in bullets(in: dirtyRect) { NSBezierPath(ovalIn: dot).fill() }
         for box in checkboxes(in: dirtyRect) {
             let path = NSBezierPath(roundedRect: box.rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 4, yRadius: 4)
             if box.checked {
