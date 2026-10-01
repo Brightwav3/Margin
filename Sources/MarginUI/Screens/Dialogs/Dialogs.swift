@@ -112,6 +112,7 @@ struct NewCourseDialog: View {
     @State private var icon: String?
     @State private var sessions: [NewSession] = []
     @State private var saving = false
+    @State private var semesterID: SemesterID?
 
     private var suggestion: CourseIconSuggester.Suggestion {
         CourseIconSuggester.suggest(name: name.isEmpty ? "Course" : name,
@@ -143,11 +144,8 @@ struct NewCourseDialog: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 FieldLabel(text: "Semester")
-                HStack(spacing: 8) {
-                    Icon("school", size: 16, color: MarginColor.textSecondary)
-                    Text(workspace.courses.semester.map { "\($0.name) · \(CourseDetailModel.day($0.start)) – \(CourseDetailModel.day($0.end))" } ?? "No semester")
-                        .marginFont(MarginTextSize.base)
-                }
+                SemesterSelect(semesters: workspace.courses.semesters, current: workspace.courses.semester?.id,
+                               selection: Binding(get: { semesterID ?? workspace.courses.semester?.id }, set: { semesterID = $0 }))
             }
             VStack(alignment: .leading, spacing: 8) {
                 FieldLabel(text: "Sessions")
@@ -163,13 +161,18 @@ struct NewCourseDialog: View {
         } footer: {
             MarginButton("Cancel") { workspace.dialog = nil }
             MarginButton("Create course", kind: .primary) { create() }
-                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || saving || workspace.courses.semester == nil)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || saving || chosenSemester == nil)
                 .keyboardShortcut(.defaultAction)
         }
     }
 
+    private var chosenSemester: Semester? {
+        let id = semesterID ?? workspace.courses.semester?.id
+        return workspace.courses.semesters.first { $0.id == id && !$0.isArchived }
+    }
+
     private func create() {
-        guard let semester = workspace.courses.semester else { return }
+        guard let semester = chosenSemester else { return }
         saving = true
         let course = NewCourse(name: name.trimmingCharacters(in: .whitespaces), semester: semester.id,
                                code: code, professor: lecturer.isEmpty ? nil : lecturer, room: room.isEmpty ? nil : room,
@@ -280,9 +283,15 @@ struct MoveNoteDialog: View {
     @Environment(Workspace.self) private var workspace
     @State private var query = ""
     @State private var selection = 0
+    @State private var archived: [Course] = []
 
     private var targets: [Course] {
         workspace.courses.cards.map(\.course).filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    /// 2d: archived courses are listed, read-only, so the picker shows where everything is.
+    private var archivedMatches: [Course] {
+        archived.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
     }
 
     var body: some View {
@@ -303,6 +312,7 @@ struct MoveNoteDialog: View {
                             Circle().fill(Color(hexString: c.style.dot)).frame(width: 7, height: 7)
                             Text(c.name).frame(maxWidth: .infinity, alignment: .leading)
                             if c.id == note.courseID { Text("current").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary) }
+                            else if i == selection { Text("↵").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary) }
                         }
                         .marginFont(14).padding(.horizontal, 8).frame(height: 32)
                         .background(i == selection ? MarginColor.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 6))
@@ -310,6 +320,17 @@ struct MoveNoteDialog: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(c.id == note.courseID)
+                }
+                ForEach(archivedMatches) { c in
+                    HStack(spacing: 10) {
+                        Circle().fill(MarginColor.textDisabled).frame(width: 7, height: 7)
+                        Text(c.name).frame(maxWidth: .infinity, alignment: .leading)
+                        Text((workspace.courses.semesters.first { $0.id == c.semester }?.name).map { "\($0) · archived" } ?? "archived")
+                            .marginFont(MarginTextSize.xs)
+                    }
+                    .marginFont(14).foregroundStyle(MarginColor.textDisabled)
+                    .padding(.horizontal, 8).frame(height: 32)
+                    .help("Archived courses are read-only")
                 }
                 Text("Links to this note update automatically").marginFont(MarginTextSize.xs).foregroundStyle(MarginColor.textTertiary)
                     .padding(8)
@@ -319,6 +340,7 @@ struct MoveNoteDialog: View {
         .frame(width: 420)
         .background(MarginColor.surface, in: RoundedRectangle(cornerRadius: MarginRadius.md))
         .marginShadow(.modal)
+        .task { archived = (try? await workspace.env.courses.archivedCourses()) ?? [] }
         .onKeyPress(.downArrow) { selection = min(selection + 1, targets.count - 1); return .handled }
         .onKeyPress(.upArrow) { selection = max(selection - 1, 0); return .handled }
     }
