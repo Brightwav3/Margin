@@ -104,3 +104,14 @@ import Testing
         #expect(lines.joined(separator: " ").lowercased().contains("dvojvrstva"))
     }
 }
+
+@Suite struct CurrentBlockTests {
+    @Test func detectsTheBlockOfTheCaretLine() {
+        let text = "# Titul\n## Část\nOdstavec\n> [!tip] Rada\n> tělo\n> citát\n```\nkód\n```\n- [ ] úkol\n"
+        func at(_ s: String) -> EditorBlock { EditorHandle.block(at: (text as NSString).range(of: s).location, in: text) }
+        #expect(at("Titul") == .heading1 && at("Část") == .heading2 && at("Odstavec") == .paragraph)
+        #expect(at("Rada") == .callout && at("tělo") == .callout)
+        #expect(at("kód") == .codeBlock && at("úkol") == .checklist)
+        #expect(EditorHandle.block(at: 0, in: "> jen citát\n") == .quote)
+    }
+}
