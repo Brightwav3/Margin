@@ -1,3 +1,4 @@
+import Foundation
 /// A change to a note made outside this service (another app, sync, an agent through the file
 /// system), delivered by `NoteRepository.externalChanges`.
 public struct NoteChange: Codable, Sendable, Hashable {
@@ -50,6 +51,12 @@ public protocol NoteRepository: Sendable {
 
     /// The full note. Throws `.notFound` for an unknown id.
     func open(id: NoteID) async throws -> Note
+
+    /// The bytes of an embedded file (`![[slides.png]]`), found like Obsidian does: next to the note,
+    /// in `_files/` beside it, then anywhere in the vault by file name (case-insensitive). `name` may
+    /// be a vault-relative path. `.notFound` when there is no such file, `.invalid` for a name that
+    /// leaves the vault or points into `.margin/`, or a file over 25 MB. The fixture has no files.
+    func attachment(named name: String, near note: NoteID?) async throws -> Data
 
     /// Replaces the body of a note. Saving identical text returns an empty `ChangeSet`.
     func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,

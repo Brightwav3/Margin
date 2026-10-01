@@ -28,6 +28,9 @@ public struct VaultNoteRepository: NoteRepository {
 
     public func notes(course: CourseID?) async throws -> [NoteSummary] { try await backend.notes(course: course) }
     public func open(id: NoteID) async throws -> Note { try await backend.open(id: id) }
+    public func attachment(named name: String, near note: NoteID?) async throws -> Data {
+        try await backend.attachment(named: name, near: note)
+    }
 
     public func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
                      idempotencyKey: String?) async throws -> ChangeSet {
