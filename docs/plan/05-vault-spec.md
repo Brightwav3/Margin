@@ -82,8 +82,8 @@ code: BIO 201
 professor: Dr. Okafor
 room: Sci 204
 faculty: Sciences
-icon: eco
-color: bio                 # klíč z palety
+icon: eco                  # název ikony (Lucide nebo Material alias) nebo jedno emoji, např. 🎬
+color: bio                 # klíč z palety (18 klíčů, viz níže)
 credits: 5
 sessions:
   - {day: Tue, time: "10:00", length: 1.5, kind: Lecture, room: "Sci 204"}
@@ -97,6 +97,8 @@ grading:
   - {label: Final exam, weight: 30%}
 ---
 ```
+
+Klíče palety: `bio chem math hist econ phil` (z mockupů) a `teal orange pink sky olive slate indigo rose lime cyan brown gold` (D-024). Neznámý klíč = neutrální šedá, soubor zůstává platný.
 
 ## 6. Inbox položka (`_inbox/2026-09-28 0912 Email Dr. Okafor.md`)
 
