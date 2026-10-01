@@ -90,3 +90,4 @@ _(žádné)_
 - 2026-10-01: Rail má vlastní sadu ikon (Courses, Inbox, Today, Upcoming, Help): černé obrysy, vybrané místo plně černé se šedými vnitřními čarami.
 - 2026-10-01: M3-05 banner předmětu: smlouva `CourseCatalog.banner(course:)` + `CourseCatalogWriter.setBanner` (schváleno), konformitní testy fixture i vault, výběr v menu předmětu a obrázek na kartě.
 - 2026-10-01: Vzorce `$$…$$` (KaTeX) a diagramy Mermaid se v editoru vykreslují offline (D-027, schváleno uživatelem).
+- 2026-10-01: FSEvents watcher ověřen na macOS (přejmenování, přesun složky; M5-07). Zbývá ručně: notifikace po povolení (M10-18) a ⌘⇧Space z jiné aplikace (M8-04).
