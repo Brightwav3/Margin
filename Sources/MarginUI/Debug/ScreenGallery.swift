@@ -216,7 +216,7 @@ private struct ListsSampleScreen: View {
 
             > Evropa nebude vytvořena naráz. — R. Schuman
 
-            ![[bilayer-diagram.png]]
+            ![Membrána|320](bilayer-diagram.png)
 
             | Transport | Energie | Příklad |
             | --- | --- | --- |
