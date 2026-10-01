@@ -139,6 +139,12 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** jen Lucide ikony; barva jako libovolný hex.
 **Důsledky / riziko:** rozšíření formátu vaultu je zpětně kompatibilní (staré soubory platí beze změny); Obsidian emoji ve frontmatteru čte jako text.
 
+### D-025 · 2026-10-01 · Přijato — Nastavení, archivace a smazání jednoho předmětu ve smlouvě
+**Rozhodnutí:** `CourseCatalogWriter` dostal `update` (`CourseUpdate`: kód, vyučující, místnost, fakulta, kredity, týdenní rozvrh, zkoušky), `setArchived(course:)` (složka předmětu do `_archive/<semestr>/` a zpět) a `delete` (složka s poznámkami do koše); `CourseCatalog` dostal `archivedCourses()`. Archivovaný předmět zmizí z `courses` a `sessions(week:)` a je jen pro čtení.
+**Důvod:** schválil uživatel (2026-10-01); předmět šel jen přejmenovat a přebarvit, mazání a archivace jednotlivých předmětů chyběly.
+**Alternativy:** úpravy jen ručně v `_course.md`; archivace jen po celých semestrech.
+**Důsledky / riziko:** archivace posledního živého předmětu semestru udělá archivovaný semestr (pravidlo „semestr je archivovaný, když jsou v `_archive/` všechny jeho předměty“).
+
 ---
 
 ## Šablona
