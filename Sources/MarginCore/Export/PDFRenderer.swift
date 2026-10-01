@@ -19,14 +19,12 @@ public enum DefaultPDFRenderer {
 }
 
 #if os(macOS)
-/// PDF through PDFKit.
-///
-/// UNVERIFIED and not implemented: written on Linux; for now it reports that PDF export is not
-/// there yet instead of producing a file.
-// TODO(M10-22): PDF via PDFKit on macOS
+/// PDF through Core Text: A4 pages, the title on top, page numbers at the foot. Markdown is laid
+/// out as a reader sees it (headings, lists, tasks, quotes, code, bold, italic, highlight); links
+/// are already plain text (`MarkdownExporter`).
 struct MacPDFRenderer: PDFRenderer {
     func render(markdown: String, title: String) throws -> Data {
-        throw MarginError.invalid("PDF export is not implemented yet")
+        try PDFLayout().render(markdown: markdown, title: title)
     }
 }
 #endif
