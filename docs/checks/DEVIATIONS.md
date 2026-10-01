@@ -20,4 +20,4 @@
 | 2026-10-01 | 2e Oprávnění | Sdílení a oprávnění zatím nejsou (potřebují server) | pokyn uživatele: nic serverového | |
 | 2026-10-01 | 1l, 1o | Kartičky a odpověď agenta zatím nejsou | agent a kartičky odloženy | |
 | 2026-10-01 | 1r | Sloučení: první poznámka zůstane, ostatní jako sekce `## Název` a jdou do koše; odkazy na ně zůstanou nevyřešené. Export = kopie / jeden `.md` soubor (PDF jen u jedné poznámky) | bez nové služby | |
-
+| 2026-10-01 | rail | Vlastní ikony míst v railu (`RailIcons.swift`, geometrie Lucide): černé obrysy, vybrané místo plně černé se šedými vnitřními čarami (místo šedých obrysů a tučnější aktivní ikony; Lucide plné varianty nemá) | pokyn uživatele | Šimon |
