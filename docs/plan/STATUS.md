@@ -31,7 +31,7 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 | M10d | Menu, dropdowny a tooltipy | 0 | 45 | 45 | 1 | — | 🟨 | `checks/M10d.md` | | menu se zapojují k obrazovkám průběžně |
 | M11 | Obrazovky a stavy | 21 | 37 | 58 | 1 | — | 🟨 | `checks/M11.md` | | CP4 |
 | MA4 | Agent: odolnost | 32 | 3 | 35 | — | — | ⬜ | `checks/MA4.md` | |  |
-| M12 | Dokončení a vydání | 18 | 22 | 40 | 1 | — | 🟦 | `checks/M12.md` | | M12-04 zrušeno; výkon splněn; zbývá audit přístupnosti, revize uživatelem |
+| M12 | Dokončení a vydání | 18 | 22 | 40 | 1 | — | 🟦 | `checks/M12.md` | | M12-04 zrušeno; výkon a přístupnost hotové; zbývá revize uživatelem |
 | | **Σ** | **405** | **474** | **879** | | | | | | |
 
 Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone — · průměrné čekání na schválení — · cena běhu celkem —
@@ -84,3 +84,4 @@ _(žádné)_
 - 2026-10-01: Editor víc jako Obsidian (M6-13): obrázky `![[…]]` i `![](…)` ze souborů vaultu, tabulky jako mřížka, callouty jako barevné boxy s ikonou, citace s pruhem, zvýraznění, komentáře, matematika (zatím jen jako text), poznámky pod čarou, odkazy na nadpis a `^blok`. Záložky: vše v aktivní záložce, nová jen z kontextového menu nebo `+`. Menu z `Margin Menus` (M10-24…M10-31): obrázek 1h (plná velikost, kopie, uložit, velikost, popisek, text z obrázku přes Vision), styl textu 2i, výběr semestru 2c, přesun s archivovanými předměty 2d, vícenásobný filtr hledání 2h.
 - 2026-10-01: M12-02 výkon: snímek grafu s 1030 uzly z ~7 s na 12 ms (cache hranic a stupňů, jedna cesta hran, ořez mimo plátno); start 0,88 s, paměť 111 MB, rychlý zápis 8 ms. Test `AppPerformanceTests` v pomalé vrstvě.
 - 2026-10-01: 1r vícenásobný výběr v seznamu poznámek (⌘/⇧-klik): otevřít v záložkách, sloučit, přesunout, přidat štítek, export Markdown, smazat (M10-32).
+- 2026-10-01: M12-01 audit přístupnosti: popisky ikonových tlačítek, akce VoiceOver u klikacích prvků, Reduce Motion u pohybových animací, `scripts/lint-a11y.py`.
