@@ -54,3 +54,19 @@ import Testing
         #expect(try await w.env.notes.open(id: note.id).summary.title == "Renamed note")
     }
 }
+
+@Suite struct LinkAnchorTests {
+    private let text = "# Buňka\n\n## Membrána\nText ^m1\n\n### Transport přes membránu\n- osmóza ^osm\n"
+
+    @Test func headingsMatchWithoutMarksOrCase() {
+        #expect(LinkAnchor.line(of: "membrána", in: text) == 2)
+        #expect(LinkAnchor.line(of: "Membrána#Transport přes membránu", in: text) == 5)
+        #expect(LinkAnchor.line(of: "Chybí", in: text) == nil)
+    }
+
+    @Test func blockIDsMatchTheEndOfALine() {
+        #expect(LinkAnchor.line(of: "^osm", in: text) == 6)
+        #expect(LinkAnchor.line(of: "^M1", in: text) == 3)
+        #expect(LinkAnchor.line(of: "^none", in: text) == nil)
+    }
+}
