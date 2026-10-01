@@ -210,9 +210,31 @@ enum EditorMenus {
 
         case .image:
             // 1h
-            add("Copy", "content_copy", key: "c") { tv?.copy(nil) }
+            let line = lineIndex(of: ctx.location, handle: handle)
+            let source = tv.flatMap { tv in lineRange(line, in: tv.string as NSString).map { (tv.string as NSString).substring(with: $0) } } ?? ""
+            let embed = ImageEmbed.parse(source)
+            let loaded = embed.map { EmbedImages.shared.image($0.name) != nil } ?? false
+            add("Open full size", "open_in_full", enabled: loaded) { if let embed { ImageActions.openFullSize(embed.name) } }
+            add("Copy image", "content_copy", key: "c", enabled: loaded) { if let embed { ImageActions.copy(embed.name) } }
+            add("Save as…", "download", enabled: loaded) { if let embed { ImageActions.saveAs(embed.name, workspace: workspace) } }
             sep()
-            add("Delete image", "delete", enabled: editable) { deleteLine(lineIndex(of: ctx.location, handle: handle), handle: handle) }
+            submenu("Size", "photo_size_select_large") { sub in
+                for (title, width) in [("Small", 200), ("Medium", 400), ("Large", 640)] {
+                    let item = add(title, enabled: editable && embed != nil, to: sub) { ImageActions.resize(width, line: line, handle: handle) }
+                    item.state = embed?.width == String(width) ? .on : .off
+                }
+                sep(sub)
+                let original = add("Original size", enabled: editable && embed != nil, to: sub) { ImageActions.resize(nil, line: line, handle: handle) }
+                original.state = embed?.width == nil ? .on : .off
+            }
+            add("Add caption", "subtitles", enabled: editable) { ImageActions.addCaption(line: line, handle: handle) }
+            add("Extract text", "document_scanner", enabled: editable && loaded) {
+                if let embed { ImageActions.extractText(embed.name, line: line, handle: handle, workspace: workspace) }
+            }
+            add("Explain with agent", "auto_awesome", enabled: false).toolTip = "The in-app agent comes in a later version"
+            sep()
+            add("Replace…", "swap_horiz", enabled: false).toolTip = "Adding files to the vault comes in a later version"
+            add("Delete image", "delete", enabled: editable) { deleteLine(line, handle: handle) }
 
         case .table:
             // 1i
