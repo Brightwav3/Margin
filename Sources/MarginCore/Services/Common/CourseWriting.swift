@@ -18,12 +18,15 @@ enum CourseWriting {
         return n
     }
 
-    /// Icon names are lower-case tokens (`eco`, `menu_book`); palette keys must exist.
+    /// Icons are lower-case name tokens (`eco`, `menu_book`, `chart-line`) or one emoji (`🎬`);
+    /// palette keys must exist.
     static func requireStyle(icon: String?, color: String?) throws {
         if let icon {
-            let ok = !icon.isEmpty && icon.count <= 40
+            let token = !icon.isEmpty && icon.count <= 40
                 && icon.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "_" || $0 == "-" }
-            guard ok else { throw MarginError.invalid("'\(icon)' is not an icon name (lower-case letters, digits, _ and -)") }
+            guard token || CoursePalette.isEmoji(icon) else {
+                throw MarginError.invalid("'\(icon)' is not an icon name (lower-case letters, digits, _ and -) or one emoji")
+            }
         }
         if let color, !CoursePalette.keys.contains(color) {
             throw MarginError.invalid("Unknown palette key '\(color)' (\(CoursePalette.keys.joined(separator: ", ")))")
@@ -56,7 +59,7 @@ enum CourseWriting {
             }
             made.append(session)
         }
-        let keys = CoursePalette.keys
+        let keys = CoursePalette.orderedKeys
         let color = new.color ?? keys.first { !usedColors.contains($0) } ?? keys[usedColors.count % keys.count]
         return Course(
             id: id, semester: new.semester, name: name, code: new.code.trimmingCharacters(in: .whitespaces),
