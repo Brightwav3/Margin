@@ -24,6 +24,29 @@ import Testing
         #expect(hidden(s, bold) && !hidden(s, bold + 2))
     }
 
+    @Test func calloutsHideTheirTypeAndCarryAStyle() {
+        let text = "> [!warning] Na zkoušku\n> Umět pilíře.\n\n> [!tip]\n> Text\n\n> Citát\n"
+        let s = styled(text, .reading)
+        let ns = text as NSString
+        #expect(hidden(s, 0) && hidden(s, ns.range(of: "[!warning]").location))
+        #expect(!hidden(s, ns.range(of: "Na zkoušku").location))
+        #expect(s.attribute(.marginQuote, at: ns.range(of: "Umět").location, effectiveRange: nil) as? String == "warning")
+        #expect(s.attribute(.marginCalloutLabel, at: ns.range(of: "> [!tip]").location, effectiveRange: nil) as? String == "Tip")
+        #expect(s.attribute(.marginQuote, at: ns.range(of: "Citát").location, effectiveRange: nil) as? String == "")
+        // Being edited in live, the callout shows its source.
+        let live = styled(text, .live, activeLine: 0)
+        #expect(!hidden(live, ns.range(of: "[!warning]").location))
+    }
+
+    @Test func tablesOutsideTheActiveBlockAreDrawnAsGrids() {
+        let text = "| A | B |\n| --- | :-: |\n| 1 | 2 |\n\nKonec\n"
+        let s = styled(text, .live)
+        #expect(s.attribute(.marginTable, at: 0, effectiveRange: nil) as? String == "| A | B |\n| --- | :-: |\n| 1 | 2 |\n")
+        #expect(hidden(s, 2) && !hidden(s, (text as NSString).range(of: "Konec").location))
+        let editing = styled(text, .live, activeLine: 2)
+        #expect(editing.attribute(.marginTable, at: 0, effectiveRange: nil) == nil)
+    }
+
     @Test func liveDimsSyntaxInTheActiveBlock() {
         let s = styled("## Fluid mosaic\n", .live, activeLine: 0)
         #expect(!hidden(s, 0))

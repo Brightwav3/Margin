@@ -19,6 +19,11 @@ extension NSAttributedString.Key {
     /// The source of a Markdown table, on its first line; the text view draws it as a grid
     /// while the table is not being edited.
     static let marginTable = NSAttributedString.Key("margin.table")
+    /// A blockquote line; the value is the callout type (`""` for a plain quote). The text view
+    /// draws the bar or the callout box behind it.
+    static let marginQuote = NSAttributedString.Key("margin.quote")
+    /// The title line of a callout without its own title: the text view draws the type's name.
+    static let marginCalloutLabel = NSAttributedString.Key("margin.calloutLabel")
     /// An embedded image `![[name.png|200]]`: the value is `name|spec`; the text view draws the
     /// picture in the line the styler made tall enough.
     static let marginEmbed = NSAttributedString.Key("margin.embed")
@@ -118,7 +123,95 @@ enum MarkdownStyler {
             }
             style(token.kind, r, storage, text, mode, isActive(r, active))
         }
-        if mode != .source { tables(storage, text, range, tokens: tokens, active: mode == .live ? active : nil) }
+        if mode != .source {
+            tables(storage, text, range, tokens: tokens, active: mode == .live ? active : nil)
+            quotes(storage, text, tokens: tokens, active: mode == .live ? active : nil)
+        }
+    }
+
+    /// Callout colours and icons by type, Obsidian's families (aliases share one).
+    static func calloutStyle(_ type: String) -> (color: NSColor, icon: String, title: String) {
+        switch type {
+        case "abstract", "summary", "tldr": (.systemTeal, "clipboard-list", "Shrnutí")
+        case "info": (.systemBlue, "info", "Info")
+        case "todo": (.systemBlue, "circle-check", "Úkol")
+        case "tip", "hint", "important": (.systemCyan, "flame", "Tip")
+        case "success", "check", "done": (.systemGreen, "check", "Hotovo")
+        case "question", "help", "faq": (.systemYellow, "help", "Otázka")
+        case "warning", "caution", "attention": (.systemOrange, "triangle-alert", "Pozor")
+        case "failure", "fail", "missing": (.systemRed, "x", "Chyba")
+        case "danger", "error": (.systemRed, "zap", "Nebezpečí")
+        case "bug": (.systemRed, "bug", "Bug")
+        case "example": (.systemPurple, "list", "Příklad")
+        case "quote", "cite": (.systemGray, "quote", "Citace")
+        default: (.systemBlue, "pencil", type == "note" ? "Poznámka" : type.prefix(1).uppercased() + type.dropFirst())
+        }
+    }
+
+    /// Blockquotes and callouts outside the block being edited: indented, the callout's `[!type]`
+    /// hidden and its title in the type's colour; the text view draws the bar or box.
+    private static func quotes(_ s: NSTextStorage, _ text: NSString, tokens: [MarkdownToken], active: MarkdownRange?) {
+        var blocks: [(lines: [NSRange], type: String?, marker: NSRange?)] = []
+        for t in tokens {
+            let r = NSRange(location: t.range.location, length: t.range.length)
+            switch t.kind {
+            case .blockquoteMarker:
+                let line = text.lineRange(for: NSRange(location: r.location, length: 0))
+                if let last = blocks.last?.lines.last, last == line { continue }
+                if let last = blocks.last?.lines.last, NSMaxRange(last) == line.location {
+                    blocks[blocks.count - 1].lines.append(line)
+                } else {
+                    blocks.append(([line], nil, nil))
+                }
+            case .callout(let type):
+                if let i = blocks.indices.last, blocks[i].lines.count == 1, blocks[i].type == nil {
+                    blocks[i].type = type; blocks[i].marker = r
+                }
+            default: continue
+            }
+        }
+        for block in blocks {
+            guard let first = block.lines.first, let last = block.lines.last else { continue }
+            let range = NSRange(location: first.location, length: NSMaxRange(last) - first.location)
+            if let active, isActive(range, active) { continue }
+            let type = block.type ?? ""
+            let style = calloutStyle(type)
+            let inset = (type.isEmpty ? 18 : 16) * scale
+            for (i, line) in block.lines.enumerated() {
+                var content = line
+                if content.length > 0, text.character(at: NSMaxRange(content) - 1) == 10 { content.length -= 1 }
+                guard content.length > 0 else { continue }
+                s.addAttribute(.marginQuote, value: type, range: line)
+                let current = (s.attribute(.paragraphStyle, at: content.location, effectiveRange: nil) as? NSParagraphStyle) ?? paragraph(lineHeight: 1.6, size: bodySize)
+                let p = current.mutableCopy() as! NSMutableParagraphStyle
+                // The title line leaves room for the icon. Its hidden `>` join the previous
+                // fragment, so the visible text is laid out with `headIndent`, not the first-line one.
+                let icon = i == 0 && !type.isEmpty ? 24 * scale : 0
+                p.headIndent += inset + icon
+                p.firstLineHeadIndent += inset + icon
+                p.tailIndent = type.isEmpty ? 0 : -12 * scale
+                if !type.isEmpty {
+                    let pad = 8 * scale
+                    if i == 0 { p.minimumLineHeight += pad; p.maximumLineHeight += pad }
+                    if i == block.lines.count - 1 { p.paragraphSpacing = max(p.paragraphSpacing, pad + 4) }
+                    s.removeAttribute(.foregroundColor, range: content)
+                    s.addAttribute(.foregroundColor, value: ink, range: content)
+                }
+                s.addAttribute(.paragraphStyle, value: p, range: content)
+            }
+            guard let marker = block.marker else { continue }
+            // `> [!type]`, a fold sign `-`/`+` and the space after it are hidden; the rest is the title.
+            var hide = NSRange(location: first.location, length: NSMaxRange(marker) - first.location)
+            let lineEnd = NSMaxRange(first) - (text.character(at: NSMaxRange(first) - 1) == 10 ? 1 : 0)
+            while NSMaxRange(hide) < lineEnd, [0x2D, 0x2B, 0x20].contains(text.character(at: NSMaxRange(hide))) { hide.length += 1 }
+            s.addAttribute(.marginHidden, value: true, range: hide)
+            let title = NSRange(location: NSMaxRange(hide), length: max(0, lineEnd - NSMaxRange(hide)))
+            if title.length > 0 {
+                s.addAttributes([.foregroundColor: style.color, .font: bodyFont(.semibold)], range: title)
+            } else {
+                s.addAttribute(.marginCalloutLabel, value: style.title, range: NSRange(location: first.location, length: 1))
+            }
+        }
     }
 
     /// Height of a table row drawn as a grid.
