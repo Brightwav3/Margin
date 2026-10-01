@@ -86,3 +86,4 @@ _(žádné)_
 - 2026-10-01: 1r vícenásobný výběr v seznamu poznámek (⌘/⇧-klik): otevřít v záložkách, sloučit, přesunout, přidat štítek, export Markdown, smazat (M10-32).
 - 2026-10-01: M12-01 audit přístupnosti: popisky ikonových tlačítek, akce VoiceOver u klikacích prvků, Reduce Motion u pohybových animací, `scripts/lint-a11y.py`.
 - 2026-10-01: Oprava ikon: řádky menu bez ikony (menu ⋯ poznámky) kreslily čárkovaný čtvereček místo prázdného místa; neznámé názvy se zaznamenají a test vykreslí všechny obrazovky galerie; `scripts/lint-icons.py`.
+- 2026-10-01: Backend doplněn: export do PDF (Core Text, A4, M10-22; dřív jen chyba „not implemented“), komprese snapshotů ověřena proti standardnímu zlib (M11-08), zápis „k přednášce“ přeskakuje zrušené a sleduje přesunuté hodiny (M8-09, M9-04); Inbox „Add to lecture note“ jde do poznámky nejbližší přednášky a chybějící poznámku vytvoří. Zbývá ručně ověřit v aplikaci: notifikace (M10-18) a globální zkratku (M8-04).
