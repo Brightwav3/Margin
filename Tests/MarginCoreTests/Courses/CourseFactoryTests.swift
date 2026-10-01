@@ -48,10 +48,19 @@ import Testing
         entries.append(.init(course: first.course, semesterFolder: "Fall 2026", folder: first.folder.lastComponent))
         let second = try plan(NewCourse(name: "Cell   Biology", semester: "fall-2026"), entries: entries)
         #expect(!Set(entries.map(\.course.id)).contains(second.course.id))
-        // All six palette keys are taken by the sample courses: the colour wraps around to the first.
-        #expect(first.course.style.color == CoursePalette.keys[0])
+        // The six mockup colours are taken by the sample courses: the next free one in picker order.
+        #expect(first.course.style.color == CoursePalette.orderedKeys[6])
         let none = try plan(NewCourse(name: "Fresh", semester: "fall-2026"), entries: [])
-        #expect(none.course.style.color == CoursePalette.keys[0])
+        #expect(none.course.style.color == CoursePalette.orderedKeys[0])
+    }
+
+    @Test func anIconIsANameOrOneEmoji() throws {
+        for ok in ["chart-line", "menu_book", "🎬", "🇨🇿", "👩🏽‍🔬", "⚖️"] {
+            #expect(throws: Never.self, "\(ok)") { try CourseWriting.requireStyle(icon: ok, color: nil) }
+        }
+        for bad in ["Chart", "🎬🎬", "#", "a b", ""] {
+            #expect(throws: MarginError.self, "\(bad)") { try CourseWriting.requireStyle(icon: bad, color: nil) }
+        }
     }
 
     @Test func badInputIsRejectedBeforeAnythingIsWritten() {
