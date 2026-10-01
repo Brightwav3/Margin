@@ -31,7 +31,7 @@ targets.append(
         name: "MarginUI",
         dependencies: ["MarginCore"],
         path: "Sources/MarginUI",
-        resources: [.copy("Resources/Fonts"), .copy("Resources/lucide-icons.json"), .copy("Resources/LICENSE-lucide.txt")]
+        resources: [.copy("Resources/Fonts"), .copy("Resources/lucide-icons.json"), .copy("Resources/LICENSE-lucide.txt"), .copy("Resources/Render")]
     )
 )
 // Debug tool: renders a gallery screen to PNG (scripts/snap.sh).

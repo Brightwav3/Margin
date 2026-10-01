@@ -640,9 +640,34 @@ final class MarginTextView: NSTextView {
         drawQuotes(in: rect)
     }
 
+    /// Math and Mermaid pictures (`BlockRenderer`) in the lines the styler reserved; math is centred.
+    private func drawRenderedBlocks(in dirty: NSRect) {
+        guard let storage = textStorage, let layout = layoutManager, let container = textContainer else { return }
+        let glyphs = layout.glyphRange(forBoundingRect: dirty.insetBy(dx: 0, dy: -1600), in: container)
+        let chars = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        storage.enumerateAttribute(.marginRendered, in: chars) { value, range, _ in
+            guard let key = value as? String, let rendered = BlockRenderer.shared.cached(key: key) else { return }
+            // The hidden fence joins the previous fragment: measure from the first visible character
+            // (the newline of the fence line), whose fragment has the reserved height.
+            let text = storage.string as NSString
+            var start = range.location
+            while start < text.length - 1, storage.attribute(.marginHidden, at: start, effectiveRange: nil) != nil { start += 1 }
+            let line = layout.lineFragmentRect(forGlyphAt: layout.glyphIndexForCharacter(at: start), effectiveRange: nil)
+            let width = container.size.width - container.lineFragmentPadding * 2
+            let size = rendered.image.size
+            let fit = min(1, MarkdownStyler.maxEmbedWidth / max(size.width, 1), width / max(size.width, 1))
+            let drawn = NSSize(width: size.width * fit, height: size.height * fit)
+            let isMath = key.hasPrefix(BlockRenderer.Kind.math.rawValue)
+            let x = textContainerOrigin.x + container.lineFragmentPadding + (isMath ? max(0, (width - drawn.width) / 2) : 0)
+            let rect = NSRect(x: x, y: textContainerOrigin.y + line.minY + 6, width: drawn.width, height: drawn.height)
+            rendered.image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         drawTables(in: dirtyRect)
+        drawRenderedBlocks(in: dirtyRect)
         for embed in embeds(in: dirtyRect) {
             NSGraphicsContext.saveGraphicsState()
             NSBezierPath(roundedRect: embed.rect, xRadius: 6, yRadius: 6).addClip()

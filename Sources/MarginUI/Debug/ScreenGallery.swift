@@ -214,7 +214,15 @@ private struct ListsSampleScreen: View {
             > [!tip]
             > Dočíst kapitolu 2 do pátku.
 
-            > Evropa nebude vytvořena naráz. — R. Schuman
+            $$
+            \\Delta G = \\Delta H - T\\,\\Delta S
+            $$
+
+            ```mermaid
+            graph LR
+              A[Membrána] --> B[Pasivní transport]
+              A --> C[Aktivní transport]
+            ```
 
             ![Membrána|320](bilayer-diagram.png)
 

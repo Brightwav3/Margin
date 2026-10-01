@@ -19,6 +19,8 @@ extension NSAttributedString.Key {
     /// The source of a Markdown table, on its first line; the text view draws it as a grid
     /// while the table is not being edited.
     static let marginTable = NSAttributedString.Key("margin.table")
+    /// A math or Mermaid block drawn as a picture (`BlockRenderer` key), on its first character.
+    static let marginRendered = NSAttributedString.Key("margin.rendered")
     /// A blockquote line; the value is the callout type (`""` for a plain quote). The text view
     /// draws the bar or the callout box behind it.
     static let marginQuote = NSAttributedString.Key("margin.quote")
@@ -125,6 +127,7 @@ enum MarkdownStyler {
         }
         if mode != .source {
             tables(storage, text, range, tokens: tokens, active: mode == .live ? active : nil)
+            renderedBlocks(storage, text, tokens: tokens, active: mode == .live ? active : nil)
             quotes(storage, text, tokens: tokens, active: mode == .live ? active : nil)
         }
     }
@@ -211,6 +214,73 @@ enum MarkdownStyler {
             } else {
                 s.addAttribute(.marginCalloutLabel, value: style.title, range: NSRange(location: first.location, length: 1))
             }
+        }
+    }
+
+    /// `$$ … $$` and ```` ```mermaid ```` blocks outside the block being edited: the text is hidden
+    /// and the first line is as tall as the picture `BlockRenderer` made (drawn by the text view).
+    /// While the picture renders, the block keeps its source styling.
+    private static func renderedBlocks(_ s: NSTextStorage, _ text: NSString, tokens: [MarkdownToken], active: MarkdownRange?) {
+        var blocks: [(kind: BlockRenderer.Kind, range: NSRange, source: String)] = []
+        var mathOpen: NSRange?
+        var codeOpen: (line: NSRange, mermaid: Bool)?
+        var lastFenceLine = NSRange(location: NSNotFound, length: 0)
+        func body(_ open: NSRange, _ close: NSRange) -> String {
+            let start = NSMaxRange(open), end = close.location
+            guard end > start else { return "" }
+            return text.substring(with: NSRange(location: start, length: end - start)).trimmingCharacters(in: .newlines)
+        }
+        for t in tokens {
+            let r = NSRange(location: t.range.location, length: t.range.length)
+            switch t.kind {
+            case .mathFence:
+                let line = text.lineRange(for: NSRange(location: r.location, length: 0))
+                if let open = mathOpen {
+                    blocks.append((.math, NSRange(location: open.location, length: NSMaxRange(line) - open.location), body(open, line)))
+                    mathOpen = nil
+                } else { mathOpen = line }
+            case .codeFenceMarker:
+                let line = text.lineRange(for: NSRange(location: r.location, length: 0))
+                guard line != lastFenceLine else { continue }
+                lastFenceLine = line
+                if let open = codeOpen {
+                    if open.mermaid {
+                        blocks.append((.mermaid, NSRange(location: open.line.location, length: NSMaxRange(line) - open.line.location),
+                                       body(open.line, line)))
+                    }
+                    codeOpen = nil
+                } else {
+                    let info = text.substring(with: line).trimmingCharacters(in: .whitespacesAndNewlines)
+                    codeOpen = (line, info.dropFirst(3).trimmingCharacters(in: .whitespaces).lowercased() == "mermaid")
+                }
+            default: continue
+            }
+        }
+        for block in blocks where !block.source.isEmpty {
+            if let active, isActive(block.range, active) { continue }
+            guard let rendered = BlockRenderer.shared.rendered(block.kind, block.source) else { continue }
+            let size = rendered.image.size
+            let fit = min(1, maxEmbedWidth / max(size.width, 1))
+            let height = (size.height * fit).rounded() + 12
+            var location = block.range.location
+            var first = true
+            while location < NSMaxRange(block.range) {
+                let line = text.lineRange(for: NSRange(location: location, length: 0))
+                var content = line
+                if content.length > 0, text.character(at: NSMaxRange(content) - 1) == 10 { content.length -= 1 }
+                s.removeAttribute(.backgroundColor, range: line)
+                if content.length > 0 { s.addAttribute(.marginHidden, value: true, range: content) }
+                // Newlines stay visible: each line keeps its own (tiny) fragment.
+                if NSMaxRange(line) > NSMaxRange(content) { s.removeAttribute(.marginHidden, range: NSRange(location: NSMaxRange(content), length: 1)) }
+                let p = NSMutableParagraphStyle()
+                p.minimumLineHeight = first ? height : 0.01
+                p.maximumLineHeight = first ? height : 0.01
+                s.addAttribute(.paragraphStyle, value: p, range: line)
+                first = false
+                location = NSMaxRange(line)
+            }
+            s.addAttribute(.marginRendered, value: BlockRenderer.key(block.kind, block.source),
+                           range: NSRange(location: block.range.location, length: 1))
         }
     }
 

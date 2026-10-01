@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:">
+<link rel="stylesheet" href="katex/katex.min.css">
+<style>
+  html, body { margin: 0; background: transparent; }
+  #out { display: inline-block; white-space: nowrap; padding: 4px 2px; color: #1C1E26; font: 15px -apple-system, sans-serif; }
+  #out .katex-display { margin: 0; }
+  #out .katex { font-size: 1.15em; }
+  #out.error { color: #C2412D; font: 13px ui-monospace, Menlo, monospace; white-space: pre-wrap; max-width: 640px; }
+</style>
+<script src="katex/katex.min.js"></script>
+<script src="mermaid/mermaid.min.js"></script>
+</head>
+<body>
+<div id="out"></div>
+<script>
+  // Margin renders note blocks here (BlockRenderer.swift): no network, strict Mermaid, sources as data.
+  if (window.mermaid) mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict', fontFamily: '-apple-system, sans-serif' });
+  let counter = 0;
+  async function render(kind, source) {
+    const el = document.getElementById('out');
+    el.className = ''; el.innerHTML = '';
+    try {
+      if (kind === 'math') {
+        katex.render(source, el, { displayMode: true, throwOnError: true });
+      } else {
+        if (!window.mermaid) throw new Error('Mermaid is not installed in this build (scripts/fetch-render-libs.sh).');
+        const result = await mermaid.render('margin-mermaid-' + (counter++), source);
+        el.innerHTML = result.svg;
+      }
+    } catch (e) {
+      el.className = 'error';
+      el.textContent = String((e && e.message) || e);
+    }
+    // Layout first, so the fonts the formula needs start loading; measure once they are in.
+    void el.offsetWidth;
+    await document.fonts.ready;
+    await Promise.all([...document.fonts].filter(f => f.status === 'loading').map(f => f.loaded.catch(() => null)));
+    void el.offsetWidth;
+    // Display math is centred in a block: measure the formula itself, plus a little room.
+    const inner = el.querySelector('.katex-html') || el.querySelector('svg') || el;
+    const box = el.getBoundingClientRect(), ink = inner.getBoundingClientRect();
+    const width = Math.max(box.width, ink.right - box.left, el.scrollWidth) + 6;
+    return { width: Math.ceil(width), height: Math.ceil(Math.max(box.height, el.scrollHeight)), error: el.className === 'error' };
+  }
+</script>
+</body>
+</html>

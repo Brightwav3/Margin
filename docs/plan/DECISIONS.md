@@ -151,6 +151,12 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** Supabase / CloudKit / vlastní server pro účty a synchronizaci (odloženo).
 **Důsledky / riziko:** synchronizace mezi zařízeními jen přes složku, kterou synchronizuje něco jiného (iCloud Drive, Dropbox, Git).
 
+### D-027 · 2026-10-01 · Přijato — KaTeX a Mermaid přibalené offline pro vzorce a diagramy
+**Rozhodnutí:** bloky `$$ … $$` (KaTeX 0.18.10) a ```` ```mermaid ```` (Mermaid 12.0.0) vykresluje skrytý `WKWebView` z přibalené stránky `Resources/Render/render.html` do obrázku (`BlockRenderer`); editor ho ukáže mimo aktivní blok jako obrázek, v aktivním bloku zdroj. Obě knihovny MIT, přibalené soubory (5,9 MB) s licencemi ve složce `Render/`.
+**Důvod:** rozhodnutí uživatele (2026-10-01): vykreslovat matematiku a Mermaid jako Obsidian, bez sítě.
+**Alternativy:** vlastní sazba vzorců (neúnosné), zdroj jen jako text (dosavadní stav), knihovny z CDN (porušuje offline).
+**Důsledky / riziko:** první vykreslení po spuštění trvá cca 0,5 s (načtení stránky); stránka nemá síť (CSP `default-src 'none'`), zdroj se předává jako data, Mermaid v režimu `strict`. Inline `$…$` zůstává stylovaný text; export do PDF tiskne zdroj.
+
 ---
 
 ## Šablona
