@@ -34,6 +34,7 @@ struct SidebarPanel: View {
         .overlay(alignment: .bottom) {
             if let notes = content.notes {
                 SpaceSwitcher(page: model.sidebarPage, title: content.title, notes: notes) { go($0) }
+                    .modifier(CourseContextMenu(courseID: content.courseID))
                     .padding(.bottom, 12)
             }
         }
@@ -69,6 +70,7 @@ private struct NavigationPage: View {
                     Circle().fill(Color(hexString: dot)).frame(width: 10, height: 10)
                 }
                 SidebarTitle(title: content.title, views: content.views)
+                    .modifier(CourseContextMenu(courseID: content.courseID))
                 Spacer(minLength: 0)
                 Icon("search", size: 20, color: MarginColor.textSecondary)
             }
@@ -191,6 +193,7 @@ struct SidebarItemRow: View {
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
         .onTapGesture { item.action?() }
+        .modifier(CourseContextMenu(courseID: item.courseID))
         .modifier(FullTitleTooltip(title: item.title, detail: item.meta, isLong: item.title.count > 24))
         .accessibilityAddTraits(item.action == nil ? [] : .isButton)
     }

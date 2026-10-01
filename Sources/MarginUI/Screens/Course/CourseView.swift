@@ -37,6 +37,7 @@ struct CourseView: View {
                     .marginFont(MarginTextSize.base)
                     .foregroundStyle(MarginColor.textSecondary)
             }
+            .modifier(CourseContextMenu(courseID: model.courseID))
             Spacer(minLength: 16)
             if model.page == .gallery {
                 Menu {

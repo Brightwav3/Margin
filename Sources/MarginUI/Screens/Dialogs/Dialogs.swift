@@ -714,6 +714,33 @@ struct CourseMenuItems: View {
     }
 }
 
+/// Right-click on anything that stands for a course (sidebar rows, course titles): the course
+/// menu (2f). Without a course or a workspace the view is left as it is.
+struct CourseContextMenu: ViewModifier {
+    let courseID: String?
+    @Environment(Workspace.self) private var workspace: Workspace?
+
+    func body(content: Content) -> some View {
+        if let courseID, let workspace, let course = workspace.courses.course(id: courseID) {
+            content.contextMenu { CourseMenuItems(course: course).environment(workspace) }
+        } else {
+            content
+        }
+    }
+}
+
+/// The course menu as a submenu („Course ▸“) inside another context menu (timetable blocks).
+struct CourseSubmenu: View {
+    let courseID: String
+    @Environment(Workspace.self) private var workspace: Workspace?
+
+    var body: some View {
+        if let workspace, let course = workspace.courses.course(id: courseID) {
+            Menu(course.name) { CourseMenuItems(course: course).environment(workspace) }
+        }
+    }
+}
+
 /// Help › Keyboard shortcuts, Markdown guide, What's new.
 struct HelpDialog: View {
     let topic: Workspace.HelpTopic

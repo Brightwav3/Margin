@@ -113,7 +113,7 @@ extension Workspace {
         case .graph:
             let m = graphModel()
             let items = courses.cards.map { card in
-                SidebarContent.Item(card.course.name, dot: card.course.style.dot, isOn: !m.hiddenCourses.contains(card.id)) {
+                SidebarContent.Item(card.course.name, dot: card.course.style.dot, isOn: !m.hiddenCourses.contains(card.id), courseID: card.id) {
                     if m.hiddenCourses.contains(card.id) { m.hiddenCourses.remove(card.id) } else { m.hiddenCourses.insert(card.id) }
                 }
             }

@@ -74,8 +74,6 @@ private struct CourseCardMenu: View {
 
     var body: some View {
         Menu {
-            Button("Open", action: onOpen)
-            Divider()
             CourseMenuItems(course: course)
         } label: {
             Icon("more_horiz", size: 20, color: hovered ? MarginColor.ink : MarginColor.textSecondary)

@@ -22,7 +22,7 @@ extension Workspace {
         for card in courses.cards {
             let n = m.tasks.filter { $0.source.courseID == card.id && !$0.done }.count
             filters.append(.init(card.course.name, dot: card.course.style.dot, count: n > 0 ? "\(n)" : "",
-                                 isOn: m.course == card.id) { m.course = card.id })
+                                 isOn: m.course == card.id, courseID: card.id) { m.course = card.id })
         }
         let sidebar = SidebarContent(title: scope == .today ? "Today" : "Upcoming", actionTitle: "New task",
                                      actionIcon: "add_task", actionKey: "⌘⇧Space",
