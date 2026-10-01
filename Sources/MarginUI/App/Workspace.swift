@@ -229,9 +229,19 @@ public final class Workspace {
 
     /// Follows a wikilink; a link to a note that does not exist yet creates it in the same course.
     public func openLink(_ target: String, from course: CourseID?, newTab: Bool? = nil) {
-        let name = target.split(separator: "#").first.map(String.init) ?? target
+        let parts = target.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+        let name = parts[0].trimmingCharacters(in: .whitespaces)
+        let anchor = parts.count > 1 ? parts[1] : nil
         Task { @MainActor in
+            // `[[#Heading]]` and `[[#^block]]` point into the open note.
+            if name.isEmpty, let anchor, let editor, let id = editor.noteID {
+                if let line = LinkAnchor.line(of: anchor, in: editor.text) { reveal = (id, line) }
+                return
+            }
             if let id = await resolve(link: name) {
+                if let anchor, let note = try? await env.notes.open(id: id), let line = LinkAnchor.line(of: anchor, in: note.text) {
+                    reveal = (id, line)
+                }
                 open(.note(id), title: name, newTab: newTab)
             } else if let course = course ?? courses.cards.first?.id {
                 perform("Create note") {
