@@ -208,6 +208,14 @@ private struct ListsSampleScreen: View {
 
             ## Důsledky Lisabonské smlouvy:[^3]
 
+            > [!warning] Na zkoušku
+            > Umět **tři pilíře** a jejich zrušení.
+
+            > [!tip]
+            > Dočíst kapitolu 2 do pátku.
+
+            > Evropa nebude vytvořena naráz. — R. Schuman
+
             ![[bilayer-diagram.png]]
 
             | Transport | Energie | Příklad |

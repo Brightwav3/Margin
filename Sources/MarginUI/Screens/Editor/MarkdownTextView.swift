@@ -590,6 +590,56 @@ final class MarginTextView: NSTextView {
         }
     }
 
+    /// Blockquote bars and callout boxes (live and reading), behind the text.
+    private func drawQuotes(in dirty: NSRect) {
+        guard let storage = textStorage, let layout = layoutManager, let container = textContainer else { return }
+        let glyphs = layout.glyphRange(forBoundingRect: dirty.insetBy(dx: 0, dy: -2000), in: container)
+        let chars = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        let s = MarkdownStyler.scale
+        storage.enumerateAttribute(.marginQuote, in: chars) { value, range, _ in
+            guard let type = value as? String else { return }
+            // Hidden `>` at the start of a line belong to the previous fragment: measure from the
+            // first visible character (the newline of a title-less callout counts).
+            var start = range.location
+            while start < NSMaxRange(range) - 1, storage.attribute(.marginHidden, at: start, effectiveRange: nil) != nil { start += 1 }
+            let first = layout.lineFragmentRect(forGlyphAt: layout.glyphIndexForCharacter(at: start), effectiveRange: nil)
+            let last = layout.lineFragmentUsedRect(forGlyphAt: layout.glyphIndexForCharacter(at: max(range.location, NSMaxRange(range) - 1)), effectiveRange: nil)
+            let left = textContainerOrigin.x + container.lineFragmentPadding
+            let top = textContainerOrigin.y + first.minY
+            let bottom = textContainerOrigin.y + max(last.maxY, first.maxY)
+            if type.isEmpty {
+                NSColor(MarginColor.border).setFill()
+                NSBezierPath(roundedRect: NSRect(x: left + 2 * s, y: top + 2, width: 3 * s, height: bottom - top - 4), xRadius: 1.5, yRadius: 1.5).fill()
+                return
+            }
+            let style = MarkdownStyler.calloutStyle(type)
+            let width = container.size.width - container.lineFragmentPadding * 2
+            let box = NSRect(x: left, y: top, width: width, height: bottom - top + 8 * s)
+            style.color.withAlphaComponent(0.1).setFill()
+            NSBezierPath(roundedRect: box, xRadius: 6, yRadius: 6).fill()
+            // Icon (and the default title) on the first line's baseline.
+            let font = MarkdownStyler.bodyFont(.semibold)
+            let baseline = top + layout.location(forGlyphAt: layout.glyphIndexForCharacter(at: start)).y
+            let iconY = baseline - font.capHeight / 2 - 8
+            if let icon = MenuIcons.nsImage(style.icon) {
+                let tinted = NSImage(size: icon.size, flipped: false) { rect in
+                    icon.draw(in: rect); style.color.set(); rect.fill(using: .sourceAtop); return true
+                }
+                tinted.draw(in: NSRect(x: left + 16 * s, y: iconY, width: 16, height: 16), from: .zero, operation: .sourceOver,
+                            fraction: 1, respectFlipped: true, hints: nil)
+            }
+            if let label = storage.attribute(.marginCalloutLabel, at: range.location, effectiveRange: nil) as? String {
+                let y = baseline - font.ascender
+                (label as NSString).draw(at: NSPoint(x: left + 40 * s, y: y), withAttributes: [.font: font, .foregroundColor: style.color])
+            }
+        }
+    }
+
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        drawQuotes(in: rect)
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         drawTables(in: dirtyRect)
