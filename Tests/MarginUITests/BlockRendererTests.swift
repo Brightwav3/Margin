@@ -11,7 +11,8 @@ import Testing
         #expect(r.image.size.width > 60 && r.image.size.height > 20)
     }
 
-    @Test func rendersAMermaidDiagram() async throws {
+    @Test(.enabled(if: BlockRenderer.hasMermaid, "scripts/fetch-render-libs.sh"))
+    func rendersAMermaidDiagram() async throws {
         let r = try #require(await BlockRenderer.shared.render(.mermaid, "graph TD\n  A[Membrána] --> B[Transport]\n  B --> C[Osmóza]"))
         #expect(!r.isError)
         #expect(r.image.size.height > 100)
@@ -33,7 +34,8 @@ import Testing
         return storage
     }
 
-    @Test func mathAndMermaidBlocksBecomePictures() async throws {
+    @Test(.enabled(if: BlockRenderer.hasMermaid, "scripts/fetch-render-libs.sh"))
+    func mathAndMermaidBlocksBecomePictures() async throws {
         let text = "Úvod\n\n$$\nE = mc^2\n$$\n\n```mermaid\ngraph TD\n  A --> B\n```\n\nKonec\n"
         _ = await BlockRenderer.shared.render(.math, "E = mc^2")
         _ = await BlockRenderer.shared.render(.mermaid, "graph TD\n  A --> B")
