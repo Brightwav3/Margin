@@ -70,3 +70,37 @@ import Testing
         #expect(LinkAnchor.line(of: "^none", in: text) == nil)
     }
 }
+
+@Suite struct ImageEmbedTests {
+    @Test func parsesBothSyntaxes() {
+        #expect(ImageEmbed.parse("![[bilayer.png|300]]")?.name == "bilayer.png")
+        #expect(ImageEmbed.parse("![[bilayer.png|300]]")?.width == "300")
+        let md = ImageEmbed.parse("Viz ![Membrána|200](obr/cell%20a.png) níže")
+        #expect(md?.name == "obr/cell a.png" && md?.width == "200" && md?.wiki == false)
+        #expect(ImageEmbed.parse("[[odkaz]]") == nil)
+    }
+
+    @Test func resizingRewritesOnlyTheWidth() {
+        let wiki = "![[bilayer.png|300]]"
+        #expect(ImageEmbed.parse(wiki)!.resized(640, in: wiki) == "![[bilayer.png|640]]")
+        #expect(ImageEmbed.parse(wiki)!.resized(nil, in: wiki) == "![[bilayer.png]]")
+        let md = "Viz ![Membrána](cell.png)"
+        #expect(ImageEmbed.parse(md)!.resized(200, in: md) == "Viz ![Membrána|200](cell.png)")
+        let sized = "![Membrána|200](cell.png)"
+        #expect(ImageEmbed.parse(sized)!.resized(nil, in: sized) == "![Membrána](cell.png)")
+    }
+}
+
+/// Vision loads its text model on first use (tens of seconds): a slow tier in `scripts/test-tiers.txt`.
+@Suite struct ImageTextRecognitionTests {
+    @Test func recognizesTextInAPicture() async throws {
+        let image = NSImage(size: NSSize(width: 600, height: 120), flipped: false) { rect in
+            NSColor.white.setFill(); rect.fill()
+            ("Fosfolipidová dvojvrstva" as NSString).draw(at: NSPoint(x: 20, y: 40), withAttributes: [.font: NSFont.systemFont(ofSize: 40)])
+            return true
+        }
+        let data = try #require(image.tiffRepresentation)
+        let lines = await ImageActions.recognizeText(in: data)
+        #expect(lines.joined(separator: " ").lowercased().contains("dvojvrstva"))
+    }
+}
