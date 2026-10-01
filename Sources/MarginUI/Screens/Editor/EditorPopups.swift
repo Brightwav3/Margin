@@ -340,29 +340,33 @@ struct LinkPreviewCard: View {
     }
 }
 
-/// 2i Text style: Markdown wrappers and block types for the selection.
+/// 2i Text style: the block type of the caret's line, checked, and what it can turn into.
 struct TextStyleMenu: View {
     let handle: EditorHandle
     let close: () -> Void
 
     var body: some View {
+        let current = handle.currentBlock
+        let editable = handle.isAvailable
         VStack(alignment: .leading, spacing: 1) {
-            row("Bold", "format_bold", "⌘B") { handle.wrapSelection("**", "**") }
-            row("Italic", "format_italic", "⌘I") { handle.wrapSelection("*", "*") }
-            row("Strikethrough", "strikethrough_s", "") { handle.wrapSelection("~~", "~~") }
-            row("Code", "code", "") { handle.wrapSelection("`", "`") }
-            row("Link", "link", "") { handle.wrapSelection("[[", "]]") }
+            row("Heading 1", "format_h1", "⌘⌥1", .heading1, current, editable)
+            row("Heading 2", "format_h2", "⌘⌥2", .heading2, current, editable)
+            row("Heading 3", "format_h3", "⌘⌥3", .heading3, current, editable)
+            row("Paragraph", "notes", "⌘⌥0", .paragraph, current, editable)
             MarginDivider(color: Color(hex: 0xEDEEF1)).padding(.vertical, 4)
-            row("Heading 2", "title", "") { handle.insert("## ") }
-            row("Task", "check_box", "") { handle.insert("- [ ] ") }
-            row("Quote", "format_quote", "") { handle.insert("> ") }
+            row("Quote", "format_quote", "", .quote, current, editable)
+            row("Callout", "lightbulb", "", .callout, current, editable)
+            row("Code block", "code", "", .codeBlock, current, editable)
         }
         .padding(5)
-        .frame(width: 220)
+        .frame(width: 230)
     }
 
-    private func row(_ title: String, _ icon: String, _ key: String, _ action: @escaping () -> Void) -> some View {
-        MenuRow(title: title, icon: icon, shortcut: key) { action(); close() }
+    private func row(_ title: String, _ icon: String, _ key: String, _ block: EditorBlock, _ current: EditorBlock?,
+                     _ editable: Bool) -> some View {
+        MenuRow(title: title, icon: icon, shortcut: key, checked: current == block, disabled: !editable || current == block) {
+            handle.setBlock(block); close()
+        }
     }
 }
 

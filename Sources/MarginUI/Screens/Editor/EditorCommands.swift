@@ -3,7 +3,7 @@ import MarginCore
 
 /// Block types of Format (paragraph, headings, quote, lists).
 public enum EditorBlock: String, CaseIterable, Sendable {
-    case paragraph, heading1, heading2, heading3, quote, bullets, numbers, checklist
+    case paragraph, heading1, heading2, heading3, quote, bullets, numbers, checklist, callout, codeBlock
 }
 
 /// Text styles of Format and the selection toolbar.
@@ -61,6 +61,7 @@ extension EditorHandle {
 
     /// Sets the block type of every selected line (heading, quote, list, checklist, paragraph).
     func setBlock(_ block: EditorBlock) {
+        if block == .callout || block == .codeBlock { return wrapBlock(block) }
         editLines { line, index in
             let body = Self.stripBlockPrefix(line)
             switch block {
@@ -72,8 +73,55 @@ extension EditorHandle {
             case .bullets: return body.indent + "- " + body.content
             case .numbers: return body.indent + "\(index + 1). " + body.content
             case .checklist: return body.indent + "- [ ] " + body.content
+            case .callout, .codeBlock: return line
             }
         }
+    }
+
+    /// The selected lines in a callout (`> [!note]` above, `> ` before each) or a code block (fences).
+    private func wrapBlock(_ block: EditorBlock) {
+        guard let tv = textView else { return }
+        let range = lineRange(tv)
+        let lines = (tv.string as NSString).substring(with: range).components(separatedBy: "\n")
+        let out = block == .callout
+            ? (["> [!note]"] + lines.map { "> " + Self.stripBlockPrefix($0).text }).joined(separator: "\n")
+            : (["```"] + lines + ["```"]).joined(separator: "\n")
+        tv.replace(range, with: out)
+        tv.setSelectedRange(NSRange(location: range.location, length: (out as NSString).length))
+    }
+
+    /// The block type of the caret's line, for the checks of Text style (2i).
+    var currentBlock: EditorBlock? {
+        guard let tv = textView else { return nil }
+        return Self.block(at: tv.selectedRange().location, in: tv.string)
+    }
+
+    nonisolated static func block(at location: Int, in string: String) -> EditorBlock {
+        let text = string as NSString
+        let line = text.lineRange(for: NSRange(location: min(location, text.length), length: 0))
+        // Inside a fenced code block when an odd number of fences precede the line.
+        var before = text.substring(to: line.location).components(separatedBy: "\n")
+        if before.last == "" { before.removeLast() }
+        if before.filter({ $0.trimmingCharacters(in: .whitespaces).hasPrefix("```") }).count % 2 == 1 { return .codeBlock }
+        let t = text.substring(with: line).trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.hasPrefix("```") { return .codeBlock }
+        if t.hasPrefix("# ") { return .heading1 }
+        if t.hasPrefix("## ") { return .heading2 }
+        if t.hasPrefix("### ") { return .heading3 }
+        if t.hasPrefix(">") {
+            // A callout's body lines belong to the callout opened above them.
+            var i = before.count - 1
+            if t.range(of: #"^>\s*\[![\w-]+\]"#, options: .regularExpression) != nil { return .callout }
+            while i >= 0, before[i].trimmingCharacters(in: .whitespaces).hasPrefix(">") {
+                if before[i].range(of: #"^\s*>\s*\[![\w-]+\]"#, options: .regularExpression) != nil { return .callout }
+                i -= 1
+            }
+            return .quote
+        }
+        if t.range(of: #"^[-*+] \[[ xX]\] "#, options: .regularExpression) != nil { return .checklist }
+        if t.range(of: #"^[-*+] "#, options: .regularExpression) != nil { return .bullets }
+        if t.range(of: #"^\d+[.)] "#, options: .regularExpression) != nil { return .numbers }
+        return .paragraph
     }
 
     func indent() { editLines { line, _ in "\t" + line } }
