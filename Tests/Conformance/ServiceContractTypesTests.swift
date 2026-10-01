@@ -79,6 +79,9 @@ import Testing
         func notes(course: CourseID?) async throws -> [NoteSummary] { [] }
         func open(id: NoteID) async throws -> Note { throw MarginError.notFound(id) }
         func attachment(named name: String, near note: NoteID?) async throws -> Data { throw MarginError.notFound(name) }
+        func rename(id: NoteID, to title: String, actor: WriteActor, baseVersion: String?, dryRun: Bool,
+                    idempotencyKey: String?) async throws -> ChangeSet { throw MarginError.notFound(id) }
+        func filePath(id: NoteID) async throws -> String { throw MarginError.notFound(id) }
         func save(id: NoteID, text: String, actor: WriteActor, baseVersion: String?, dryRun: Bool,
                   idempotencyKey: String?) async throws -> ChangeSet { throw MarginError.notFound(id) }
         func create(course: CourseID, title: String, kind: NoteKind, text: String, actor: WriteActor,

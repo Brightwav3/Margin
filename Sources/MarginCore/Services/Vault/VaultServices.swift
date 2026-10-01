@@ -44,6 +44,14 @@ public struct VaultNoteRepository: NoteRepository {
                                  dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 
+    public func rename(id: NoteID, to title: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await backend.rename(id: id, to: title, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                 idempotencyKey: idempotencyKey)
+    }
+
+    public func filePath(id: NoteID) async throws -> String { try await backend.filePath(id: id) }
+
     public func move(id: NoteID, toCourse: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
                      idempotencyKey: String?) async throws -> ChangeSet {
         try await backend.move(id: id, toCourse: toCourse, actor: actor, baseVersion: baseVersion, dryRun: dryRun,

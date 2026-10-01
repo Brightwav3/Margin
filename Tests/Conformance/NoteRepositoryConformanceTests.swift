@@ -5,6 +5,34 @@ import Testing
 /// One suite, run against `FixtureNoteRepository` and `VaultNoteRepository` (contract §5).
 @Suite struct NoteRepositoryConformanceTests {
     @Test(arguments: HarnessKind.allCases)
+    func renameMovesTheFileRetitlesAndKeepsTheID(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let id: NoteID = "bio/lecture-8"
+            let before = try await h.notes.filePath(id: id)
+            #expect(before.hasSuffix("Cell Biology/Lecture 8 — Cell membrane.md"))
+            let probe = try await h.notes.create(course: "bio", title: "Link probe", kind: .note,
+                                                 text: "See [[Lecture 8 — Cell membrane]] and [[Lecture 8 — Cell membrane|it]].\n",
+                                                 actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil).entries[0].noteID!
+            let dry = try await h.notes.rename(id: id, to: "Membranes", actor: .user, baseVersion: nil, dryRun: true, idempotencyKey: nil)
+            #expect(dry.entries.count == 1 && dry.entries[0].kind == .moved)
+            #expect(try await h.notes.filePath(id: id) == before)
+            let cs = try await h.notes.rename(id: id, to: "Membranes", actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(cs.entries[0].fromPath == before && cs.entries[0].path.hasSuffix("Cell Biology/Membranes.md"))
+            #expect(try await h.notes.filePath(id: id).hasSuffix("Cell Biology/Membranes.md"))
+            let note = try await h.notes.open(id: id)
+            #expect(note.summary.title == "Membranes" && note.text.contains("# Membranes"))
+            let linking = try await h.notes.open(id: probe).text
+            #expect(linking.contains("[[Membranes]]") && linking.contains("[[Membranes|it]]"), "\(linking)")
+            // Same title again: nothing to do. Another note's name: conflict. Empty: invalid.
+            #expect(try await h.notes.rename(id: id, to: "Membranes", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil).isEmpty)
+            do { _ = try await h.notes.rename(id: id, to: "Glossary", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil); Issue.record("no conflict") }
+            catch let e as MarginError { #expect(e.code == "conflict") }
+            do { _ = try await h.notes.rename(id: id, to: "  ", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil); Issue.record("no error") }
+            catch let e as MarginError { #expect(e.code == "invalid") }
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
     func embeddedFilesAreFoundLikeObsidianDoes(kind: HarnessKind) async throws {
         try await withHarness(kind) { h in
             // Every implementation: unknown names are not found, names leaving the vault are refused.
