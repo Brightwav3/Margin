@@ -54,11 +54,7 @@ struct Rail: View {
             Spacer(minLength: 0)
             Icon("help", size: 22, color: MarginColor.textSecondary)
                 .frame(width: 40, height: 40)
-            Text(content.initials)
-                .font(.margin(MarginTextSize.xs, .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(MarginColor.ink, in: Circle())
+            AccountButton(initials: content.initials)
         }
         .padding(.top, 52)
         .padding(.bottom, 14)

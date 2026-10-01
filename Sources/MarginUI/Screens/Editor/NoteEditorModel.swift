@@ -99,6 +99,7 @@ public final class NoteEditorModel {
     /// Picks up edits made outside Margin (another editor, sync) when nothing is pending here.
     public func observeExternalChanges() async {
         for await changes in env.notes.externalChanges {
+            guard ExternalChanges.followed else { continue }
             guard let id = noteID, changes.contains(where: { $0.noteID == id }), saveTask == nil else { continue }
             if changes.contains(where: { $0.noteID == id && $0.kind == .deleted }) {
                 error = "This note was deleted outside Margin."

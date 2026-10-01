@@ -77,7 +77,23 @@ extension Workspace {
     public var currentNote: NoteSummary? { editor?.summary }
     public func shareCurrentNote() { if let n = currentNote { dialog = .share(n) } }
     public func moveCurrentNote() { if let n = currentNote { dialog = .moveNote(n) } }
-    public func deleteCurrentNote() { if let n = currentNote { dialog = .deleteNote(n) } }
+    public func deleteCurrentNote() { if let n = currentNote { requestDelete(n) } }
+
+    /// Delete with the confirmation of Settings › General (on by default).
+    public func requestDelete(_ note: NoteSummary) {
+        if confirmBeforeDeleting { dialog = .deleteNote(note) } else { trash(note) }
+    }
+
+    /// Moves a note to the trash and closes its tab.
+    func trash(_ note: NoteSummary) {
+        perform("Delete note") {
+            _ = try await self.env.notes.delete(id: note.id, actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            self.dialog = nil
+            self.closeTabs(of: .note(note.id))
+            self.show("Moved “\(note.title)” to the Trash", icon: "delete")
+            await self.refreshAfterWrite()
+        }
+    }
     public func historyOfCurrentNote() { if let id = editor?.noteID { dialog = .history(id) } }
     public func closeActiveTab() { if let id = shell.activeTabID { shell.close(id) } }
 

@@ -62,7 +62,7 @@ struct NoteMenuButton: View {
         sep
         row("Ask agent about this note", disabled: true, help: "The in-app agent comes in a later version")
         sep
-        row("Delete file", destructive: true, disabled: note == nil) { if let note { workspace.dialog = .deleteNote(note) } }
+        row("Delete file", destructive: true, disabled: note == nil) { if let note { workspace.requestDelete(note) } }
     }
 
     private func findItem(_ action: NSTextFinder.Action) -> NSMenuItem {

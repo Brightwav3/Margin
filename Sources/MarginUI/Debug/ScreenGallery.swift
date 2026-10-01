@@ -84,6 +84,12 @@ public enum MarginScreens {
         MarginScreen("screens/1g", "Settings", milestone: "M11") { AnyView(WorkspaceView(env: .fixture(), start: .settings)) },
         MarginScreen("menus/3", "Tooltips and hover cards (3a–3h)", milestone: "M10d") { AnyView(MenusSheet()) },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
+        MarginScreen("account", "Account popup (Account v3 1a, 1b)", milestone: "M11") { AnyView(AccountSheet()) },
+        MarginScreen("settings-vault", "Settings › Vault and files (Account v3 2b)", milestone: "M11") {
+            let w = Workspace(env: .fixture(), start: .settings)
+            w.settingsModel().section = .vault
+            return AnyView(WorkspaceView(workspace: w))
+        },
         MarginScreen("course-style", "Course colour, icon or emoji picker", milestone: "M10") { AnyView(CourseStyleSheet()) },
     ]
 

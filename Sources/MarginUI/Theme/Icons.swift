@@ -96,7 +96,8 @@ public final class LucideIcons: Sendable {
 /// Lucide directly, so `Icon("leaf")` and `Icon("eco")` both work.
 public enum MarginIcons {
     public static let materialToLucide: [String: String] = [
-        "account_balance": "landmark", "add": "plus", "add_circle": "circle-plus",
+        "account_balance": "landmark", "account_circle": "circle-user", "extension": "puzzle", "folder_open": "folder-open",
+        "swap_horiz": "arrow-left-right", "login": "log-in", "laptop_mac": "laptop", "unarchive": "archive-restore", "check": "check", "add": "plus", "add_circle": "circle-plus",
         "add_link": "link-2", "add_task": "list-plus", "alternate_email": "at-sign",
         "arrow_back": "arrow-left", "arrow_forward": "arrow-right", "arrow_upward": "arrow-up",
         "article": "file-text", "assignment": "clipboard-list", "attach_file": "paperclip",
