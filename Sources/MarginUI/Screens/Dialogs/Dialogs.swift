@@ -6,9 +6,16 @@ import UniformTypeIdentifiers
 /// Modal dialogs over the window (margin-popups 1g, 1h, 2c, 2d, 2e, 3a, 3b, 3c; Screens 2e).
 struct DialogHost: View {
     @Environment(Workspace.self) private var workspace
+    /// The settings window shows the dialogs opened from it; the main window all others.
+    var inSettings = false
+
+    private var mine: Bool {
+        let settingsKey = SettingsWindow.shared.isKey
+        return inSettings ? settingsKey : !settingsKey
+    }
 
     var body: some View {
-        if let dialog = workspace.dialog {
+        if let dialog = workspace.dialog, mine {
             ZStack {
                 Color(hex: 0x1C1E26, opacity: 0.32).ignoresSafeArea().onTapGesture { workspace.dialog = nil }
                 Group {
