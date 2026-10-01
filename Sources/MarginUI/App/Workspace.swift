@@ -82,6 +82,9 @@ public final class Workspace {
     public let vaultURL: URL?
     /// Opening, creating and switching vaults; the app sets it (nil on sample data).
     public var vaults: (any VaultSwitching)?
+    /// Order of the Notes space (1b › Sort notes).
+    public enum NotesSort: String, CaseIterable, Sendable { case newest, oldest, name }
+    public var notesSort: NotesSort = .newest
     /// The local profile (account popup, Settings › Profile).
     public internal(set) var profile = Profile()
     /// Ask before moving notes and courses to the trash (Settings › General).

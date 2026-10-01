@@ -124,10 +124,7 @@ private struct DayColumn: View {
                                                      lengthHours: block.occurrence.session.lengthHours)
                 SessionBlock(block: block) { onOpen(block.occurrence) }
                     .contextMenu {
-                        Button("Open note") { onOpen(block.occurrence) }
-                        Button("Reschedule or cancel…") { onReschedule(block.occurrence) }
-                        Divider()
-                        CourseSubmenu(courseID: block.occurrence.session.courseID)
+                        SessionMenuItems(occurrence: block.occurrence, onOpen: onOpen, onReschedule: onReschedule)
                     }
                     .frame(height: max(0, frame.height))
                     .padding(.horizontal, 3)
@@ -180,5 +177,40 @@ private struct SessionBlock: View {
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
         .accessibilityLabel("\(block.code), \(block.detail)")
+    }
+}
+
+
+/// 1k: the menu of a class in the timetable.
+struct SessionMenuItems: View {
+    let occurrence: SessionOccurrence
+    let onOpen: (SessionOccurrence) -> Void
+    let onReschedule: (SessionOccurrence) -> Void
+    @Environment(Workspace.self) private var workspace: Workspace?
+
+    var body: some View {
+        let s = occurrence.session
+        let course = workspace?.courses.course(id: s.courseID)
+        Section("\(s.kind) · \(CourseDetailModel.day(occurrence.date)), \(s.start.string)") {
+            MenuItem("Open note", "description") { onOpen(occurrence) }
+            MenuItem("Reschedule…", "event_repeat") { onReschedule(occurrence) }
+            MenuItem(occurrence.isCancelled ? "Restore this session" : "Cancel this session", "event_busy") { onReschedule(occurrence) }
+        }
+        Divider()
+        MenuItem("Add task before this", "add_task") {
+            workspace?.capture.open(prefill: "\(course.map { "#\($0.code.isEmpty ? $0.name : $0.code) " } ?? "")@\(occurrence.date.adding(days: -1).iso) ")
+        }
+        MenuItem("Add reading", "menu_book") {
+            workspace?.capture.open(prefill: "Read  for \(course?.name ?? "class") @\(occurrence.date.adding(days: -1).iso)")
+        }
+        Divider()
+        if let course {
+            MenuItem("Edit all \(CoursesFormat.weekday(s.day)) sessions…", "edit_calendar") { workspace?.dialog = .courseSettings(course) }
+        }
+        MenuItem("Hide \(CoursesOverviewModel.KindGroup.of(kind: s.kind).title.lowercased()) from calendar", "visibility_off") {
+            workspace?.courses.toggle(CoursesOverviewModel.KindGroup.of(kind: s.kind))
+        }
+        Divider()
+        CourseSubmenu(courseID: s.courseID)
     }
 }
