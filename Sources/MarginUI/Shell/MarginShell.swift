@@ -1,6 +1,18 @@
+import AppKit
 import SwiftUI
 
 enum Shell {
+    /// A movement animation, or none when the user asked to reduce motion (System Settings ›
+    /// Accessibility › Display). Colour and opacity fades stay: they do not move anything.
+    static func motion(_ animation: Animation) -> Animation? {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : animation
+    }
+
+    /// A panel sliding in from `edge`; only a fade with Reduce Motion.
+    static func slide(from edge: Edge) -> AnyTransition {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .opacity : .move(edge: edge).combined(with: .opacity)
+    }
+
     static let railWidth: CGFloat = 56
     static let inspectorWidth: CGFloat = 300
     static let cardInset: CGFloat = 8
@@ -50,13 +62,13 @@ public struct MarginShell<Content: View>: View {
                 HStack(spacing: 0) {
                     if !model.sidebarCollapsed {
                         SidebarPanel(model: model, content: sidebar)
-                            .transition(.move(edge: .leading).combined(with: .opacity))
+                            .transition(Shell.slide(from: .leading))
                     }
                     content
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     if model.inspectorOpen, let inspector {
                         InspectorPanel(model: model, content: inspector)
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                            .transition(Shell.slide(from: .trailing))
                     }
                 }
                 .background(MarginColor.surface)

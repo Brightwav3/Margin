@@ -337,6 +337,9 @@ struct LinkPreviewCard: View {
         .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(MarginColor.borderCard) }
         .shadow(color: MarginColor.ink.opacity(0.18), radius: 20, y: 16)
         .onTapGesture(perform: onOpen)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onOpen() }
     }
 }
 
@@ -452,5 +455,6 @@ struct SelectionToolbar: View {
         }
         .buttonStyle(.plain)
         .marginTooltip(help, shortcut: nil, placement: .top)
+        .accessibilityLabel(help)
     }
 }

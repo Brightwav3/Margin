@@ -26,7 +26,7 @@ struct ManageVaultsDialog: View {
                         } else {
                             MarginButton("Open", size: .small) { workspace.dialog = nil; workspace.vaults?.open(v) }
                             Button { workspace.dialog = .removeVault(v) } label: { Icon("close", size: 14, color: MarginColor.textTertiary) }
-                                .buttonStyle(.plain).marginTooltip("Remove from list")
+                                .buttonStyle(.plain).marginTooltip("Remove from list").accessibilityLabel("Remove \(v.name) from list")
                         }
                     }
                     .padding(.vertical, 6)

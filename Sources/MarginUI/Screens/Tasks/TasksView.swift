@@ -110,6 +110,7 @@ struct TasksView: View {
                 Button("Remove due date") { workspace.perform("Set due date") { try await model.setDue(task, nil) } }
             }
             .onTapGesture(count: 2) { workspace.open(task: task) }
+            .accessibilityAction(named: "Open in note") { workspace.open(task: task) }
     }
 
     private func noteTitle(_ task: TaskItem) -> String {

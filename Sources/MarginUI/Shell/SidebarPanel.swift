@@ -242,6 +242,7 @@ struct SidebarItemRow: View {
         .modifier(CourseContextMenu(courseID: item.courseID))
         .modifier(FullTitleTooltip(title: item.title, detail: item.meta, isLong: item.title.count > 24))
         .accessibilityAddTraits(item.action == nil ? [] : .isButton)
+        .accessibilityAction { item.action?() }
     }
 }
 
@@ -300,6 +301,7 @@ private struct NotesPage: View {
                 }
                 .buttonStyle(.plain)
                 .help("New note")
+                .accessibilityLabel("New note")
             }
             .padding(.horizontal, 8)
             .padding(.top, 4)
@@ -385,7 +387,9 @@ private struct NoteRow: View {
                 }
             }
         }
-        .accessibilityAddTraits(highlighted ? .isSelected : [])
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(highlighted ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { note.action?() }
         .modifier(FullTitleTooltip(title: note.title, detail: nil, isLong: note.title.count > 26))
     }
 }
@@ -432,6 +436,8 @@ private struct SpaceSwitcher: View {
         // The active space is tinted with its colour; the other is clear glass.
         .glassEffect(on ? .regular.tint(bg).interactive() : .regular.interactive(), in: Circle())
         .help(name)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(on ? .isSelected : [])
         .animation(.easeOut(duration: 0.2), value: on)
     }
 }

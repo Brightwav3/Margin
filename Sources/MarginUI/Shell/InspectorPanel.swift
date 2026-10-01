@@ -78,6 +78,9 @@ private struct InspectorRowView: View {
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
         .onTapGesture { row.action?() }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(row.action == nil ? [] : .isButton)
+        .accessibilityAction { row.action?() }
     }
 }
 

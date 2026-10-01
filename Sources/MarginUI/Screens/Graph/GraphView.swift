@@ -139,7 +139,7 @@ struct GraphView: View {
                 HStack(spacing: 10) {
                     CheckboxView(isOn: Binding(get: { on }, set: { v in
                         if v { model.hiddenCourses.remove(card.id) } else { model.hiddenCourses.insert(card.id) }
-                    }))
+                    }), label: "Show \(card.course.name)")
                     Circle().fill(Color(hexString: card.course.style.dot)).frame(width: 8, height: 8)
                     Text(card.course.name).marginFont(MarginTextSize.base).lineLimit(1)
                 }
@@ -166,9 +166,9 @@ struct GraphView: View {
 
     private var controls: some View {
         HStack(spacing: 8) {
-            square("remove", "Zoom out") { withAnimation(.easeOut(duration: 0.15)) { model.zoomOut() } }
-            square("add", "Zoom in") { withAnimation(.easeOut(duration: 0.15)) { model.zoomIn() } }
-            square("center_focus_weak", "Fit to screen") { withAnimation(.easeOut(duration: 0.2)) { model.fit() } }
+            square("remove", "Zoom out") { withAnimation(Shell.motion(.easeOut(duration: 0.15))) { model.zoomOut() } }
+            square("add", "Zoom in") { withAnimation(Shell.motion(.easeOut(duration: 0.15))) { model.zoomIn() } }
+            square("center_focus_weak", "Fit to screen") { withAnimation(Shell.motion(.easeOut(duration: 0.2))) { model.fit() } }
         }
     }
 
@@ -181,6 +181,7 @@ struct GraphView: View {
         }
         .buttonStyle(.plain)
         .help(help)
+        .accessibilityLabel(help)
     }
 
     private func preview(_ node: GraphNode) -> some View {

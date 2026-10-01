@@ -148,16 +148,18 @@ private struct TabStrip: View {
                     TabItem(
                         tab: tab, isActive: active,
                         showSeparator: !active && !nextActive && index < model.tabs.count - 1,
-                        onClose: { withAnimation(.easeOut(duration: 0.16)) { model.close(tab.id) } }
+                        onClose: { withAnimation(Shell.motion(.easeOut(duration: 0.16))) { model.close(tab.id) } }
                     )
                     .frame(width: width)
                     // The dragged tab follows the pointer; the others slide aside live (like Chrome).
                     .offset(x: dragging == tab.id
                         ? dragOffset
                         : dragging == nil ? 0 : TabReorder.shift(index: index, from: dragFrom, to: target, step: step))
-                    .animation(dragging == tab.id ? nil : .easeOut(duration: 0.16), value: target)
+                    .animation(dragging == tab.id ? nil : Shell.motion(.easeOut(duration: 0.16)), value: target)
                     .zIndex(dragging == tab.id ? 2 : active ? 1 : 0)
                     .onTapGesture { model.select(tab.id) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { model.select(tab.id) }
                     .contextMenu { tabMenu(tab) }
                     .gesture(
                         DragGesture(minimumDistance: 6)
@@ -174,7 +176,7 @@ private struct TabStrip: View {
                                                            step: step, count: model.tabs.count)
                                 // Layout moves and offsets reset in one animation: the neighbours'
                                 // two changes cancel out (they stay put), the dragged tab settles.
-                                withAnimation(.easeOut(duration: 0.16)) {
+                                withAnimation(Shell.motion(.easeOut(duration: 0.16))) {
                                     model.move(tab.id, to: to)
                                     dragging = nil
                                     dragOffset = 0

@@ -125,7 +125,7 @@ struct HistoryDialog: View {
             HStack {
                 Text("Version history").marginFont(MarginTextSize.md, .semibold)
                 Spacer()
-                Button { workspace.dialog = nil } label: { Icon("close", size: 18, color: MarginColor.textSecondary) }.buttonStyle(.plain)
+                Button { workspace.dialog = nil } label: { Icon("close", size: 18, color: MarginColor.textSecondary) }.buttonStyle(.plain).accessibilityLabel("Close")
             }
             .padding(18)
             MarginDivider()

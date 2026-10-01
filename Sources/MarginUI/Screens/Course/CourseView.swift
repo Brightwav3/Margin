@@ -153,6 +153,7 @@ struct LectureCard: View {
         .onTapGesture(perform: onOpen)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onOpen() }
         .accessibilityIdentifier("lecture-card-\(card.theme)")
     }
 }
