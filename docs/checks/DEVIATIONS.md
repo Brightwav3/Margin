@@ -12,3 +12,6 @@
 | 2026-09-30 | 3a (source) | Source režim ukazuje tělo poznámky; frontmatter je v panelu Properties (smlouva: `Note.text` je bez frontmatteru), ne jako `---` řádky | smlouva `Note` | |
 | 2026-09-30 | 3a (live) | Panel Properties je nad titulkem `# …` (v mockupu mezi titulkem a textem), protože titulek je součást textu poznámky | technické | |
 | 2026-09-30 | Today, Upcoming | **Návrh M7-01** (mockup chybí): Today = hodiny dne jako barevné karty + Overdue / Today; Upcoming = Tomorrow, dny týdne, Later; sidebar s filtrem předmětů. Schválit v CP1 | návrh ke schválení | |
+| 2026-10-01 | Account v3 2a | Profil je v `.margin/settings.json` (klíč `profile`), ne v `.margin/profile.json` | jeden soubor nastavení přes existující `SettingsStore`, bez nové služby; text v okně to říká | |
+| 2026-10-01 | Account v3 2b, 2e–2l | Bez řádků, které nic nedělají (složka příloh, interval snímků, kanál aktualizací, šablony, LaTeX, akcentová barva, fonty) a Flashcards/Agent/Plugins jen jako vypnuté stránky | zobrazují se jen funkční volby | |
+
