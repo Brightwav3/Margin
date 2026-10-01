@@ -145,6 +145,35 @@ import Testing
         }
     }
 
+    /// A rename in Finder: the old path goes, the new one comes.
+    @Test func aRenamedFileIsReportedAsDeletedAndCreated() async throws {
+        let root = try makeVault()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try write("a", "Course/old.md", in: root)
+        let c = Collector(FSEventsFileWatcher(root: root).changes())
+        defer { c.stop() }
+        try FileManager.default.moveItem(at: root.appendingPathComponent("Course/old.md"), to: root.appendingPathComponent("Course/new.md"))
+        #expect(await c.wait(timeout: 5) {
+            $0.contains(FileChange(path: "Course/old.md", kind: .deleted)) && $0.contains(FileChange(path: "Course/new.md", kind: .created))
+        })
+    }
+
+    /// Moving a whole course folder reports every note at its new place and gone from the old one.
+    @Test func aMovedFolderReportsItsFilesAtTheNewPlace() async throws {
+        let root = try makeVault()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try write("a", "Course/x.md", in: root)
+        try write("b", "Course/y.md", in: root)
+        let c = Collector(FSEventsFileWatcher(root: root).changes())
+        defer { c.stop() }
+        try FileManager.default.moveItem(at: root.appendingPathComponent("Course"), to: root.appendingPathComponent("Moved"))
+        #expect(await c.wait(timeout: 5) { changes in
+            ["x", "y"].allSatisfy { n in
+                changes.contains(FileChange(path: "Course/\(n).md", kind: .deleted)) && changes.contains(FileChange(path: "Moved/\(n).md", kind: .created))
+            }
+        })
+    }
+
     @Test func aDeletedFolderReportsItsFiles() async throws {
         let root = try makeVault()
         defer { try? FileManager.default.removeItem(at: root) }
