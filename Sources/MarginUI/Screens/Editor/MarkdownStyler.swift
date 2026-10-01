@@ -389,7 +389,8 @@ enum MarkdownStyler {
             break
         case .wikilinkAlias:
             break
-        case .link:
+        case .link(let embed):
+            if embed, !source, !(active && mode == .live), markdownImage(r, s, text) { break }
             s.addAttribute(.foregroundColor, value: accent, range: r)
         case .linkText:
             s.addAttributes([.foregroundColor: accent, .underlineStyle: NSUnderlineStyle.single.rawValue,
@@ -471,7 +472,25 @@ enum MarkdownStyler {
         let inner = text.substring(with: NSRange(location: r.location + 3, length: max(0, r.length - 5)))
         let parts = inner.split(separator: "|", maxSplits: 1).map { String($0).replacingOccurrences(of: "\\", with: "") }
         guard let name = parts.first?.trimmingCharacters(in: .whitespaces), EmbedImages.isImage(name) else { return false }
-        let spec = parts.count > 1 ? parts[1] : nil
+        return picture(name, spec: parts.count > 1 ? parts[1] : nil, r, s, text)
+    }
+
+    /// `![alt|300](pictures/cell.png)`: a Markdown image of a vault file (web addresses stay links,
+    /// Margin works offline).
+    private static func markdownImage(_ r: NSRange, _ s: NSTextStorage, _ text: NSString) -> Bool {
+        let source = text.substring(with: r)
+        guard source.hasPrefix("!["), source.hasSuffix(")"), let split = source.range(of: "](", options: .backwards) else { return false }
+        let alt = String(source[source.index(source.startIndex, offsetBy: 2)..<split.lowerBound])
+        var dest = String(source[split.upperBound..<source.index(before: source.endIndex)]).trimmingCharacters(in: .whitespaces)
+        if dest.hasPrefix("<"), dest.hasSuffix(">") { dest = String(dest.dropFirst().dropLast()) }
+        guard !dest.contains("://"), !dest.hasPrefix("data:") else { return false }
+        let name = dest.removingPercentEncoding ?? dest
+        guard EmbedImages.isImage(name) else { return false }
+        let spec = alt.split(separator: "|").last.map(String.init).flatMap { Int($0.split(separator: "x").first ?? "") != nil ? $0 : nil }
+        return picture(name, spec: spec, r, s, text)
+    }
+
+    private static func picture(_ name: String, spec: String?, _ r: NSRange, _ s: NSTextStorage, _ text: NSString) -> Bool {
         let image = EmbedImages.shared.image(name)
         if image == nil && EmbedImages.shared.didFail(name) { return false }
         let size = image.map { EmbedImages.displaySize(of: $0, spec: spec, maxWidth: maxEmbedWidth) } ?? NSSize(width: 0, height: 24)
