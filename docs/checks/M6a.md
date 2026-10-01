@@ -17,8 +17,8 @@ Milestone: M6a  ·  Větev: sloučeno do `main` (#34, #35)  ·  Vyplňuje: agent
 ## Snímky
 | Obrazovka (ID) | Mockup (`reference/`) | Aplikace | Odchylka |
 |---|---|---|---|
-| 3a-source | (M0-10) | snapshots/3a-source.png | viz `DEVIATIONS.md` |
-| 3a-reading | (M0-10) | snapshots/3a-reading.png | viz `DEVIATIONS.md` |
+| 3a-source | reference/*.png | snapshots/3a-source.png | viz `DEVIATIONS.md` |
+| 3a-reading | reference/*.png | snapshots/3a-reading.png | viz `DEVIATIONS.md` |
 
 ## Odchylky od mockupu
 Zapsané v `docs/checks/DEVIATIONS.md` (tenčí písmo a ikony, zónovaná lišta, model záložek jen pro poznámky, data fixture).
