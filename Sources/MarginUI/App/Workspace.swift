@@ -16,6 +16,10 @@ public final class Workspace {
     public var toast: Toast?
     /// Modal dialog over the window (M10c).
     public var dialog: Dialog?
+    /// Notes chosen with ⌘-click or ⇧-click in a list (1r); empty when one note is simply open.
+    public var noteSelection: [NoteSummary] = []
+    /// Where a ⇧-click range starts.
+    var selectionAnchor: NoteID?
 
     public enum HelpTopic: String, Sendable { case shortcuts, markdown, whatsNew }
 
@@ -23,6 +27,10 @@ public final class Workspace {
         case newCourse
         case deleteNote(NoteSummary)
         case moveNote(NoteSummary)
+        case deleteNotes([NoteSummary])
+        case moveNotes([NoteSummary])
+        case mergeNotes([NoteSummary])
+        case tagNotes([NoteSummary])
         case grade(CourseID)
         case syllabus(CourseID)
         case share(NoteSummary)
@@ -48,6 +56,10 @@ public final class Workspace {
             case .newCourse: "newCourse"
             case .deleteNote(let n): "delete/\(n.id)"
             case .moveNote(let n): "move/\(n.id)"
+            case .deleteNotes(let n): "delete/" + n.map(\.id).joined(separator: ",")
+            case .moveNotes(let n): "move/" + n.map(\.id).joined(separator: ",")
+            case .mergeNotes(let n): "merge/" + n.map(\.id).joined(separator: ",")
+            case .tagNotes(let n): "tag/" + n.map(\.id).joined(separator: ",")
             case .grade(let c): "grade/\(c)"
             case .syllabus(let c): "syllabus/\(c)"
             case .share(let n): "share/\(n.id)"
