@@ -188,6 +188,32 @@ public actor VaultStore {
         return stats
     }
 
+    /// The first user file (not in `.margin/` or hidden folders) whose name is `name`, ignoring case;
+    /// folders are searched breadth first, so files closer to the vault root win.
+    public func findFile(named name: String) throws -> VaultPath? {
+        let wanted = name.lowercased()
+        var queue: [[String]] = [[]]
+        while !queue.isEmpty {
+            let dir = queue.removeFirst()
+            let entries = ((try? fileSystem.contentsOfDirectory(at: url(forComponents: dir))) ?? []).sorted { $0.name < $1.name }
+            for entry in entries where !entry.name.hasPrefix(".") {
+                switch entry.kind {
+                case .file where entry.name.lowercased() == wanted: return try VaultPath(components: dir + [entry.name])
+                case .directory: queue.append(dir + [entry.name])
+                default: continue
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Size in bytes of a file, nil when it does not exist.
+    public func size(of path: VaultPath) throws -> Int64? {
+        let url = try checkedURL(path, followFinal: true)
+        guard let attrs = try fileSystem.attributes(at: url), attrs.kind == .file else { return nil }
+        return attrs.size
+    }
+
     /// Names of the folders directly in an app-data folder (`.margin/history/`), sorted.
     public func listInternalFolders(in folder: VaultPath) throws -> [String] {
         guard folder.isInternal, folder != VaultPath.internalRoot else { throw MarginError.invalid("\(folder) is not app data") }

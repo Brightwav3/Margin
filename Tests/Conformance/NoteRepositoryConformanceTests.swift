@@ -4,6 +4,26 @@ import Testing
 
 /// One suite, run against `FixtureNoteRepository` and `VaultNoteRepository` (contract §5).
 @Suite struct NoteRepositoryConformanceTests {
+    @Test(arguments: HarnessKind.allCases)
+    func embeddedFilesAreFoundLikeObsidianDoes(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            // Every implementation: unknown names are not found, names leaving the vault are refused.
+            await #expect(throws: MarginError.self) { _ = try await h.notes.attachment(named: "missing.png", near: "bio/lecture-8") }
+            for bad in ["../secret.png", ".margin/settings.json", "/etc/hosts", ""] {
+                do { _ = try await h.notes.attachment(named: bad, near: nil); Issue.record("\(bad) was read") }
+                catch let e as MarginError { #expect(e.code == "invalid", "\(bad)") }
+            }
+            guard kind == .vault else { return }
+            // Next to the note, in `_files/`, then anywhere by name.
+            try h.writeFile("Fall 2026/Cell Biology/_files/membrane.png", "PNG-1")
+            try h.writeFile("Fall 2026/Modern Europe/map.png", "PNG-2")
+            let near = try await h.notes.attachment(named: "membrane.png", near: "bio/lecture-8")
+            #expect(String(decoding: near, as: UTF8.self) == "PNG-1")
+            #expect(String(decoding: try await h.notes.attachment(named: "MAP.png", near: "bio/lecture-8"), as: UTF8.self) == "PNG-2")
+            #expect(String(decoding: try await h.notes.attachment(named: "Fall 2026/Modern Europe/map.png", near: nil), as: UTF8.self) == "PNG-2")
+        }
+    }
+
     let world = Fixtures.week5
 
     private static let bioIDs = [

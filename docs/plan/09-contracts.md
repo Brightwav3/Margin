@@ -21,7 +21,7 @@ Backend (`MarginCore`) a UI (`MarginUI`) se potkávají **jen tady**. Díky tomu
 | `Clock` | „Teď“, dnes, týden semestru | `now`, `today`, `weekOfSemester` | vše |
 | `CourseCatalog` | Předměty, semestry, rozvrh | `courses(query:)`, `course(id)`, `archivedCourses()`, `sessions(week:)`, `updates: AsyncStream` | 1a, 1b, sidebar, rail |
 | `CourseCatalogWriter` | Vytvoření/úprava předmětu | `create`, `rename`, `setStyle`, `update` (nastavení: kód, vyučující, místnost, fakulta, kredity, rozvrh, zkoušky), `setArchived(semester:)`, `setArchived(course:)`, `delete` (do koše), `override(session:)` | 1g, 2f, 3a, 3c |
-| `NoteRepository` | Poznámky (čtení/zápis) | `notes(course:filter:)`, `open(id)`, `save(id, text)`, `create`, `move`, `delete → koš`, `externalChanges` | 2c, editor |
+| `NoteRepository` | Poznámky (čtení/zápis) | `notes(course:filter:)`, `open(id)`, `attachment(named:near:)` (vložené obrázky, PDF), `save(id, text)`, `create`, `move`, `delete → koš`, `externalChanges` | 2c, editor |
 | `NoteAnalysis` | Odvozené údaje z textu | `outline`, `backlinks`, `outgoing`, `stats`, `properties(id)` | editor, inspektor |
 | `PropertyService` | Vlastnosti (frontmatter) | `types`, `set(key, value, on:)`, `remove` | Properties, 1e |
 | `TaskService` | Úkoly z poznámek | `today()`, `upcoming()`, `tasks(course:)`, `toggle(id)`, `location(of:)`, `setDue(id, …)` | Today, Upcoming, editor |

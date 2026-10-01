@@ -1,3 +1,4 @@
+import Foundation
 /// `CourseCatalog` over `Fixtures.week5`, in memory. Same observable behaviour as
 /// `VaultCourseCatalog` (contract rule 2 and 3).
 public struct FixtureCourseCatalog: CourseCatalog {
@@ -30,6 +31,10 @@ public struct FixtureNoteRepository: NoteRepository {
 
     public func notes(course: CourseID?) async throws -> [NoteSummary] { try await store.notes(course: course) }
     public func open(id: NoteID) async throws -> Note { try await store.open(id: id) }
+    public func attachment(named name: String, near note: NoteID?) async throws -> Data {
+        try AttachmentRules.check(name)
+        throw MarginError.notFound("No file \(name)")
+    }
 
     public func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,
                      idempotencyKey: String?) async throws -> ChangeSet {
