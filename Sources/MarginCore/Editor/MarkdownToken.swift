@@ -67,6 +67,26 @@ public enum MarkdownTokenKind: Sendable, Hashable, Codable {
     case tableDelimiterRow
     /// `---`, `***` or `___` on its own line.
     case horizontalRule
+    /// `==text==` including the `=`s (Obsidian highlight).
+    case highlight
+    /// `%%text%%` on one line, including the `%`s (Obsidian comment).
+    case comment
+    /// The `%%` line opening or closing a block comment.
+    case commentFence
+    /// One line inside a block comment.
+    case commentLine
+    /// `$x$` inline math, including the dollars.
+    case inlineMath
+    /// The `$$` line opening or closing a math block.
+    case mathFence
+    /// One line of a math block.
+    case mathLine
+    /// `\*` and other escaped punctuation: the backslash and the character.
+    case escape
+    /// `[^1]` footnote reference (or the label of a `[^1]:` definition at the start of a line).
+    case footnoteRef(definition: Bool)
+    /// `^[text]` inline footnote, including the caret and brackets.
+    case inlineFootnote
 
     /// Stable short name used in diagnostics and tests, for example `heading.marker(2)`.
     public var name: String {
@@ -101,6 +121,16 @@ public enum MarkdownTokenKind: Sendable, Hashable, Codable {
         case .tableRow(let h): h ? "table.header" : "table.row"
         case .tableDelimiterRow: "table.delimiter"
         case .horizontalRule: "hr"
+        case .highlight: "highlight"
+        case .comment: "comment"
+        case .commentFence: "comment.fence"
+        case .commentLine: "comment.line"
+        case .inlineMath: "math.inline"
+        case .mathFence: "math.fence"
+        case .mathLine: "math.line"
+        case .escape: "escape"
+        case .footnoteRef(let d): d ? "footnote.definition" : "footnote.ref"
+        case .inlineFootnote: "footnote.inline"
         }
     }
 }

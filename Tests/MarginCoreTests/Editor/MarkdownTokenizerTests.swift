@@ -233,6 +233,7 @@ let tokenizerCases: [(input: String, tokens: [String])] = [
     ("\n\n", [
     ]),
     ("\\*not em\\* \\`no\\` \\[[x]]\n", [
+        "escape|\\*", "escape|\\*", "escape|\\`", "escape|\\`", "escape|\\[",
     ]),
     ("> # heading in quote\n", [
         "quote.marker|>",
@@ -256,6 +257,7 @@ let tokenizerCases: [(input: String, tokens: [String])] = [
         "tag|#end",
     ]),
     ("==x== and <b>html</b>\n", [
+        "highlight|==x==",
     ]),
     ("- a\n  cont\n  - b\n\n  para in list\n", [
         "list.bullet|-",

@@ -13,6 +13,8 @@ struct LineState: Equatable, Sendable {
         case normal
         case frontmatter
         case fence(char: UInt16, length: Int)
+        /// Inside `$$ … $$` (`math`) or `%% … %%` (comment).
+        case block(math: Bool)
         case indented
     }
 
@@ -232,6 +234,18 @@ struct LineScanner {
             add(.codeLine, start, end)
             return (.fenceBody, st)
 
+        case .block(let math):
+            let (a, b) = trim(ls, end)
+            let marker: UInt16 = math ? 0x24 : 0x25
+            if b - a == 2, t[a] == marker, t[a + 1] == marker {
+                add(math ? .mathFence : .commentFence, a, b)
+                st.mode = .normal
+                st.prevBlank = true
+                return (.fenceClose, st)
+            }
+            if a < b { add(math ? .mathLine : .commentLine, start, end) }
+            return (.fenceBody, st)
+
         case .indented:
             let (cols, f) = indent(ls)
             if f >= end { return (.blank, st) }
@@ -280,6 +294,17 @@ struct LineScanner {
                             LineState(mode: .fence(char: first, length: run), prevBlank: false,
                                       inList: st.inList, tablePrev: false, inTable: false))
                 }
+            }
+        }
+
+        // `$$` math block or `%%` comment block: a line with only the two characters.
+        if cols <= 3, first == 0x24 || first == 0x25 {
+            let (a, b) = trim(f, end)
+            if b - a == 2, t[a + 1] == first {
+                let math = first == 0x24
+                add(math ? .mathFence : .commentFence, a, b)
+                return (.fenceOpen(info: math ? "$$" : "%%"),
+                        LineState(mode: .block(math: math), prevBlank: false, inList: st.inList, tablePrev: false, inTable: false))
             }
         }
 
@@ -471,7 +496,18 @@ struct LineScanner {
             let c = t[i]
             switch c {
             case Self.backslash:
+                if i + 1 < to, Self.isEscapable(t[i + 1]) { add(.escape, i, i + 2) }
                 i += 2
+            case 0x3D:
+                i = paired(at: i, from: from, to: to, char: 0x3D, kind: .highlight)
+            case 0x25:
+                i = paired(at: i, from: from, to: to, char: 0x25, kind: .comment)
+            case 0x24:
+                i = inlineMath(at: i, to: to)
+            case Self.lbracket where i + 2 < to && t[i + 1] == 0x5E:
+                i = footnote(at: i, from: from, to: to)
+            case 0x5E where i + 1 < to && t[i + 1] == Self.lbracket:
+                i = inlineFootnote(at: i, to: to)
             case Self.backtick, Self.bang, Self.lbracket:
                 if let cons = construct(at: i, to: to) {
                     emit(cons)
@@ -702,6 +738,70 @@ extension LineScanner {
         guard k == end else { return i + 1 }
         add(.blockID, i, j)
         return j
+    }
+
+    /// `==text==` / `%%text%%`: exactly two markers, no space just inside them.
+    mutating func paired(at i: Int, from: Int, to: Int, char: UInt16, kind: MarkdownTokenKind) -> Int {
+        let n = runLength(i, to, char)
+        guard n == 2, i + 2 < to, kind == .comment || !Self.isSpaceLike(t[i + 2]) else { return i + n }
+        var j = i + 2
+        while j + 1 < to {
+            if t[j] == Self.backslash { j += 2; continue }
+            if t[j] == char, t[j + 1] == char, j > i + 2, kind == .comment || !Self.isSpaceLike(t[j - 1]) {
+                add(kind, i, j + 2)
+                if kind == .highlight { inline(i + 2, j) }
+                return j + 2
+            }
+            j += 1
+        }
+        return i + n
+    }
+
+    /// `$x$`: no space after the opening or before the closing dollar, not `$$`, not followed by a
+    /// digit (so prices like „$5 and $10“ stay text).
+    mutating func inlineMath(at i: Int, to: Int) -> Int {
+        guard i + 2 < to, t[i + 1] != 0x24, !Self.isSpaceLike(t[i + 1]) else { return i + 1 }
+        var j = i + 1
+        while j < to {
+            if t[j] == Self.backslash { j += 2; continue }
+            if t[j] == 0x24 {
+                guard !Self.isSpaceLike(t[j - 1]), j + 1 >= to || !Self.isDigit(t[j + 1]) else { return i + 1 }
+                add(.inlineMath, i, j + 1)
+                return j + 1
+            }
+            j += 1
+        }
+        return i + 1
+    }
+
+    /// `[^id]`, a definition when it starts the line and is followed by `:`.
+    mutating func footnote(at i: Int, from: Int, to: Int) -> Int {
+        var j = i + 2
+        while j < to, t[j] != Self.rbracket, !Self.isSpaceLike(t[j]) { j += 1 }
+        guard j < to, t[j] == Self.rbracket, j > i + 2 else { return i + 1 }
+        let definition = i == from && j + 1 < to && t[j + 1] == 0x3A
+        add(.footnoteRef(definition: definition), i, definition ? j + 2 : j + 1)
+        return definition ? j + 2 : j + 1
+    }
+
+    /// `^[text]` inline footnote (brackets may nest).
+    mutating func inlineFootnote(at i: Int, to: Int) -> Int {
+        var depth = 0
+        var j = i + 1
+        while j < to {
+            if t[j] == Self.backslash { j += 2; continue }
+            if t[j] == Self.lbracket { depth += 1 } else if t[j] == Self.rbracket {
+                depth -= 1
+                if depth == 0 { add(.inlineFootnote, i, j + 1); inline(i + 2, j); return j + 1 }
+            }
+            j += 1
+        }
+        return i + 1
+    }
+
+    /// ASCII punctuation that a backslash escapes in Markdown.
+    static func isEscapable(_ u: UInt16) -> Bool {
+        (u >= 0x21 && u <= 0x2F) || (u >= 0x3A && u <= 0x40) || (u >= 0x5B && u <= 0x60) || (u >= 0x7B && u <= 0x7E)
     }
 
     /// ASCII letters, digits and `-`.
