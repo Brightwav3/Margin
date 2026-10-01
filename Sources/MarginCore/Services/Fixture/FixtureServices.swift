@@ -33,7 +33,8 @@ public struct FixtureNoteRepository: NoteRepository {
     public func open(id: NoteID) async throws -> Note { try await store.open(id: id) }
     public func attachment(named name: String, near note: NoteID?) async throws -> Data {
         try AttachmentRules.check(name)
-        throw MarginError.notFound("No file \(name)")
+        guard let data = FixtureFiles.file(named: name) else { throw MarginError.notFound("No file \(name)") }
+        return data
     }
 
     public func save(id: NoteID, text: String, actor: Actor, baseVersion: String?, dryRun: Bool,

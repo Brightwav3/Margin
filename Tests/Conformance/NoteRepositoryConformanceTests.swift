@@ -41,7 +41,10 @@ import Testing
                 do { _ = try await h.notes.attachment(named: bad, near: nil); Issue.record("\(bad) was read") }
                 catch let e as MarginError { #expect(e.code == "invalid", "\(bad)") }
             }
-            guard kind == .vault else { return }
+            guard kind == .vault else {
+                #expect(try await h.notes.attachment(named: "bilayer-diagram.png", near: nil).count > 100)
+                return
+            }
             // Next to the note, in `_files/`, then anywhere by name.
             try h.writeFile("Fall 2026/Cell Biology/_files/membrane.png", "PNG-1")
             try h.writeFile("Fall 2026/Modern Europe/map.png", "PNG-2")
