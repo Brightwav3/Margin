@@ -284,7 +284,7 @@ struct MarginCommands: Commands {
             Divider()
             Menu("Import") {
                 Button("Syllabus…") { w?.run(command: "syllabus") }.disabled(w?.courses.cards.isEmpty ?? true)
-                Button("Markdown files…") {}.disabled(true)
+                Button("Markdown files…") { w?.importMarkdownFiles() }.disabled(w?.courses.cards.isEmpty ?? true)
             }
             Menu("Export") {
                 Button("PDF…") { w?.shareCurrentNote() }.disabled(!note)

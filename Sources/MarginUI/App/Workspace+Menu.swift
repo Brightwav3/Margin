@@ -1,5 +1,6 @@
 import AppKit
 import MarginCore
+import UniformTypeIdentifiers
 
 /// What the menu bar (M10-34…36) asks of the window: the open editor, views, navigation.
 extension Workspace {
@@ -135,4 +136,37 @@ extension Workspace {
 struct ActiveEditor {
     weak var model: NoteEditorModel?
     weak var handle: EditorHandle?
+}
+
+// MARK: Import
+
+
+extension Workspace {
+    /// File › Import › Markdown files…: each chosen `.md` / `.txt` file becomes a note of the current
+    /// course (else the first one), titled after the file; its text is kept as it is.
+    public func importMarkdownFiles() {
+        guard let course = currentCourse ?? courses.cards.first?.id else {
+            show("Add a course first, then import into it", icon: "error", error: true)
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText, .plainText]
+        panel.message = "Choose Markdown files to import into \(courses.course(id: course)?.name ?? course)"
+        guard panel.runModal() == .OK else { return }
+        let urls = panel.urls
+        perform("Import") {
+            var imported = 0
+            for url in urls {
+                let text = try String(contentsOf: url, encoding: .utf8)
+                let title = url.deletingPathExtension().lastPathComponent
+                _ = try await self.env.notes.create(course: course, title: title, kind: .note, text: text, actor: .user,
+                                                    baseVersion: nil, dryRun: false, idempotencyKey: nil)
+                imported += 1
+            }
+            await self.refreshAfterWrite()
+            self.show("Imported \(imported) \(imported == 1 ? "note" : "notes")", icon: "upload_file")
+        }
+    }
 }
