@@ -53,7 +53,12 @@ struct NoteEditorView: View {
             }
         }
         .task { await model.observeExternalChanges() }
-        .onAppear { workspace.setActiveEditor(model, handle: handle) }
+        .onAppear {
+            workspace.setActiveEditor(model, handle: handle)
+            let env = workspace.env, note = model.noteID, model = model
+            EmbedImages.shared.loader = { name in try? await env.notes.attachment(named: name, near: note) }
+            EmbedImages.shared.onLoaded = { [weak model] in model?.restyle() }
+        }
         .onDisappear {
             if workspace.editor === model { workspace.setActiveEditor(nil, handle: nil) }
             Task { await model.flush() }

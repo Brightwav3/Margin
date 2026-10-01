@@ -206,6 +206,15 @@ private struct ListsSampleScreen: View {
             let text = """
             # Milníky Historie 1
 
+            ## Důsledky Lisabonské smlouvy:[^3]
+
+            ![[bilayer-diagram.png]]
+
+            | Transport | Energie | Příklad |
+            | --- | --- | --- |
+            | Pasivní | žádná | ==osmóza== |
+            | Aktivní | ATP | Na⁺/K⁺ pumpa |
+
             ## Integrace jako souboj koncepcí
 
             ### Mezivládní [^1]
@@ -219,8 +228,6 @@ private struct ListsSampleScreen: View {
             \t- rozhoduje se většinou
             \t- kontrola a sankce
             - [ ] Dočíst kapitolu 2 @Fri
-
-            ## Důsledky Lisabonské smlouvy:[^3]
 
             Hlavní nástroj integrace je **evropské právo**.
 

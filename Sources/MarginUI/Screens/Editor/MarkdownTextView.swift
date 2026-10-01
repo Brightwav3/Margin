@@ -498,8 +498,107 @@ final class MarginTextView: NSTextView {
         return result
     }
 
+    /// Pictures of `![[…]]` embeds, in the lines the styler reserved.
+    private func embeds(in dirty: NSRect) -> [(rect: NSRect, image: NSImage)] {
+        guard let storage = textStorage, let layout = layoutManager, let container = textContainer else { return [] }
+        var result: [(NSRect, NSImage)] = []
+        let glyphs = layout.glyphRange(forBoundingRect: dirty.insetBy(dx: 0, dy: -800), in: container)
+        let chars = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        storage.enumerateAttribute(.marginEmbed, in: chars) { value, range, _ in
+            guard let value = value as? String else { return }
+            let parts = value.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+            guard let image = EmbedImages.shared.image(parts[0]) else { return }
+            let g = layout.glyphIndexForCharacter(at: range.location)
+            let line = layout.lineFragmentRect(forGlyphAt: g, effectiveRange: nil)
+            let maxWidth = min(MarkdownStyler.maxEmbedWidth, container.size.width - container.lineFragmentPadding * 2)
+            let size = EmbedImages.displaySize(of: image, spec: parts.count > 1 && !parts[1].isEmpty ? parts[1] : nil, maxWidth: maxWidth)
+            let x = textContainerOrigin.x + line.minX + container.lineFragmentPadding
+            let rect = NSRect(x: x, y: textContainerOrigin.y + line.minY + 6, width: size.width, height: size.height)
+            result.append((rect, image))
+        }
+        return result
+    }
+
+    /// Markdown tables drawn as grids (live and reading, outside the table being edited).
+    private func drawTables(in dirty: NSRect) {
+        guard let storage = textStorage, let layout = layoutManager, let container = textContainer else { return }
+        let glyphs = layout.glyphRange(forBoundingRect: dirty.insetBy(dx: 0, dy: -1200), in: container)
+        let chars = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        storage.enumerateAttribute(.marginTable, in: chars) { value, range, _ in
+            guard let source = value as? String else { return }
+            let g = layout.glyphIndexForCharacter(at: range.location)
+            let line = layout.lineFragmentRect(forGlyphAt: g, effectiveRange: nil)
+            var rows = source.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.map(TableEditing.cells)
+            var aligns: [NSTextAlignment] = []
+            if let d = rows.firstIndex(where: TableEditing.isDelimiter) {
+                aligns = rows[d].map { c in c.hasPrefix(":") && c.hasSuffix(":") ? .center : c.hasSuffix(":") ? .right : .left }
+                rows.remove(at: d)
+            }
+            guard !rows.isEmpty else { return }
+            let columns = rows.map(\.count).max() ?? 1
+            let font = MarkdownStyler.bodyFont(size: 15), bold = MarkdownStyler.bodyFont(.semibold, size: 15)
+            func plain(_ s: String) -> String {
+                s.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "==", with: "")
+                    .replacingOccurrences(of: "`", with: "").replacingOccurrences(of: "\\|", with: "|")
+                    .replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
+            }
+            var widths = Array(repeating: CGFloat(60), count: columns)
+            for (r, row) in rows.enumerated() {
+                for (c, cell) in row.enumerated() where c < columns {
+                    let w = (plain(cell) as NSString).size(withAttributes: [.font: r == 0 ? bold : font]).width + 28
+                    widths[c] = max(widths[c], w)
+                }
+            }
+            let available = container.size.width - container.lineFragmentPadding * 2
+            let total = widths.reduce(0, +)
+            if total > available { widths = widths.map { $0 * available / total } }
+            let rowH = MarkdownStyler.tableRowHeight
+            let origin = NSPoint(x: textContainerOrigin.x + line.minX + container.lineFragmentPadding,
+                                 y: textContainerOrigin.y + line.minY + 6)
+            let frame = NSRect(x: origin.x, y: origin.y, width: min(total, available), height: CGFloat(rows.count) * rowH)
+            NSGraphicsContext.saveGraphicsState()
+            let outline = NSBezierPath(roundedRect: frame, xRadius: 6, yRadius: 6)
+            outline.addClip()
+            NSColor(MarginColor.sunken).setFill()
+            NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: rowH).fill()
+            NSColor(MarginColor.border).setStroke()
+            for r in 1..<max(rows.count, 1) {
+                let y = frame.minY + CGFloat(r) * rowH
+                let p = NSBezierPath(); p.move(to: NSPoint(x: frame.minX, y: y)); p.line(to: NSPoint(x: frame.maxX, y: y)); p.lineWidth = 1; p.stroke()
+            }
+            var x = frame.minX
+            for c in 0..<columns {
+                if c > 0 {
+                    NSColor(MarginColor.border).setStroke()
+                    let p = NSBezierPath(); p.move(to: NSPoint(x: x, y: frame.minY)); p.line(to: NSPoint(x: x, y: frame.maxY)); p.lineWidth = 1; p.stroke()
+                }
+                for (r, row) in rows.enumerated() where c < row.count {
+                    let para = NSMutableParagraphStyle()
+                    para.alignment = c < aligns.count ? aligns[c] : .left
+                    para.lineBreakMode = .byTruncatingTail
+                    let attrs: [NSAttributedString.Key: Any] = [.font: r == 0 ? bold : font, .foregroundColor: NSColor(MarginColor.ink), .paragraphStyle: para]
+                    let cellRect = NSRect(x: x + 12, y: frame.minY + CGFloat(r) * rowH + (rowH - font.boundingRectForFont.height) / 2 + 1,
+                                          width: widths[c] - 24, height: rowH)
+                    (plain(row[c]) as NSString).draw(in: cellRect, withAttributes: attrs)
+                }
+                x += widths[c]
+            }
+            NSGraphicsContext.restoreGraphicsState()
+            NSColor(MarginColor.border).setStroke()
+            outline.lineWidth = 1
+            outline.stroke()
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        drawTables(in: dirtyRect)
+        for embed in embeds(in: dirtyRect) {
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(roundedRect: embed.rect, xRadius: 6, yRadius: 6).addClip()
+            embed.image.draw(in: embed.rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            NSGraphicsContext.restoreGraphicsState()
+        }
         NSColor(MarginColor.textTertiary).setFill()
         for dot in bullets(in: dirtyRect) { NSBezierPath(ovalIn: dot).fill() }
         for box in checkboxes(in: dirtyRect) {
