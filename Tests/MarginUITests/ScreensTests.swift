@@ -47,7 +47,7 @@ import Testing
 
     @Test func workspaceRoutesEveryPlace() async {
         let w = Workspace(env: .fixture())
-        for r: Route in [.today, .upcoming, .inbox, .graph, .grades, .archive, .settings, .search("x")] {
+        for r: Route in [.today, .upcoming, .inbox, .graph, .grades, .archive, .search("x")] {   // settings open their own window
             w.open(r)
             #expect(w.route == r)
         }
