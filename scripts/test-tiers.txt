@@ -7,3 +7,4 @@ perf         ^MarginCoreTests\.PerfSuites/
 robustness   ^MarginCoreTests\.Robustness/
 robustness   ^MarginCoreTests\.VaultStoreInterruptedWriteTests/
 fuzz         ^MarginCoreTests\.FrontmatterFuzzTests/
+ocr          ^MarginUITests\.ImageTextRecognitionTests/
