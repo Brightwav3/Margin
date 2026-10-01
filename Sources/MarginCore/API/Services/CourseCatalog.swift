@@ -27,6 +27,10 @@ public protocol CourseCatalog: Sendable {
     /// empty query returns all courses.
     func courses(query: String?) async throws -> [Course]
 
+    /// Courses archived one by one (`CourseCatalogWriter.setArchived(course:)`) in semesters that are
+    /// not archived themselves, sorted by name. Courses of an archived semester are not listed here.
+    func archivedCourses() async throws -> [Course]
+
     /// One course. Throws `MarginError.notFound` for an unknown id.
     func course(id: CourseID) async throws -> Course
 

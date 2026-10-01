@@ -41,6 +41,39 @@ public struct NewSession: Codable, Sendable, Hashable {
     }
 }
 
+/// Details of an existing course that `CourseCatalogWriter.update` changes (course settings).
+/// `nil` leaves a field as it is. An empty string clears `professor`, `room` and `faculty`;
+/// `credits: 0` clears the credits. `sessions` and `exams`, when given, replace the whole weekly
+/// timetable or exam list (an empty list removes it).
+public struct CourseUpdate: Codable, Sendable, Hashable {
+    public var code: String?
+    public var professor: String?
+    public var room: String?
+    public var faculty: String?
+    public var credits: Int?
+    public var sessions: [NewSession]?
+    public var exams: [NewExam]?
+
+    public init(code: String? = nil, professor: String? = nil, room: String? = nil, faculty: String? = nil,
+                credits: Int? = nil, sessions: [NewSession]? = nil, exams: [NewExam]? = nil) {
+        self.code = code; self.professor = professor; self.room = room; self.faculty = faculty
+        self.credits = credits; self.sessions = sessions; self.exams = exams
+    }
+}
+
+/// One exam of a `CourseUpdate` (an `Exam` before it belongs to a course).
+public struct NewExam: Codable, Sendable, Hashable {
+    public var title: String
+    public var date: LocalDate
+    public var time: LocalTime?
+    /// Share of the final grade, 0–100.
+    public var weightPercent: Int
+
+    public init(title: String, date: LocalDate, time: LocalTime? = nil, weightPercent: Int = 0) {
+        self.title = title; self.date = date; self.time = time; self.weightPercent = weightPercent
+    }
+}
+
 /// Creating and editing courses, archiving semesters and changing single classes (M10). The read side
 /// is `CourseCatalog`; after a write, `CourseCatalog.courses`, `course(id:)`, `sessions(week:)`,
 /// `semesters()` and `updates` already show the change.
@@ -61,6 +94,14 @@ public struct NewSession: Codable, Sendable, Hashable {
 /// - **Archived semesters are read-only:** `create` in, and every course edit of, an archived semester
 ///   throws `.readOnly`, and so does creating or moving a note into one (`NoteRepository`).
 ///   `setArchived(false)` makes it writable again and restores everything as it was.
+/// - **Course settings:** `update` changes only the keys its `CourseUpdate` names. Sessions get the
+///   same checks as in `create` (length over 0 and at most 12 hours, no two at the same day and time);
+///   an exam needs a title and a weight of 0–100.
+/// - **One course archived or deleted:** `setArchived(course:)` moves the course folder to
+///   `_archive/<semester>/` (and back); the course leaves `CourseCatalog.courses` and `sessions(week:)`,
+///   is listed by `CourseCatalog.archivedCourses()` and is read-only until restored. `delete` moves the
+///   course folder with all its notes to the trash (never hard-deleted); the course is gone from the
+///   catalog. Both throw `.readOnly` in an archived semester (restore the semester instead).
 /// - **Overrides:** `override(session:)` changes or cancels one occurrence of a weekly session.
 ///   `CourseCatalog.sessions(week:)` returns cancelled occurrences with `isCancelled` set and moved ones
 ///   at their new date, time and room (`SessionOccurrence`). An override replaces an earlier one for the
@@ -85,6 +126,21 @@ public protocol CourseCatalogWriter: Sendable {
     /// Sets the icon and/or palette key of a course; `nil` leaves that part as it is.
     func setStyle(id: CourseID, icon: String?, color: String?, actor: Actor, baseVersion: String?,
                   dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet
+
+    /// Changes the course's details (code, lecturer, room, faculty, credits, timetable, exams).
+    /// An update that changes nothing returns an empty `ChangeSet`.
+    func update(id: CourseID, _ update: CourseUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
+
+    /// Archives (`true`) or restores (`false`) one course: its folder moves to `_archive/<semester>/`.
+    /// Doing what is already the case changes nothing (empty `ChangeSet`).
+    func setArchived(course id: CourseID, _ archived: Bool, actor: Actor, baseVersion: String?,
+                     dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet
+
+    /// Moves the course folder, with its notes and files, to the trash. The `ChangeSet` has one
+    /// `.deleted` entry (`_course.md`).
+    func delete(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
 
     /// Archives (`true`) or restores (`false`) a whole semester: its folder moves to `_archive/` and it
     /// becomes read-only. Doing what is already the case changes nothing (empty `ChangeSet`).

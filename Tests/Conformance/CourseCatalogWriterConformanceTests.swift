@@ -339,4 +339,85 @@ private let stats = NewCourse(name: "Statistics", semester: "fall-2026", code: "
             #expect(week.allSatisfy { !$0.isCancelled })
         }
     }
+
+    // MARK: settings, archive and delete of one course (M10-12.B)
+
+    @Test(arguments: editKinds)
+    func updateChangesTheDetailsItNames(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let before = try await h.courses.course(id: "bio")
+            let weekBefore = try await h.courses.sessions(week: 5).filter { $0.session.courseID == "bio" }.count
+            let midterm = LocalDate(year: 2026, month: 10, day: 20)!
+            let cs = try await h.writer.update(id: "bio", CourseUpdate(
+                code: "BIO 202", professor: "", room: "Sci 300", credits: 6,
+                sessions: [NewSession(day: .tuesday, start: .literal(10, 0), lengthHours: 2),
+                           NewSession(day: .thursday, start: .literal(14, 0), kind: "Lab", room: "Lab B")],
+                exams: [NewExam(title: "Midterm", date: midterm, weightPercent: 30)]),
+                actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(cs.entries.count == 1 && cs.entries[0].kind == .modified)
+            let bio = try await h.courses.course(id: "bio")
+            #expect(bio.code == "BIO 202" && bio.professor == nil && bio.room == "Sci 300" && bio.credits == 6)
+            #expect(bio.name == before.name && bio.style == before.style && bio.faculty == before.faculty)
+            #expect(bio.sessions.count == 2 && bio.sessions[1].kind == "Lab" && bio.sessions[1].room == "Lab B")
+            #expect(bio.sessions[0].lengthHours == 2 && bio.sessions[0].room == nil)
+            #expect(bio.exams.map(\.title) == ["Midterm"] && bio.exams[0].weightPercent == 30 && bio.exams[0].date == midterm)
+            let weekAfter = try await h.courses.sessions(week: 5).filter { $0.session.courseID == "bio" }.count
+            #expect(weekAfter == 2 && weekBefore >= 1)
+            // Nothing given, nothing changed.
+            let same = try await h.writer.update(id: "bio", CourseUpdate(code: "BIO 202"), actor: .user, baseVersion: nil,
+                                                 dryRun: false, idempotencyKey: nil)
+            #expect(same.isEmpty)
+            // Bad rows are refused before anything is written.
+            #expect(await codeOf { try await h.writer.update(id: "bio", CourseUpdate(exams: [NewExam(title: "X", date: midterm, weightPercent: 120)]),
+                                                             actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "invalid")
+            #expect(await codeOf { try await h.writer.update(id: "bio", CourseUpdate(sessions: [NewSession(day: .monday, start: .literal(9, 0)),
+                                                                                                NewSession(day: .monday, start: .literal(9, 0))]),
+                                                             actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "invalid")
+            #expect(await codeOf { try await h.writer.update(id: "nope", CourseUpdate(code: "X"), actor: .user, baseVersion: nil,
+                                                             dryRun: false, idempotencyKey: nil) } == "notFound")
+            #expect(try await h.courses.course(id: "bio").sessions.count == 2)
+        }
+    }
+
+    @Test(arguments: archiveKinds)
+    func oneCourseIsArchivedAndRestored(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let count = try await h.courses.courses(query: nil).count
+            let dry = try await h.writer.setArchived(course: "bio", true, actor: .user, baseVersion: nil, dryRun: true, idempotencyKey: nil)
+            #expect(dry.entries.count == 1 && dry.entries[0].kind == .moved)
+            #expect(try await h.courses.archivedCourses().isEmpty)
+            let cs = try await h.writer.setArchived(course: "bio", true, actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(cs.entries[0].path.hasPrefix("_archive/") && cs.entries[0].kind == .moved)
+            #expect(try await h.courses.courses(query: nil).count == count - 1)
+            #expect(try await h.courses.archivedCourses().map(\.id) == ["bio"])
+            #expect(try await h.courses.sessions(week: 5).allSatisfy { $0.session.courseID != "bio" })
+            #expect(try await h.courses.course(id: "bio").name == "Cell Biology")
+            #expect(await codeOf { try await h.writer.update(id: "bio", CourseUpdate(code: "X"), actor: .user, baseVersion: nil,
+                                                             dryRun: false, idempotencyKey: nil) } == "readOnly")
+            let again = try await h.writer.setArchived(course: "bio", true, actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(again.isEmpty)
+            _ = try await h.writer.setArchived(course: "bio", false, actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(try await h.courses.courses(query: nil).count == count)
+            #expect(try await h.courses.archivedCourses().isEmpty)
+        }
+    }
+
+    @Test(arguments: archiveKinds)
+    func deletingACourseTrashesItWithItsNotes(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            let count = try await h.courses.courses(query: nil).count
+            #expect(try await !h.notes.notes(course: "chem").isEmpty)
+            let dry = try await h.writer.delete(id: "chem", actor: .user, baseVersion: nil, dryRun: true, idempotencyKey: nil)
+            #expect(dry.entries.count == 1 && dry.entries[0].kind == .deleted)
+            #expect(try await h.courses.courses(query: nil).count == count)
+            let version = try await h.writer.courseVersion(id: "chem")
+            #expect(await codeOf { try await h.writer.delete(id: "chem", actor: .user, baseVersion: "stale", dryRun: false,
+                                                             idempotencyKey: nil) } == "conflict")
+            _ = try await h.writer.delete(id: "chem", actor: testActor, baseVersion: version, dryRun: false, idempotencyKey: nil)
+            #expect(try await h.courses.courses(query: nil).count == count - 1)
+            #expect(await codeOf { try await h.courses.course(id: "chem") } == "notFound")
+            #expect(try await h.notes.notes(course: nil).allSatisfy { $0.courseID != "chem" })
+            #expect(try await h.courses.sessions(week: 5).allSatisfy { $0.session.courseID != "chem" })
+        }
+    }
 }

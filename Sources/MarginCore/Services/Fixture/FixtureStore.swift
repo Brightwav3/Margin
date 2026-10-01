@@ -30,6 +30,8 @@ actor FixtureStore {
     var extraSemesters: [Semester] = []
     let clock: any Clock
     var courses: [Course]
+    /// Courses archived one by one (`CourseCatalogWriter.setArchived(course:)`).
+    var archivedCourseIDs: Set<CourseID> = []
     /// Graded items of all courses (`GradeService`), in file order per course.
     var grades: [Grade]
     /// Version history, shared by `HistoryService` and the automatic snapshot of `saveRecordingHistory`.
@@ -95,7 +97,7 @@ actor FixtureStore {
     func courses(query: String?) -> [Course] {
         // Like the vault: an archived semester is not "the current one".
         guard let current = currentSemester(), current.id == semester.id else { return [] }
-        return ServiceRules.sortCourses(courses.filter { ServiceRules.matches($0, query: query) })
+        return ServiceRules.sortCourses(courses.filter { !archivedCourseIDs.contains($0.id) && ServiceRules.matches($0, query: query) })
     }
 
     func course(id: CourseID) throws -> Course {
@@ -106,7 +108,8 @@ actor FixtureStore {
     func sessions(week: Int) throws -> [SessionOccurrence] {
         guard let current = currentSemester() else { throw MarginError.notFound("This vault has no semester") }
         let own = current.id == semester.id
-        return try ServiceRules.occurrences(week: week, semester: current, courses: own ? courses : [],
+        return try ServiceRules.occurrences(week: week, semester: current,
+                                            courses: own ? courses.filter { !archivedCourseIDs.contains($0.id) } : [],
                                             overrides: own ? overrides : [])
     }
 
