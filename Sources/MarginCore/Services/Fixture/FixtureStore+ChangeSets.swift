@@ -20,6 +20,7 @@ extension FixtureStore {
         var grades: [Grade]
         var semester: Semester
         var extraSemesters: [Semester]
+        var archivedCourses: Set<CourseID> = []
     }
 
     /// The semesters of the world (`SemesterStore`, `CourseCatalogWriter.setArchived`).
@@ -50,7 +51,7 @@ extension FixtureStore {
 
     func currentWorld() -> World {
         World(notes: notes, courses: courses, overrides: overrides, inbox: inbox, inboxStems: inboxStems,
-              grades: grades, semester: semester, extraSemesters: extraSemesters)
+              grades: grades, semester: semester, extraSemesters: extraSemesters, archivedCourses: archivedCourseIDs)
     }
 
     /// Treats the current state as the baseline for the next recorded write.
@@ -165,6 +166,7 @@ extension FixtureStore {
         grades = world.grades
         semester = world.semester
         extraSemesters = world.extraSemesters
+        archivedCourseIDs = world.archivedCourses
 
         var changed = Set<CourseID>()
         let old = Dictionary(uniqueKeysWithValues: before.courses.map { ($0.id, $0) })

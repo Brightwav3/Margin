@@ -13,6 +13,7 @@ public struct FixtureCourseCatalog: CourseCatalog {
     public func semesters() async throws -> [Semester] { await store.semesters() }
     public func courses(query: String?) async throws -> [Course] { await store.courses(query: query) }
     public func course(id: CourseID) async throws -> Course { try await store.course(id: id) }
+    public func archivedCourses() async throws -> [Course] { await store.archivedCourses() }
     public func sessions(week: Int) async throws -> [SessionOccurrence] { try await store.sessions(week: week) }
     public var updates: AsyncStream<CatalogUpdate> { store.catalogUpdates.subscribe() }
 }
@@ -163,6 +164,24 @@ public struct FixtureCourseCatalogWriter: CourseCatalogWriter {
                          dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         try await store.setCourseStyle(id: id, icon: icon, color: color, actor: actor, baseVersion: baseVersion,
                                        dryRun: dryRun, idempotencyKey: idempotencyKey)
+    }
+
+    public func update(id: CourseID, _ update: CourseUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.updateCourse(id: id, update, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey)
+    }
+
+    public func setArchived(course id: CourseID, _ archived: Bool, actor: Actor, baseVersion: String?,
+                            dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setArchived(course: id, archived, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                    idempotencyKey: idempotencyKey)
+    }
+
+    public func delete(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.deleteCourse(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                     idempotencyKey: idempotencyKey)
     }
 
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,

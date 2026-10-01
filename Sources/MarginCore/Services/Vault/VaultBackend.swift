@@ -259,7 +259,8 @@ actor VaultBackend {
 
     func courses(query: String?) -> [Course] {
         guard let current = currentSemester() else { return [] }
-        return ServiceRules.sortCourses(model.courses.filter { $0.semester == current.id && ServiceRules.matches($0, query: query) })
+        let live = model.entries.filter { !$0.archived }.map(\.course)
+        return ServiceRules.sortCourses(live.filter { $0.semester == current.id && ServiceRules.matches($0, query: query) })
     }
 
     func course(id: CourseID) throws -> Course {
@@ -269,7 +270,8 @@ actor VaultBackend {
 
     func sessions(week: Int) throws -> [SessionOccurrence] {
         guard let current = currentSemester() else { throw MarginError.notFound("This vault has no semester") }
-        return try ServiceRules.occurrences(week: week, semester: current, courses: model.courses.filter { $0.semester == current.id },
+        return try ServiceRules.occurrences(week: week, semester: current,
+                                            courses: model.entries.filter { !$0.archived }.map(\.course).filter { $0.semester == current.id },
                                             overrides: overrides(in: current))
     }
 

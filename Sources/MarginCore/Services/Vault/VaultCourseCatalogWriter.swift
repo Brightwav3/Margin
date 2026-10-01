@@ -35,6 +35,33 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
         }
     }
 
+    public func update(id: CourseID, _ update: CourseUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.updateCourse(id: id, update, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                           idempotencyKey: idempotencyKey)
+        }
+    }
+
+    public func setArchived(course id: CourseID, _ archived: Bool, actor: Actor, baseVersion: String?,
+                            dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.setArchived(course: id, archived, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                          idempotencyKey: idempotencyKey)
+        }
+    }
+
+    public func delete(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.deleteCourse(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                           idempotencyKey: idempotencyKey)
+        }
+    }
+
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,
                             dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         let backend = self.backend

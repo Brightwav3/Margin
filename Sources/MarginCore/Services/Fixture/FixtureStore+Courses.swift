@@ -92,6 +92,55 @@ extension FixtureStore {
         }
     }
 
+    // MARK: Settings, archive and delete of one course
+
+    func updateCourse(id: CourseID, _ update: CourseUpdate, actor: Actor, baseVersion: String?, dryRun: Bool,
+                      idempotencyKey: String?) throws -> ChangeSet {
+        if archivedCourseIDs.contains(id) { throw MarginError.readOnly("\(id) is archived and read-only") }
+        return try editCourse(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                              idempotencyKey: idempotencyKey) { $0 = try CourseWriting.applying(update, to: $0) }
+    }
+
+    func setArchived(course id: CourseID, _ archived: Bool, actor: Actor, baseVersion: String?, dryRun: Bool,
+                     idempotencyKey: String?) throws -> ChangeSet {
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        let course = try course(id: id)
+        try requireWritable()
+        try requireBaseVersion(baseVersion, matches: hash(course), what: "Course \(id)")
+        guard archivedCourseIDs.contains(id) != archived else { return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey) }
+        let live = [semester.name, VaultPath.filename(fromTitle: course.name)].joined(separator: "/")
+        let archive = "_archive/" + live
+        let entries = [ChangeSet.Entry(path: archived ? archive : live, kind: .moved, fromPath: archived ? live : archive)]
+        if !dryRun {
+            if archived { archivedCourseIDs.insert(id) } else { archivedCourseIDs.remove(id) }
+            announce([id])
+        }
+        return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
+    }
+
+    func deleteCourse(id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                      idempotencyKey: String?) throws -> ChangeSet {
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        let course = try course(id: id)
+        try requireWritable()
+        try requireBaseVersion(baseVersion, matches: hash(course), what: "Course \(id)")
+        let entries = [ChangeSet.Entry(path: coursePath(course), kind: .deleted, beforeHash: hash(course))]
+        if !dryRun {
+            courses.removeAll { $0.id == id }
+            archivedCourseIDs.remove(id)
+            for (noteID, note) in notes where note.summary.courseID == id { notes[noteID] = nil }
+            overrides.removeAll { $0.courseID == id }
+            announce([id])
+        }
+        return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
+    }
+
+    func archivedCourses() -> [Course] {
+        guard !semester.isArchived else { return [] }
+        return courses.filter { archivedCourseIDs.contains($0.id) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
     // MARK: Archive
 
     func setArchived(semester id: SemesterID, _ archived: Bool, actor: Actor, dryRun: Bool,
