@@ -145,7 +145,7 @@ public final class CourseDetailModel {
 
     /// Reloads when notes change on disk (another editor, the vault watcher).
     public func observeNotes() async {
-        for await _ in env.notes.externalChanges { await load() }
+        for await _ in env.notes.externalChanges where ExternalChanges.followed { await load() }
     }
 
     /// Reloads when tasks change (toggled here, in Today or in a note).

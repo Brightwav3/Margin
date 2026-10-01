@@ -18,6 +18,8 @@ final class AppState {
     var phase: Phase = .welcome
     var progress: IndexProgress?
     private var env: AppEnvironment?
+    /// Bumped on every opened vault, so listeners of an old one stop.
+    @ObservationIgnored private var generation = 0
     @ObservationIgnored private let hotkeys = CarbonGlobalHotkeyService()
     @ObservationIgnored private var panel: CapturePanel?
 
@@ -61,8 +63,27 @@ final class AppState {
         let old = self.env
         self.env = env
         Task { await old?.shutdown() }
-        phase = .ready(Workspace(env: env, vaultURL: vault))
+        let workspace = Workspace(env: env, vaultURL: vault)
+        if vault != nil { workspace.vaults = self }
+        workspace.applySettings()
+        workspace.applyStartupPlace()
+        phase = .ready(workspace)
         Task { await scheduleReminders(env) }
+        generation += 1
+        let current = generation
+        Task { await followQuickCaptureSetting(env, generation: current) }
+    }
+
+    /// Settings › General › Quick capture from any app turns the global ⇧⌘Space on and off.
+    private func followQuickCaptureSetting(_ env: AppEnvironment, generation: Int) async {
+        func apply() async {
+            if await env.settings.get(Settings.globalQuickCapture) { registerHotkey() } else { hotkeys.unregister(.quickCapture) }
+        }
+        await apply()
+        for await change in env.settings.changes where change.key == Settings.globalQuickCapture.key {
+            guard self.generation == generation else { return }
+            await apply()
+        }
     }
 
     /// Class notifications for this week (and the next) when allowed (1i, M10-18).
@@ -100,6 +121,42 @@ final class AppState {
             panel = CapturePanel(model: model)
         }
         panel?.present()
+    }
+}
+
+// MARK: Vaults (account popup › Switch vault, Manage vaults)
+
+extension AppState: VaultSwitching {
+    func recentVaults() -> [VaultChoice] {
+        let current = workspace?.vaultURL?.path
+        return VaultLocation.recents().map { VaultChoice(name: $0.name, path: $0.path, isCurrent: $0.path == current) }
+            .sorted { $0.isCurrent && !$1.isCurrent }
+    }
+
+    func open(_ vault: VaultChoice) {
+        guard let recent = VaultLocation.recents().first(where: { $0.path == vault.path }) else { return }
+        guard let url = VaultLocation.resolve(recent) else {
+            workspace?.show("“\(vault.name)” is no longer at \(vault.path)", icon: "error", error: true)
+            return
+        }
+        VaultLocation.remember(url)
+        open(url)
+    }
+
+    func openFolder() { chooseVault() }
+
+    func createVault() {
+        guard let url = VaultLocation.createNew() else { return }
+        open(url)
+    }
+
+    func removeFromList(_ vault: VaultChoice) {
+        guard let recent = VaultLocation.recents().first(where: { $0.path == vault.path }) else { return }
+        VaultLocation.removeFromList(recent)
+    }
+
+    func revealVault() {
+        if let url = workspace?.vaultURL { VaultLocation.reveal(url) }
     }
 }
 

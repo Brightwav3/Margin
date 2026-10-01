@@ -28,6 +28,9 @@ struct DialogHost: View {
                     case .courseSettings(let c): CourseSettingsDialog(course: c)
                     case .deleteCourse(let c): DeleteCourseDialog(course: c)
                     case .newSemester: NewSemesterDialog()
+                    case .manageVaults: ManageVaultsDialog()
+                    case .removeVault(let v): RemoveVaultDialog(vault: v)
+                    case .restoreSnapshot(let v): RestoreSnapshotDialog(version: v)
                     case .help(let t): HelpDialog(topic: t)
                     }
                 }
@@ -257,15 +260,7 @@ struct DeleteNoteDialog: View {
         return parts.joined(separator: " ")
     }
 
-    private func delete() {
-        workspace.perform("Delete note") {
-            _ = try await workspace.env.notes.delete(id: note.id, actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
-            workspace.dialog = nil
-            workspace.closeTabs(of: .note(note.id))
-            workspace.show("Moved “\(note.title)” to the Trash", icon: "delete")
-            await workspace.refreshAfterWrite()
-        }
-    }
+    private func delete() { workspace.trash(note) }
 }
 
 // MARK: 2c Move note
@@ -765,14 +760,18 @@ struct HelpDialog: View {
     let topic: Workspace.HelpTopic
     @Environment(Workspace.self) private var workspace
 
-    private var rows: [(String, String)] {
-        switch topic {
-        case .shortcuts:
+    /// Every shortcut worth knowing (Help › Keyboard shortcuts, Settings › Keyboard shortcuts).
+    static let shortcutRows: [(String, String)] =
             [("Command palette", "⌘K"), ("Quick capture from any app", "⇧⌘Space"), ("New note", "⌘N"),
              ("New lecture note", "⌃⌘N"), ("Search vault", "⇧⌘F"), ("Reading view", "⌘E"), ("Source mode", "⇧⌘E"),
              ("Sidebar", "⌘\\"), ("Right panel", "⌥⌘\\"), ("Today · Upcoming · Inbox · Schedule", "⌘1 · ⌘2 · ⌘3 · ⌘4"),
              ("Back · Forward", "⌥⌘← · ⌥⌘→"), ("Next · previous lecture", "⌃⌘→ · ⌃⌘←"), ("Task", "⌘L"),
-             ("Link to note", "⇧⌘K"), ("Bold · Italic · Underline", "⌘B · ⌘I · ⌘U"), ("Checklist", "⇧⌘9")]
+             ("Link to note", "⇧⌘K"), ("Bold · Italic · Underline", "⌘B · ⌘I · ⌘U"), ("Checklist", "⇧⌘9"),
+             ("Settings", "⌘,"), ("New tab · Close tab", "⌘T · ⌘W"), ("Next · previous tab", "⌃⇥ · ⌃⇧⇥")]
+
+    private var rows: [(String, String)] {
+        switch topic {
+        case .shortcuts: Self.shortcutRows
         case .markdown:
             [("# Heading", "Heading, ## smaller"), ("**bold**  *italic*", "Emphasis"), ("- item", "Bulleted list"),
              ("- [ ] task @Fri", "Task with a due date (Today, Upcoming)"), ("[[Note]]", "Link to a note; [[Note|text]] shows text"),

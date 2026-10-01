@@ -35,6 +35,9 @@ public final class Workspace {
         case courseSettings(Course)
         case deleteCourse(Course)
         case newSemester
+        case manageVaults
+        case removeVault(VaultChoice)
+        case restoreSnapshot(NoteVersion)
         case help(HelpTopic)
 
         public var id: String {
@@ -54,6 +57,9 @@ public final class Workspace {
             case .courseSettings(let c): "settings/\(c.id)"
             case .deleteCourse(let c): "deleteCourse/\(c.id)"
             case .newSemester: "newSemester"
+            case .manageVaults: "manageVaults"
+            case .removeVault(let v): "removeVault/\(v.path)"
+            case .restoreSnapshot(let v): "restoreSnapshot/\(v.id)"
             case .help(let t): "help/\(t.rawValue)"
             }
         }
@@ -68,6 +74,12 @@ public final class Workspace {
 
     /// Folder of the vault on disk; nil on fixture data.
     public let vaultURL: URL?
+    /// Opening, creating and switching vaults; the app sets it (nil on sample data).
+    public var vaults: (any VaultSwitching)?
+    /// The local profile (account popup, Settings › Profile).
+    public internal(set) var profile = Profile()
+    /// Ask before moving notes and courses to the trash (Settings › General).
+    public internal(set) var confirmBeforeDeleting = true
 
     public init(env: AppEnvironment, shell: AppModel? = nil, start: Route = .courses, vaultURL: URL? = nil) {
         self.env = env
@@ -264,7 +276,7 @@ public final class Workspace {
         if case .note(let id) = route, let course = courses.courseID(ofNote: id) { active = course }
         return RailContent(active: active, inboxHasItems: inboxCount > 0,
                            courses: courses.cards.map { ($0.course.id, $0.course.name, $0.course.style) },
-                           initials: "ME")
+                           initials: profile.initials)
     }
 
     /// Inbox size for the rail dot, refreshed by `refreshInbox()`.
@@ -428,6 +440,34 @@ public final class Workspace {
                 mode: view == .reading ? .reading : view == .source ? .source : .live,
                 showProperties: await env.settings.get(Settings.showProperties))
             for case let m as NoteEditorModel in models.values { m.readableLineLength = editorDefaults.readableLineLength }
+            profile = await env.settings.get(Settings.profile)
+            confirmBeforeDeleting = await env.settings.get(Settings.confirmBeforeDeleting)
+            EditorTyping.smartLists = await env.settings.get(Settings.smartLists)
+            EditorTyping.autoPair = await env.settings.get(Settings.autoPair)
+            ExternalChanges.followed = await env.settings.get(Settings.watchExternalChanges)
+            let scale = CGFloat(await env.settings.get(Settings.fontSize)) / 16
+            if abs(MarkdownStyler.scale - scale) > 0.001 {
+                MarkdownStyler.scale = scale
+                for case let m as NoteEditorModel in models.values { m.restyle() }
+            }
+            switch await env.settings.get(Settings.theme) {
+            case .system: NSApp?.appearance = nil
+            case .light: NSApp?.appearance = NSAppearance(named: .aqua)
+            case .dark: NSApp?.appearance = NSAppearance(named: .darkAqua)
+            }
+        }
+    }
+
+    /// Shows the page chosen in Settings › General › Open on startup.
+    public func applyStartupPlace() {
+        Task { @MainActor in
+            let place: Route = switch await env.settings.get(Settings.openOnStartup) {
+            case .courses: .courses
+            case .today: .today
+            case .upcoming: .upcoming
+            case .inbox: .inbox
+            }
+            if place != .courses, shell.activeTabID == nil { shell.showPlace(place.key) }
         }
     }
 

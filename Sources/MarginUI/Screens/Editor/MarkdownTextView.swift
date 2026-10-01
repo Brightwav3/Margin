@@ -2,6 +2,26 @@ import AppKit
 import MarginCore
 import SwiftUI
 
+/// Typing behaviour from Settings › Editor (applied app-wide by `Workspace.applySettings`).
+@MainActor enum EditorTyping {
+    /// Return continues a list or task, an empty item ends it.
+    static var smartLists = true
+    /// Typing an opener adds its closer: `(` `[` `{` `"` `` ` `` and `**`, `==` around a selection.
+    static var autoPair = true
+
+    static let pairs: [String: String] = ["(": ")", "[": "]", "{": "}", "\"": "\"", "`": "`"]
+
+    /// The text to insert for `typed` at `selection`, and where the caret goes (relative to the
+    /// start of the replaced range); nil when auto-pairing does not apply.
+    static func pair(typed: String, selected: String, next: Character?) -> (text: String, caret: Int, length: Int)? {
+        guard autoPair, let close = pairs[typed] else { return nil }
+        if !selected.isEmpty { return (typed + selected + close, (typed + selected + close).utf16.count, 0) }
+        // Before a letter or digit the pair would be in the way: type the opener alone.
+        if let next, next.isLetter || next.isNumber { return nil }
+        return (typed + close, typed.utf16.count, 0)
+    }
+}
+
 /// Events the editor reports to its host (popups, navigation).
 @MainActor
 struct EditorEvents {
@@ -288,9 +308,27 @@ struct MarkdownTextView: NSViewRepresentable {
 
         var popupOpen: Bool { linkQueryStart != nil || slashStart != nil }
 
+        func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString text: String?) -> Bool {
+            guard let text, text.utf16.count == 1, let tv = textView as? MarginTextView else { return true }
+            let string = tv.string as NSString
+            // Typing the closer that auto-pairing already put there steps over it.
+            if EditorTyping.autoPair, range.length == 0, EditorTyping.pairs.values.contains(text),
+               range.location < string.length, string.substring(with: NSRange(location: range.location, length: 1)) == text,
+               range.location > 0, EditorTyping.pairs[string.substring(with: NSRange(location: range.location - 1, length: 1))] == text {
+                tv.setSelectedRange(NSRange(location: range.location + 1, length: 0))
+                return false
+            }
+            let next: Character? = NSMaxRange(range) < string.length
+                ? string.substring(with: NSRange(location: NSMaxRange(range), length: 1)).first : nil
+            guard let pair = EditorTyping.pair(typed: text, selected: string.substring(with: range), next: next) else { return true }
+            tv.replace(range, with: pair.text)
+            tv.setSelectedRange(NSRange(location: range.location + pair.caret, length: pair.length))
+            return false
+        }
+
         func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             guard popupOpen else {
-                if selector == #selector(NSResponder.insertNewline(_:)) { return continueList(textView) }
+                if selector == #selector(NSResponder.insertNewline(_:)), EditorTyping.smartLists { return continueList(textView) }
                 return false
             }
             let key: EditorKey? = switch selector {

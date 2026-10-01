@@ -90,7 +90,7 @@ struct CourseView: View {
             Button("Share / Export…") { workspace.dialog = .share(note) }
             Button("Version history") { workspace.dialog = .history(note.id) }
             Divider()
-            Button("Delete…", role: .destructive) { workspace.dialog = .deleteNote(note) }
+            Button("Delete…", role: .destructive) { workspace.requestDelete(note) }
         }
     }
 
