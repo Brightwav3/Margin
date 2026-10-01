@@ -151,7 +151,7 @@ public struct SwitchView: View {
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.5)
-        .animation(.easeOut(duration: 0.16), value: isOn)
+        .animation(Shell.motion(.easeOut(duration: 0.16)), value: isOn)
         .accessibilityLabel(label ?? "Switch")
         .accessibilityValue(isOn ? "on" : "off")
         .accessibilityAddTraits(.isToggle)
@@ -188,11 +188,13 @@ public struct Segmented<Value: Hashable>: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
+        .accessibilityElement(children: .contain)
         .padding(3)
         .background(MarginColor.sunken, in: RoundedRectangle(cornerRadius: MarginRadius.sm))
-        .animation(.easeOut(duration: 0.14), value: selection)
+        .animation(Shell.motion(.easeOut(duration: 0.14)), value: selection)
     }
 }
 

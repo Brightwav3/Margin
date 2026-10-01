@@ -71,7 +71,7 @@ struct DialogCard<Content: View, Footer: View>: View {
                 Text(title).marginFont(MarginTextSize.md, .semibold)
                 Spacer()
                 Button { workspace.dialog = nil } label: { Icon("close", size: 18, color: MarginColor.textSecondary) }
-                    .buttonStyle(.plain).keyboardShortcut(.cancelAction)
+                    .buttonStyle(.plain).keyboardShortcut(.cancelAction).accessibilityLabel("Close")
             }
             content
             HStack(spacing: 10) { Spacer(); footer }

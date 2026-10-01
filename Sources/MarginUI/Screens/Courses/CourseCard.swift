@@ -61,6 +61,7 @@ struct CourseCard: View {
         .contextMenu { CourseMenuItems(course: data.course) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onOpen() }
         .accessibilityAction(named: "Open", onOpen)
         .accessibilityIdentifier("course-card-\(data.id)")
     }

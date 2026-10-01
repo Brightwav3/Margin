@@ -74,6 +74,8 @@ private struct PropertyLine: View {
                 value
                     .contentShape(Rectangle())
                     .onTapGesture { begin() }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction(named: "Edit") { begin() }
             }
         }
         .contextMenu {
@@ -92,7 +94,7 @@ private struct PropertyLine: View {
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in PropertyTag(item.display) }
             }
         case .bool(let b):
-            CheckboxView(isOn: Binding(get: { b }, set: { v in Task { await model.setProperty(property.key, .bool(v)) } }))
+            CheckboxView(isOn: Binding(get: { b }, set: { v in Task { await model.setProperty(property.key, .bool(v)) } }), label: property.key)
         case .date(let d):
             HStack(spacing: 8) {
                 Icon("calendar_today", size: 16, color: MarginColor.textSecondary)

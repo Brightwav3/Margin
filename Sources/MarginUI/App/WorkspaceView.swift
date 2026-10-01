@@ -184,7 +184,7 @@ struct ToastView: View {
                 .frame(minHeight: 40)
                 .background(MarginColor.ink, in: RoundedRectangle(cornerRadius: MarginRadius.md))
                 .marginShadow(.popover)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(Shell.slide(from: .bottom))
             }
         }
         .animation(.easeOut(duration: 0.2), value: toast)
