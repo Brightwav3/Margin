@@ -107,3 +107,13 @@ import Testing
         #expect(m.nextLectureDay(courses: courses) == LocalDate(year: 2026, month: 9, day: 29))
     }
 }
+
+/// M8-09: „Add to lecture note“ goes to the nearest lecture, not the latest note.
+@MainActor @Suite struct InboxLectureNoteTests {
+    @Test func picksTheNoteOfTheNearestLecture() async throws {
+        let env = AppEnvironment.fixture()
+        let courses = try await env.courses.courses(query: nil)
+        // The fixture clock is Monday 28 Sep; the nearest bio lecture is Tuesday 29 Sep (lecture 9).
+        #expect(try await InboxModel(env: env).lectureNote(of: "bio", courses: courses) == "bio/lecture-9")
+    }
+}

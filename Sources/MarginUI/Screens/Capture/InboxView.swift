@@ -52,7 +52,36 @@ public final class InboxModel {
         return (1...7).map { today.adding(days: $0) }.first { d in c.sessions.contains { $0.day == d.weekday } }
     }
 
-    /// Files the item. „Add to lecture note“ appends it to the course's latest lecture note (M8-09).
+    /// The note of the nearest lecture (M8-09): cancelled classes are skipped and moved ones count on
+    /// their new day (`LectureNoteResolver` over this and the neighbouring weeks' classes). A lecture
+    /// without a note yet gets one, dated with the class.
+    func lectureNote(of course: CourseID, courses: [Course]) async throws -> NoteID {
+        guard let info = courses.first(where: { $0.id == course }) else { throw MarginError.notFound("Unknown course") }
+        let notes = try await env.notes.notes(course: course)
+        let semesters = (try? await env.courses.semesters()) ?? []
+        let today = env.clock.today
+        let semester = semesters.first { $0.start <= today && today <= $0.end }
+        var occurrences: [SessionOccurrence] = []
+        if let semester, let week = env.clock.weekOfSemester(semester) {
+            for w in Set([week - 1, week, week + 1]) where w >= 1 {
+                occurrences += ((try? await env.courses.sessions(week: w)) ?? []).filter { $0.session.courseID == course }
+            }
+        }
+        let resolver = LectureNoteResolver(clock: env.clock)
+        let target = occurrences.isEmpty ? resolver.resolve(course: info, notes: notes, semester: semester)
+            : resolver.resolve(course: info, notes: notes, occurrences: occurrences)
+        guard let target else { throw MarginError.notFound("No lecture in this course yet") }
+        if let id = target.noteID { return id }
+        let change = try await env.notes.create(course: course, title: target.suggestedTitle, kind: .lecture,
+                                                text: "# \(target.suggestedTitle)\n\n", actor: .user, baseVersion: nil,
+                                                dryRun: false, idempotencyKey: "lecture-\(course)-\(target.date.iso)")
+        guard let id = change.entries.first?.noteID else { throw MarginError.notFound("The lecture note was not created") }
+        _ = try? await env.properties.set(key: "date", value: .date(target.date), on: id, actor: .user,
+                                          baseVersion: nil, dryRun: false, idempotencyKey: nil)
+        return id
+    }
+
+    /// Files the item. „Add to lecture note“ appends it to the note of the nearest lecture (M8-09).
     public func move(courses: [Course]) async throws -> String {
         guard let item = current, let course else { throw MarginError.invalid("Pick a course first") }
         let due = due(when, courses: courses)
@@ -61,14 +90,9 @@ public final class InboxModel {
             _ = try await env.inbox.triage(item: item.id, course: course, when: due, kind: keepAs == .task ? .task : .note,
                                            actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
         case .lectureNote:
-            let notes = try await env.notes.notes(course: course)
-            let today = env.clock.today
-            let lecture = notes.filter { $0.kind == .lecture || $0.kind == .lab || $0.kind == .seminar }
-                .filter { ($0.date ?? .init(daysSinceEpoch: 0)) <= today.adding(days: 1) }
-                .max { ($0.date ?? .init(daysSinceEpoch: 0)) < ($1.date ?? .init(daysSinceEpoch: 0)) }
-            guard let lecture else { throw MarginError.notFound("No lecture note in this course yet") }
+            let lecture = try await lectureNote(of: course, courses: courses)
             let draft = CaptureDraft(text: item.text, course: course, due: item.kind == .task ? due : nil,
-                                     kind: item.kind == .task ? .task : .note, attachTo: lecture.id)
+                                     kind: item.kind == .task ? .task : .note, attachTo: lecture)
             _ = try await env.capture.commit(draft, actor: .user, dryRun: false, idempotencyKey: "inbox-\(item.id)")
             _ = try await env.inbox.delete(item: item.id, actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
         }
