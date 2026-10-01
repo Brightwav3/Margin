@@ -92,7 +92,6 @@ public final class AppModel {
         self.defaults = defaults
         self.tabs = tabs
         self.activeTabID = activeTabID ?? tabs.first?.id
-        self.lastTabID = activeTabID ?? tabs.first?.id
         self.sidebarCollapsed = sidebarCollapsed ?? defaults?.bool(forKey: Self.collapsedKey) ?? false
         self.inspectorOpen = inspectorOpen
         self.sidebarPage = sidebarPage
@@ -103,77 +102,68 @@ public final class AppModel {
 
     public var activeTab: ShellTab? { tabs.first { $0.id == activeTabID } }
 
-    // MARK: Places and tabs
+    // MARK: Tabs (browser-like)
     //
-    // Only notes live in tabs. Places (courses, a course, Today, Inbox, graph…) show in the content
-    // area with no tab active; `place` is the route key of the place shown then.
+    // Every page shows in a tab. Opening something changes what the active tab shows; a new tab is
+    // made only on request (Open in new tab, or + and then a choice). There is always one tab.
 
-    /// Route key of the page shown while no tab is active.
-    public var place: String = "courses"
-    /// The tab a note opens in when no tab is active („everything lives in one tab“).
-    public private(set) var lastTabID: UUID?
-
-    public enum Location: Hashable, Sendable {
-        case tab(UUID)
-        case place(String)
+    /// One step of the history: a tab and what it showed.
+    public struct Location: Hashable, Sendable {
+        public let tab: UUID
+        public let route: String?
+        public let title: String
+        public let dot: String
     }
 
-    public var location: Location { activeTabID.map(Location.tab) ?? .place(place) }
-
-    /// Shows a place; the tabs stay, none is active.
-    public func showPlace(_ key: String) {
-        guard location != .place(key) else { return }
-        remember(location)
-        activeTabID = nil
-        place = key
+    public var location: Location? {
+        activeTab.map { Location(tab: $0.id, route: $0.route, title: $0.title, dot: $0.dot) }
     }
 
     public func select(_ id: UUID) {
         guard tabs.contains(where: { $0.id == id }), activeTabID != id else { return }
-        remember(location)
+        remember()
         activeTabID = id
-        lastTabID = id
     }
 
-    /// Opens a tab after the active (or last used) one and activates it.
+    /// Opens a new tab after the active one and activates it.
     @discardableResult
     public func open(_ tab: ShellTab) -> UUID {
-        let anchor = activeTabID ?? lastTabID
-        let index = tabs.firstIndex { $0.id == anchor }.map { $0 + 1 } ?? tabs.endIndex
+        let index = tabs.firstIndex { $0.id == activeTabID }.map { $0 + 1 } ?? tabs.endIndex
+        remember()
         tabs.insert(tab, at: index)
-        remember(location)
         activeTabID = tab.id
-        lastTabID = tab.id
         return tab.id
     }
 
-    /// Shows `tab.route`: its open tab, else the active or last used tab with new content, else a
-    /// new tab. `newTab` always opens one (⌘-click, Open in new tab).
+    /// Shows `tab`'s page in the active tab (a new tab when `newTab`, or when there is none).
     @discardableResult
     public func show(_ tab: ShellTab, newTab: Bool = false) -> UUID {
-        if let route = tab.route, let existing = tabs.first(where: { $0.route == route }) {
-            select(existing.id)
-            return existing.id
+        guard !newTab, let id = activeTabID, let i = tabs.firstIndex(where: { $0.id == id }) else { return open(tab) }
+        guard tabs[i].route != tab.route else {
+            tabs[i].title = tab.title; tabs[i].dot = tab.dot
+            return id
         }
-        if !newTab, let reuse = activeTabID ?? lastTabID, let i = tabs.firstIndex(where: { $0.id == reuse }) {
-            remember(location)
-            tabs[i].title = tab.title
-            tabs[i].dot = tab.dot
-            tabs[i].route = tab.route
-            activeTabID = reuse
-            lastTabID = reuse
-            return reuse
-        }
-        return open(tab)
+        remember()
+        tabs[i].title = tab.title
+        tabs[i].dot = tab.dot
+        tabs[i].route = tab.route
+        return id
     }
 
-    /// Closing the active tab activates its right neighbour, else the left one, else the place.
+    /// What a new empty tab shows (closing the last tab leaves one); nil = no tab is left.
+    public var homeTab: ShellTab?
+
+    /// Closing the active tab activates its right neighbour, else the left one.
     public func close(_ id: UUID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         tabs.remove(at: index)
-        if lastTabID == id { lastTabID = tabs.isEmpty ? nil : tabs[min(index, tabs.count - 1)].id }
         if activeTabID == id {
             activeTabID = tabs.isEmpty ? nil : tabs[min(index, tabs.count - 1)].id
+        }
+        if tabs.isEmpty, let home = homeTab {
+            let tab = ShellTab(title: home.title, dot: home.dot, route: home.route)
+            tabs = [tab]
+            activeTabID = tab.id
         }
     }
 
@@ -182,31 +172,30 @@ public final class AppModel {
     private var backStack: [Location] = []
     private var forwardStack: [Location] = []
 
-    private func remember(_ from: Location) {
+    private func remember() {
+        guard let from = location else { return }
         if backStack.last != from { backStack.append(from) }
         if backStack.count > 100 { backStack.removeFirst() }
         forwardStack.removeAll()
     }
 
-    private func isValid(_ l: Location) -> Bool {
-        if case .tab(let id) = l { return tabs.contains { $0.id == id } }
-        return true
-    }
+    private func isValid(_ l: Location) -> Bool { tabs.contains { $0.id == l.tab } }
 
     public var canGoBack: Bool { backStack.contains { isValid($0) && $0 != location } }
     public var canGoForward: Bool { forwardStack.contains { isValid($0) && $0 != location } }
 
     private func go(to l: Location) {
-        switch l {
-        case .tab(let id): activeTabID = id; lastTabID = id
-        case .place(let key): activeTabID = nil; place = key
-        }
+        guard let i = tabs.firstIndex(where: { $0.id == l.tab }) else { return }
+        tabs[i].route = l.route
+        tabs[i].title = l.title
+        tabs[i].dot = l.dot
+        activeTabID = l.tab
     }
 
     public func goBack() {
         while let l = backStack.popLast() {
             guard isValid(l), l != location else { continue }
-            forwardStack.append(location)
+            if let now = location { forwardStack.append(now) }
             go(to: l)
             return
         }
@@ -215,7 +204,7 @@ public final class AppModel {
     public func goForward() {
         while let l = forwardStack.popLast() {
             guard isValid(l), l != location else { continue }
-            backStack.append(location)
+            if let now = location { backStack.append(now) }
             go(to: l)
             return
         }
@@ -224,7 +213,7 @@ public final class AppModel {
     /// Next / previous tab (Window › Next tab ⌃⇥).
     public func cycleTab(_ step: Int) {
         guard !tabs.isEmpty else { return }
-        let i = tabs.firstIndex(where: { $0.id == (activeTabID ?? lastTabID) }) ?? -1
+        let i = tabs.firstIndex(where: { $0.id == activeTabID }) ?? -1
         select(tabs[((i + step) % tabs.count + tabs.count) % tabs.count].id)
     }
 

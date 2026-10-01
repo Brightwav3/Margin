@@ -95,7 +95,7 @@ extension Workspace {
         }
     }
     public func historyOfCurrentNote() { if let id = editor?.noteID { dialog = .history(id) } }
-    public func closeActiveTab() { if let id = shell.activeTabID { shell.close(id) } }
+    public func closeActiveTab() { if let id = shell.activeTabID { closeTab(id) } }
 
     /// Recently opened notes, newest first (File › Open recent).
     public var recentNotes: [(id: NoteID, title: String)] { recents }
