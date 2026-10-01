@@ -79,6 +79,8 @@ public struct WorkspaceView: View {
                     .keyboardShortcut("f", modifiers: [.command, .shift])
             }
             .opacity(0).allowsHitTesting(false)
+            // Keyboard shortcuts only; not something VoiceOver should land on.
+            .accessibilityHidden(true)
         }
     }
 }

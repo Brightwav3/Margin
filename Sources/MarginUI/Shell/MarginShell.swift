@@ -92,6 +92,8 @@ public struct MarginShell<Content: View>: View {
             }
             .opacity(0)
             .allowsHitTesting(false)
+            // Keyboard shortcuts only; not something VoiceOver should land on.
+            .accessibilityHidden(true)
         }
     }
 }
