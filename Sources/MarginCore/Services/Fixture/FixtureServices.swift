@@ -15,6 +15,7 @@ public struct FixtureCourseCatalog: CourseCatalog {
     public func courses(query: String?) async throws -> [Course] { await store.courses(query: query) }
     public func course(id: CourseID) async throws -> Course { try await store.course(id: id) }
     public func archivedCourses() async throws -> [Course] { await store.archivedCourses() }
+    public func banner(course: CourseID) async throws -> Data? { try await store.banner(course: course) }
     public func sessions(week: Int) async throws -> [SessionOccurrence] { try await store.sessions(week: week) }
     public var updates: AsyncStream<CatalogUpdate> { store.catalogUpdates.subscribe() }
 }
@@ -196,6 +197,12 @@ public struct FixtureCourseCatalogWriter: CourseCatalogWriter {
                        idempotencyKey: String?) async throws -> ChangeSet {
         try await store.deleteCourse(id: id, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
                                      idempotencyKey: idempotencyKey)
+    }
+
+    public func setBanner(_ image: Data?, course: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                          idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.setBanner(image, course: course, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                  idempotencyKey: idempotencyKey)
     }
 
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,

@@ -19,8 +19,8 @@ Backend (`MarginCore`) a UI (`MarginUI`) se potkávají **jen tady**. Díky tomu
 | Protokol | Odpovědnost | Hlavní metody / proudy | Používají (UI) |
 |---|---|---|---|
 | `Clock` | „Teď“, dnes, týden semestru | `now`, `today`, `weekOfSemester` | vše |
-| `CourseCatalog` | Předměty, semestry, rozvrh | `courses(query:)`, `course(id)`, `archivedCourses()`, `sessions(week:)`, `updates: AsyncStream` | 1a, 1b, sidebar, rail |
-| `CourseCatalogWriter` | Vytvoření/úprava předmětu | `create`, `rename`, `setStyle`, `update` (nastavení: kód, vyučující, místnost, fakulta, kredity, rozvrh, zkoušky), `setArchived(semester:)`, `setArchived(course:)`, `delete` (do koše), `override(session:)` | 1g, 2f, 3a, 3c |
+| `CourseCatalog` | Předměty, semestry, rozvrh | `courses(query:)`, `course(id)`, `archivedCourses()`, `banner(course:)` (obrázek banneru nebo `nil`), `sessions(week:)`, `updates: AsyncStream` | 1a, 1b, sidebar, rail |
+| `CourseCatalogWriter` | Vytvoření/úprava předmětu | `create`, `rename`, `setStyle`, `update` (nastavení: kód, vyučující, místnost, fakulta, kredity, rozvrh, zkoušky), `setArchived(semester:)`, `setArchived(course:)`, `delete` (do koše), `override(session:)`, `setBanner(_:course:)` (PNG/JPEG/GIF/WebP ≤ 5 MB do `_files/banner.<ext>`, `nil` = do koše; M3-05) | 1a, 1g, 2f, 3a, 3c |
 | `NoteRepository` | Poznámky (čtení/zápis) | `notes(course:filter:)`, `open(id)`, `attachment(named:near:)` (vložené obrázky, PDF), `save(id, text)`, `create`, `rename(id, to:)` (soubor, titulek, odkazy), `filePath(id)`, `move`, `delete → koš`, `externalChanges` | 2c, editor |
 | `NoteAnalysis` | Odvozené údaje z textu | `outline`, `backlinks`, `outgoing`, `stats`, `properties(id)` | editor, inspektor |
 | `PropertyService` | Vlastnosti (frontmatter) | `types`, `set(key, value, on:)`, `remove` | Properties, 1e |

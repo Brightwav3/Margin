@@ -1,3 +1,4 @@
+import Foundation
 /// A change to the set of courses, delivered by `CourseCatalog.updates`.
 public struct CatalogUpdate: Codable, Sendable, Hashable {
     /// Courses that were added, changed or removed, sorted.
@@ -30,6 +31,10 @@ public protocol CourseCatalog: Sendable {
     /// Courses archived one by one (`CourseCatalogWriter.setArchived(course:)`) in semesters that are
     /// not archived themselves, sorted by name. Courses of an archived semester are not listed here.
     func archivedCourses() async throws -> [Course]
+
+    /// The banner image of a course (PNG, JPEG, GIF or WebP bytes), or `nil` when it has none.
+    /// Stored as `<course folder>/_files/banner.<ext>` (vault spec 05 §1). Unknown course: `.notFound`.
+    func banner(course: CourseID) async throws -> Data?
 
     /// One course. Throws `MarginError.notFound` for an unknown id.
     func course(id: CourseID) async throws -> Course

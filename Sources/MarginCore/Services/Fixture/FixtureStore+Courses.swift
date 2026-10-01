@@ -207,3 +207,42 @@ extension FixtureStore {
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: key)
     }
 }
+
+// MARK: Banner
+
+extension FixtureStore {
+    func banner(course id: CourseID) throws -> Data? {
+        _ = try course(id: id)
+        return banners[id]?.data
+    }
+
+    func setBanner(_ image: Data?, course id: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                   idempotencyKey: String?) throws -> ChangeSet {
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        let course = try course(id: id)
+        try requireWritable()
+        let old = banners[id]
+        let oldHash = old.map { ContentHash(of: $0.data).hex }
+        if let baseVersion, oldHash != baseVersion {
+            throw MarginError.conflict("The banner of \(id) changed since version \(baseVersion)")
+        }
+        let folder = [semester.name, VaultPath.filename(fromTitle: course.name), BannerStore.filesFolder].joined(separator: "/")
+        func path(_ f: BannerFormat) -> String { "\(folder)/\(BannerStore.baseName).\(f.fileExtension)" }
+        var entries: [ChangeSet.Entry] = []
+        if let image {
+            let format = try BannerStore.validate(image)
+            let after = ContentHash(of: image).hex
+            if old?.format == format, oldHash == after { return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey) }
+            let same = old?.format == format
+            entries.append(.init(path: path(format), kind: same ? .modified : .created, beforeHash: same ? oldHash : nil, afterHash: after))
+            if let old, old.format != format { entries.append(.init(path: path(old.format), kind: .deleted, beforeHash: oldHash)) }
+            if !dryRun { banners[id] = (image, format); announce([id]) }
+        } else {
+            guard let old else { return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey) }
+            entries = [.init(path: path(old.format), kind: .deleted, beforeHash: oldHash)]
+            if !dryRun { banners[id] = nil; announce([id]) }
+        }
+        return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
+    }
+}
+

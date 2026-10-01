@@ -11,6 +11,7 @@ public struct VaultCourseCatalog: CourseCatalog {
     public func courses(query: String?) async throws -> [Course] { await backend.courses(query: query) }
     public func course(id: CourseID) async throws -> Course { try await backend.course(id: id) }
     public func archivedCourses() async throws -> [Course] { await backend.archivedCourses() }
+    public func banner(course: CourseID) async throws -> Data? { try await backend.banner(course: course) }
     public func sessions(week: Int) async throws -> [SessionOccurrence] { try await backend.sessions(week: week) }
     public var updates: AsyncStream<CatalogUpdate> { backend.catalogUpdates.subscribe() }
 }

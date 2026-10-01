@@ -1,3 +1,4 @@
+import Foundation
 /// What the "new course" dialog collects (M10-16). Everything but `name` and `semester` is optional.
 ///
 /// `id`, folder name and `_course.md` are derived by the writer: the id is the slug of `name` (a
@@ -150,6 +151,14 @@ public protocol CourseCatalogWriter: Sendable {
     /// Changes or cancels one occurrence of a weekly session.
     func override(session: SessionOverride, actor: Actor, baseVersion: String?, dryRun: Bool,
                   idempotencyKey: String?) async throws -> ChangeSet
+
+    /// Sets the banner image of a course, or removes it (`nil`, to the trash). The image must be a PNG,
+    /// JPEG, GIF or WebP of at most 5 MB (`.invalid` otherwise); a banner of another format replaces
+    /// the old file. `baseVersion` is the `afterHash` of the banner being replaced (`.conflict` when
+    /// it changed). Entries: the banner file `.created`/`.modified`/`.deleted` (plus `.deleted` for a
+    /// replaced file of another format). Removing a banner that is not there: empty `ChangeSet`.
+    func setBanner(_ image: Data?, course: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                   idempotencyKey: String?) async throws -> ChangeSet
 
     /// Removes the override of the occurrence again (no-op, empty `ChangeSet`, when there is none).
     func clearOverride(sessionID: String, course: CourseID, originalDate: LocalDate, actor: Actor,

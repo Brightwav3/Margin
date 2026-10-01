@@ -71,6 +71,7 @@ import Testing
         func courses(query: String?) async throws -> [Course] { [] }
         func course(id: CourseID) async throws -> Course { throw MarginError.notFound(id) }
         func archivedCourses() async throws -> [Course] { [] }
+        func banner(course: CourseID) async throws -> Data? { nil }
         func sessions(week: Int) async throws -> [SessionOccurrence] { [] }
         var updates: AsyncStream<CatalogUpdate> { AsyncStream { $0.finish() } }
     }
