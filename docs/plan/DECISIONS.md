@@ -145,6 +145,12 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** úpravy jen ručně v `_course.md`; archivace jen po celých semestrech.
 **Důsledky / riziko:** archivace posledního živého předmětu semestru udělá archivovaný semestr (pravidlo „semestr je archivovaný, když jsou v `_archive/` všechny jeho předměty“).
 
+### D-026 · 2026-10-01 · Přijato — Účet jen lokálně (Account v3), bez serveru
+**Rozhodnutí:** popup u avataru a okno nastavení podle `Margin Account v3.dc.html` běží bez serveru: lokální profil (`Settings.profile` v `.margin/settings.json`), statistiky vaultu (`IndexStatus.vaultStats`), obnova souborů ze snímků (`HistoryService.recentVersions`), více vaultů (nedávné vaulty se záložkami v `VaultLocation`, vytvořit, otevřít složku, přepnout, odebrat ze seznamu). Sign-in, Margin Sync, platby, Flashcards, Agent a Plugins jsou vidět, ale vypnuté.
+**Důvod:** rozhodnutí uživatele (2026-10-01): „věci, co potřebují server, zatím nedělej, maximálně lokálně“; E2E šifrování a platby zatím ne.
+**Alternativy:** Supabase / CloudKit / vlastní server pro účty a synchronizaci (odloženo).
+**Důsledky / riziko:** synchronizace mezi zařízeními jen přes složku, kterou synchronizuje něco jiného (iCloud Drive, Dropbox, Git).
+
 ---
 
 ## Šablona

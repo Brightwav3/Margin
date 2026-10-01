@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+<style>body{margin:0;background:#E4E5E9;color:#1C1E26;font-family:var(--font-sans);letter-spacing:-0.2px}*{box-sizing:border-box}a{color:#2457D6;text-decoration:none}a:hover{color:#1D47B3}</style>
+</helmet>
+<section id="p1" style="padding:56px 56px 24px">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p1" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">1</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Account popup</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 28px;max-width:900px;text-wrap:pretty">Opens from the avatar at the bottom of the rail. The profile is local: name and school live in the vault, notes are plain files on this Mac. Signing in is only needed for the optional Sync.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+    <sc-for list="{{ pops }}" as="p" hint-placeholder-count="3">
+      <div id="{{ p.id }}" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:600"><span style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);border-radius:4px">{{ p.id }}</span>{{ p.label }}</div>
+        <div style="position:relative;width:{{ p.w }};height:620px;background:#F6F6F8;border:1px solid #D5D7DD;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(28,30,38,.06)">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:56px;padding:52px 0 14px;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <sc-for list="{{ railIcons }}" as="ri" hint-placeholder-count="5"><div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ ri }}" size="{{ 22 }}" weight="{{ 300 }}" color="#686C78" hint-size="22px,22px"></x-import></div></sc-for>
+            <div style="margin-top:auto;width:40px;height:40px;display:flex;align-items:center;justify-content:center"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="help" size="{{ 22 }}" weight="{{ 300 }}" color="#686C78" hint-size="22px,22px"></x-import></div>
+            <div style="position:relative;width:30px;height:30px;border-radius:50%;background:#1C1E26;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #F6F6F8,0 0 0 4px #2F6BEB">AK<sc-if value="{{ p.synced }}"><span style="position:absolute;right:-3px;bottom:-3px;width:10px;height:10px;border-radius:50%;background:#3FA357;border:2px solid #F6F6F8"></span></sc-if></div>
+          </div>
+          <div style="position:absolute;left:56px;top:44px;right:0;bottom:8px;background:#fff;border-radius:10px 0 0 10px;border:1px solid #E9EAEE;border-right:none;padding:40px 48px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:22px;font-weight:700;letter-spacing:-0.4px;color:#C4C7CF">Lecture 8 — Cell membrane</span>
+            <span style="height:10px;width:80%;border-radius:5px;background:#F0F1F4"></span><span style="height:10px;width:68%;border-radius:5px;background:#F0F1F4"></span><span style="height:10px;width:74%;border-radius:5px;background:#F0F1F4"></span>
+          </div>
+          <div style="position:absolute;left:62px;bottom:10px;width:292px;background:#fff;border:1px solid #E4E5E9;border-radius:12px;box-shadow:0 12px 32px rgba(28,30,38,.16);overflow:hidden">
+            <div style="padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:40px;height:40px;border-radius:50%;background:#1C1E26;color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">AK</span>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:600">Anna Kováčová</span><span style="font-size:13px;color:#686C78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.sub }}</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+                <span style="height:22px;padding:0 8px;border-radius:6px;background:#E6EDFD;color:#2457D6;display:flex;align-items:center;font-weight:500">School vault</span>
+                <span style="display:flex;align-items:center;gap:6px;color:#686C78"><span style="width:7px;height:7px;border-radius:50%;background:{{ p.dot }}"></span>{{ p.chip }}</span>
+              </div>
+            </div>
+            <div style="height:1px;background:#EDEEF1"></div>
+            <div style="padding:5px;display:flex;flex-direction:column">
+              <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="10">
+                <sc-if value="{{ r.isSep }}"><div style="height:1px;background:#EDEEF1;margin:4px 8px"></div></sc-if>
+                <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+                  <a href="{{ r.href }}" style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;font-size:14px;background:{{ r.bg }};color:{{ r.color }}" style-hover="background:#F3F4F6">
+                    <x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ r.i }}" size="{{ 18 }}" weight="{{ 300 }}" color="{{ r.ic }}" hint-size="18px,18px"></x-import>
+                    <span style="flex:1;min-width:0;white-space:nowrap">{{ r.t }}</span>
+                    <sc-if value="{{ r.hasM }}"><span style="font-size:12px;color:{{ r.mc }};white-space:nowrap">{{ r.m }}</span></sc-if>
+                    <sc-if value="{{ r.hasK }}"><span style="font-size:12px;color:#9A9DA6">{{ r.k }}</span></sc-if>
+                    <sc-if value="{{ r.sub }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_right" size="{{ 16 }}" weight="{{ 300 }}" color="{{ r.ic }}" hint-size="16px,16px"></x-import></sc-if>
+                  </a>
+                </sc-if>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ p.hasSub }}"><dc-import name="Margin Menu" items="{{ subItems }}" hint-size="270px,260px" style="position:absolute;left:358px;bottom:40px;width:270px"></dc-import></sc-if>
+        </div>
+        <span style="font-size:13px;line-height:1.45;color:#686C78;max-width:360px;text-wrap:pretty">{{ p.note }}</span>
+      </div>
+    </sc-for>
+  </div>
+</section>
+<section id="p2" style="padding:48px 56px 24px">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p2" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">2</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Settings window</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 28px;max-width:900px;text-wrap:pretty">The full settings window, opened from the popup or with ⌘,. Account screens sit at the top, app options below. All settings are saved in the vault’s .margin folder; Sync and signing in are optional and off by default.</div>
+  <div style="display:flex;flex-direction:column;gap:48px">
+    <sc-for list="{{ screens }}" as="s" hint-placeholder-count="4">
+      <div id="{{ s.id }}" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:600"><span style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);border-radius:4px">{{ s.id }}</span>{{ s.title }}</div>
+        <div style="width:1120px;min-height:760px;display:flex;background:#fff;border:1px solid #D5D7DD;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(28,30,38,.06)">
+          <div style="width:248px;flex:none;background:#F6F6F8;border-right:1px solid #E9EAEE;padding:16px 14px;display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;gap:8px;padding:0 2px 22px"><span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span><span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span><span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span></div>
+            <div style="display:flex;align-items:center;gap:10px;padding:0 10px 14px"><span style="width:32px;height:32px;border-radius:50%;background:#1C1E26;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">AK</span><div style="min-width:0;display:flex;flex-direction:column"><span style="font-size:14px;font-weight:600">Anna Kováčová</span><span style="font-size:12px;color:#686C78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Local profile</span></div></div>
+            <span style="font-size:12px;font-weight:600;color:#9A9DA6;padding:4px 10px 8px">Account</span>
+            <sc-for list="{{ s.nav1 }}" as="n" hint-placeholder-count="4"><a href="{{ n.href }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font-size:14px;color:#1C1E26;background:{{ n.bg }}" style-hover="background:#ECEDF0"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ n.i }}" size="{{ 18 }}" weight="{{ 300 }}" color="{{ n.ic }}" hint-size="18px,18px"></x-import><span style="flex:1">{{ n.t }}</span><span style="font-size:12px;color:#9A9DA6">{{ n.m }}</span></a></sc-for>
+            <span style="font-size:12px;font-weight:600;color:#9A9DA6;padding:18px 10px 8px">Options</span>
+            <sc-for list="{{ s.nav2 }}" as="n" hint-placeholder-count="8"><a href="{{ n.href }}" style="display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font-size:14px;color:#1C1E26;background:{{ n.bg }}" style-hover="background:#ECEDF0"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ n.i }}" size="{{ 18 }}" weight="{{ 300 }}" color="{{ n.ic }}" hint-size="18px,18px"></x-import>{{ n.t }}</a></sc-for>
+          </div>
+          <div style="flex:1;min-width:0;padding:44px 48px;overflow:hidden">
+            <div style="max-width:680px;display:flex;flex-direction:column">
+              <span style="font-size:24px;font-weight:700;letter-spacing:-0.4px;margin-bottom:10px">{{ s.title }}</span>
+              <sc-for list="{{ s.blocks }}" as="b" hint-placeholder-count="6">
+                <sc-if value="{{ b.isH }}"><span style="font-size:13px;font-weight:600;color:#686C78;padding:28px 0 4px">{{ b.t }}</span></sc-if>
+                <sc-if value="{{ b.isNote }}"><div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin:6px 0 8px;border-radius:10px;background:#F6F6F8;font-size:14px;line-height:1.5;color:#1C1E26;text-wrap:pretty"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ b.i }}" size="{{ 20 }}" weight="{{ 300 }}" color="#686C78" hint-size="20px,20px"></x-import><span>{{ b.t }}</span></div></sc-if>
+                <sc-if value="{{ b.isProfile }}"><div style="display:flex;align-items:center;gap:18px;padding:12px 0 20px;border-bottom:1px solid #F0F1F4"><span style="width:72px;height:72px;border-radius:50%;background:#1C1E26;color:#fff;font-size:24px;font-weight:600;display:flex;align-items:center;justify-content:center">AK</span><div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:13px;color:#686C78">Saved in this vault. Shown as the author on exported notes.</span><div style="display:flex;gap:8px"><span style="height:34px;padding:0 14px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center">Change photo</span><span style="height:34px;padding:0 14px;border-radius:8px;font-size:14px;display:flex;align-items:center;color:#686C78">Remove</span></div></div></div></sc-if>
+                <sc-if value="{{ b.isPath }}"><div style="display:flex;align-items:center;gap:12px;padding:12px 0 18px;border-bottom:1px solid #F0F1F4"><span style="flex:1;min-width:0;height:38px;border:1px solid #DFE1E6;border-radius:8px;background:#F6F6F8;padding:0 12px;font:13px ui-monospace,Menlo,monospace;display:flex;align-items:center;gap:8px"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="folder" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>/Users/anna/Documents/School</span><span style="height:38px;padding:0 14px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center;white-space:nowrap">Reveal in Finder</span><span style="height:38px;padding:0 14px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center;white-space:nowrap">Move…</span></div></sc-if>
+                <sc-if value="{{ b.isTree }}"><div style="display:flex;flex-direction:column;gap:2px;padding:12px 14px;margin:6px 0;border:1px solid #E9EAEE;border-radius:10px;font:13px/1.7 ui-monospace,Menlo,monospace;color:#686C78"><sc-for list="{{ tree }}" as="tr" hint-placeholder-count="6"><span style="display:flex;gap:10px;white-space:pre"><span style="color:#1C1E26;min-width:250px">{{ tr.f }}</span><span>{{ tr.d }}</span></span></sc-for></div></sc-if>
+                <sc-if value="{{ b.isRow }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;align-items:center;gap:24px;padding:14px 0;border-bottom:1px solid #F0F1F4;opacity:{{ b.op }}">
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px">{{ b.t }}</span><sc-if value="{{ b.hasD }}"><span style="font-size:13px;color:#686C78;line-height:1.45;text-wrap:pretty">{{ b.d }}</span></sc-if></div>
+                    <div style="display:flex;align-items:center;gap:10px;flex:none">
+                      <sc-if value="{{ b.cValue }}"><span style="font-size:14px;color:#686C78">{{ b.v }}</span></sc-if>
+                      <sc-if value="{{ b.cField }}"><span style="width:240px;height:34px;border:1px solid #DFE1E6;border-radius:8px;padding:0 12px;font:13px ui-monospace,Menlo,monospace;display:flex;align-items:center;white-space:nowrap;overflow:hidden">{{ b.v }}</span></sc-if>
+                      <sc-if value="{{ b.cSelect }}"><span style="height:34px;padding:0 10px 0 12px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap">{{ b.v }}<x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="expand_more" size="{{ 16 }}" weight="{{ 300 }}" color="#686C78" hint-size="16px,16px"></x-import></span></sc-if>
+                      <sc-if value="{{ b.cToggle }}"><span style="width:36px;height:22px;border-radius:11px;background:{{ b.tb }};position:relative;flex:none"><span style="position:absolute;top:2px;left:{{ b.tl }};width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></sc-if>
+                      <sc-if value="{{ b.cKbd }}"><span style="height:26px;padding:0 8px;border:1px solid #DFE1E6;border-bottom-width:2px;border-radius:6px;background:#F6F6F8;font-size:13px;display:flex;align-items:center;white-space:nowrap">{{ b.v }}</span></sc-if>
+                      <sc-if value="{{ b.cSw }}"><div style="display:flex;gap:8px"><sc-for list="{{ b.swl }}" as="w"><span style="width:22px;height:22px;border-radius:50%;background:{{ w.c }};box-shadow:{{ w.ring }}"></span></sc-for></div></sc-if>
+                      <sc-if value="{{ b.cBtn }}"><span style="height:34px;padding:0 14px;border:1px solid {{ b.bb }};border-radius:8px;font-size:14px;display:flex;align-items:center;white-space:nowrap;color:{{ b.bc }}">{{ b.btn }}</span></sc-if>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ b.isChoice }}"><div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;margin:4px 0;border:1px solid {{ b.bd }};background:{{ b.cbg }};border-radius:10px"><span style="width:18px;height:18px;border-radius:50%;border:{{ b.rb }};flex:none;margin-top:2px;background:#fff"></span><div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px;display:flex;align-items:center;gap:8px">{{ b.t }}<sc-if value="{{ b.hasTag }}"><span style="font-size:12px;height:20px;padding:0 7px;border-radius:5px;background:#F0F1F4;color:#686C78;display:flex;align-items:center">{{ b.tag }}</span></sc-if></span><span style="font-size:13px;color:#686C78;line-height:1.45;text-wrap:pretty">{{ b.d }}</span></div></div></sc-if>
+                <sc-if value="{{ b.isTheme }}"><div style="display:flex;gap:14px;padding:12px 0 20px;border-bottom:1px solid #F0F1F4"><sc-for list="{{ themes }}" as="th" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div style="width:150px;height:96px;border-radius:10px;overflow:hidden;display:flex;border:1px solid #E4E5E9;box-shadow:{{ th.ring }}"><span style="width:38px;background:{{ th.side }};flex:none"></span><div style="flex:1;background:{{ th.bg }};padding:14px 12px;display:flex;flex-direction:column;gap:7px"><span style="height:7px;width:70%;border-radius:4px;background:{{ th.ink }}"></span><span style="height:5px;width:90%;border-radius:3px;background:{{ th.line }}"></span><span style="height:5px;width:80%;border-radius:3px;background:{{ th.line }}"></span><span style="height:5px;width:60%;border-radius:3px;background:{{ th.line }}"></span></div></div><span style="font-size:14px;color:{{ th.lc }}">{{ th.t }}</span></div></sc-for></div></sc-if>
+                <sc-if value="{{ b.isSearch }}"><div style="height:38px;margin:6px 0 4px;border:1px solid #DFE1E6;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:14px;color:#9A9DA6"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="search" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import>{{ b.t }}</div></sc-if>
+                <sc-if value="{{ b.isSnap }}"><div style="display:grid;grid-template-columns:150px minmax(0,1fr) 90px 70px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #F0F1F4;font-size:14px"><span style="color:#686C78">{{ b.date }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.t }}</span><span style="color:#686C78;text-align:right">{{ b.sz }}</span><span style="text-align:right;color:#2457D6">Restore</span></div></sc-if>
+                <sc-if value="{{ b.isSignin }}"><div style="display:flex;flex-direction:column;gap:14px;padding:18px 20px;margin:6px 0;border:1px solid #E4E5E9;border-radius:12px"><span style="font-size:15px;font-weight:600">Not signed in</span><span style="font-size:14px;color:#686C78;line-height:1.5;text-wrap:pretty">An account is only used for Margin Sync and a supporter licence. Notes, settings and plugins stay on this Mac either way.</span><div style="display:flex;gap:8px"><span style="height:34px;padding:0 14px;border-radius:8px;font-size:14px;display:flex;align-items:center;background:#2F6BEB;color:#fff">Sign in…</span><span style="height:34px;padding:0 14px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center">Create account</span></div></div></sc-if>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+<section id="p3" style="padding:48px 56px 80px">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p3" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">3</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Dialogs</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 28px;max-width:900px">Opened from the account popup.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+    <div id="3a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:600"><span style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);border-radius:4px">3a</span>Manage vaults</div>
+      <div style="width:760px;height:480px;border-radius:12px;background:#BFC1C8;display:flex;align-items:center;justify-content:center">
+        <div style="width:660px;height:400px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.28);display:flex;overflow:hidden">
+          <div style="width:260px;flex:none;background:#F6F6F8;border-right:1px solid #E9EAEE;padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:12px;font-weight:600;color:#9A9DA6;padding:4px 8px 6px">Recent</span>
+            <sc-for list="{{ vaults }}" as="v" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:{{ v.bg }}"><span style="width:28px;height:28px;border-radius:7px;background:{{ v.c }};color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">{{ v.l }}</span><div style="min-width:0;display:flex;flex-direction:column"><span style="font-size:14px">{{ v.t }}</span><span style="font:11px ui-monospace,Menlo,monospace;color:#686C78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.p }}</span></div></div></sc-for>
+          </div>
+          <div style="flex:1;padding:24px;display:flex;flex-direction:column;gap:4px">
+            <span style="width:48px;height:48px;border-radius:12px;background:#2F7D3E;color:#fff;font-size:20px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-bottom:10px">M</span>
+            <span style="font-size:18px;font-weight:700;letter-spacing:-0.3px;margin-bottom:12px">Margin</span>
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #F0F1F4"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">Create new vault</span><span style="font-size:13px;color:#686C78">A new folder on this Mac.</span></div><span style="height:32px;padding:0 14px;border-radius:8px;font-size:14px;display:flex;align-items:center;background:#2F6BEB;color:#fff">Create</span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #F0F1F4"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">Open folder as vault</span><span style="font-size:13px;color:#686C78">Any folder of Markdown files.</span></div><span style="height:32px;padding:0 14px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center">Open</span></div>
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 0"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">Open from Margin Sync</span><span style="font-size:13px;color:#686C78">Needs an account. Downloads a local copy.</span></div><span style="height:32px;padding:0 14px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center">Sign in</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="3b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:600"><span style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);border-radius:4px">3b</span>Remove from list</div>
+      <div style="width:560px;height:480px;border-radius:12px;background:#BFC1C8;display:flex;align-items:center;justify-content:center">
+        <div style="width:400px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.28);padding:24px;display:flex;flex-direction:column;gap:16px">
+          <span style="font-size:18px;font-weight:700;letter-spacing:-0.3px">Remove “Thesis” from the list?</span>
+          <span style="font-size:14px;line-height:1.5;color:#686C78;text-wrap:pretty">The folder and its files stay on disk. You can open it again any time with Open folder as vault.</span>
+          <span style="font:12px ui-monospace,Menlo,monospace;color:#686C78;padding:10px 12px;background:#F6F6F8;border-radius:8px">~/Documents/Thesis</span>
+          <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px"><span style="height:36px;padding:0 16px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center">Cancel</span><span style="height:36px;padding:0 16px;border-radius:8px;font-size:14px;display:flex;align-items:center;background:#2F6BEB;color:#fff">Remove</span></div>
+        </div>
+      </div>
+    </div>
+    <div id="3c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:600"><span style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);border-radius:4px">3c</span>Restore snapshot</div>
+      <div style="width:560px;height:480px;border-radius:12px;background:#BFC1C8;display:flex;align-items:center;justify-content:center">
+        <div style="width:440px;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(28,30,38,.28);padding:24px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-size:18px;font-weight:700;letter-spacing:-0.3px">Restore “Lecture 8 — Cell membrane”?</span>
+          <span style="font-size:14px;line-height:1.5;color:#686C78;text-wrap:pretty">The note goes back to how it was today at 09:15. The current version is saved as a snapshot first, so nothing is lost.</span>
+          <div style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid #E9EAEE;border-radius:8px;font:12px/1.6 ui-monospace,Menlo,monospace"><span style="color:#2F7D3E">+ ## Fluid mosaic model</span><span style="color:#2F7D3E">+ Phospholipids move laterally…</span><span style="color:#D93F33">− ## Membrane proteins (draft)</span></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px"><span style="height:36px;padding:0 16px;border:1px solid #DFE1E6;border-radius:8px;font-size:14px;display:flex;align-items:center">Cancel</span><span style="height:36px;padding:0 16px;border-radius:8px;font-size:14px;display:flex;align-items:center;background:#2F6BEB;color:#fff">Restore</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const S = { sep: true };
+    const base = (o = {}) => [
+      { t: 'Profile', i: 'person', href: '#2a' },
+      { t: 'Vault and files', i: 'folder', href: '#2b', m: 'School' },
+      { t: 'File recovery', i: 'history', href: '#2b' },
+      { t: 'Sync', i: 'sync', href: '#2c', m: o.syncM || 'Off' },
+      S,
+      { t: 'Settings…', i: 'settings', k: '⌘,', href: '#2e' },
+      { t: 'Keyboard shortcuts', i: 'keyboard', k: '⌘/', href: '#2h' },
+      S,
+      { t: 'Switch vault', i: 'swap_horiz', sub: true, active: o.sw, href: '#1b' },
+      { t: o.signed ? 'Sign out' : 'Sign in…', i: o.signed ? 'logout' : 'login', href: '#2d' }
+    ];
+    const rowsOf = list => list.map(r => r.sep ? { isSep: true } : { ...r, isRow: true, hasM: !!r.m, hasK: !!r.k, sub: !!r.sub,
+      bg: r.active ? '#E6EDFD' : 'transparent', color: r.active ? '#2457D6' : '#1C1E26', ic: r.active ? '#2F6BEB' : '#686C78', mc: '#9A9DA6' });
+    const pops = [
+      { id: '1a', label: 'Local only (default)', w: '420px', sub: 'Local profile · not signed in', rows: rowsOf(base()), chip: 'Saved on this Mac', dot: '#9A9DA6', note: 'No account and no sync. Notes are Markdown files in the vault folder. Sign in sits last, as an option.' },
+      { id: '1b', label: 'Switch vault', w: '660px', sub: 'Local profile · not signed in', rows: rowsOf(base({ sw: true })), hasSub: true, chip: 'Saved on this Mac', dot: '#9A9DA6', note: 'Each vault is its own folder with its own settings. Switching opens the vault in this window; ⌥-click opens a new one.' },
+      { id: '1c', label: 'With optional Sync', w: '420px', sub: 'anna.kovacova@gmail.com', synced: true, rows: rowsOf(base({ syncM: 'Up to date', signed: true })), chip: 'Synced 2 min ago', dot: '#3FA357', note: 'If Sync is turned on, the local folder is still the source of truth. A green dot on the vault icon shows sync status.' }
+    ];
+    const subItems = [{ h: 'Vaults' }, { t: 'School', d: '~/Documents/School', ck: true }, { t: 'Thesis', d: '~/Documents/Thesis', ck: false }, { t: 'Personal', d: '~/iCloud Drive/Personal', ck: false }, S, { t: 'Open folder as vault…', ck: false }, { t: 'Create new vault…', ck: false }];
+    const R = (t, ctrl, v, x) => ({ type: 'row', t, ctrl, v, ...x });
+    const H = t => ({ type: 'h', t });
+    const C = (t, d, on, tag) => ({ type: 'choice', t, d, on, tag });
+    const NAV = [['2a', 'Profile', 'person', ''], ['2b', 'Vault and files', 'folder', ''], ['2c', 'Sync', 'sync', 'Off'], ['2d', 'Sign-in', 'account_circle', 'Optional']];
+    const raw = [
+      { id: '2a', title: 'Profile', blocks: [{ type: 'profile' },
+        R('Name', 'field', 'Anna Kováčová'),
+        R('School', 'select', 'Charles University'),
+        R('Programme', 'field', 'Molecular Biology, BSc'),
+        R('Year of study', 'select', '2nd year'),
+        R('Language', 'select', 'English'),
+        R('Time zone', 'select', 'Europe/Prague'),
+        { type: 'note', i: 'lock', t: 'Your profile is saved in .margin/profile.json inside the vault. Nothing is sent anywhere.' } ] },
+      { id: '2b', title: 'Vault and files', blocks: [
+        { type: 'path' },
+        R('Notes', 'value', '1,284 .md files · 118 MB'),
+        R('Attachments folder', 'field', '/_attachments', { d: 'Pasted images and PDFs are copied here.' }),
+        R('Pick up changes made outside Margin', 'toggle', true, { d: 'Edits from Finder, Git or other apps appear immediately.' }),
+        H('File recovery'),
+        R('Snapshots', 'select', 'Every 5 minutes', { d: 'Kept for 30 days in .margin/snapshots. 38 MB.' }),
+        { type: 'snap', date: 'Today, 09:15', t: 'Cell Biology/Lecture 8 — Cell membrane.md', sz: '14 KB' },
+        { type: 'snap', date: 'Today, 08:40', t: 'Linear Algebra/Problem set 4.md', sz: '6 KB' },
+        { type: 'snap', date: 'Yesterday, 21:02', t: 'Midterm plan.md', sz: '3 KB' } ] },
+      { id: '2c', title: 'Sync', blocks: [
+        { type: 'note', i: 'laptop_mac', t: 'Sync is off. This vault exists only on this Mac.' },
+        C('Off', 'Files stay in ~/Documents/School and nowhere else.', true),
+        C('A folder you already sync', 'Move the vault into iCloud Drive, Dropbox or a Git repository. Margin just reads the folder.', false, 'No account'),
+        C('Margin Sync', 'End-to-end encrypted sync with version history. Needs an account and a subscription.', false, 'Optional add-on') ] },
+      { id: '2d', title: 'Sign-in', blocks: [
+        { type: 'signin' },
+        H('What needs an account'),
+        R('Margin Sync', 'value', 'Account + subscription'),
+        R('Everything else', 'value', 'Nothing'),
+        H('Privacy'),
+        R('Check for updates', 'toggle', true, { d: 'Sends only the app version.' }),
+        R('Send crash reports', 'toggle', false, { d: 'Off by default. Note content is never included.' }) ] }
+    ];
+    const T = (t, d, on) => R(t, 'toggle', on, { d });
+    const K = (t, v) => R(t, 'kbd', v);
+    raw.push(
+      { id: '2e', title: 'General', blocks: [
+        R('Open on startup', 'select', 'Today'),
+        R('New tabs open', 'select', 'Last note'),
+        T('Launch at login', 'Margin starts in the background so quick capture works right away.', false),
+        T('Quick capture in menu bar', '⇧⌘Space opens a small window from anywhere.', true),
+        T('Confirm before deleting', undefined, true),
+        R('Spell check languages', 'select', 'English, Czech'),
+        H('Updates'),
+        R('Version', 'btn', '', { btn: 'Check now', d: 'Margin 1.4.2 · up to date' }),
+        T('Install updates automatically', undefined, true),
+        R('Release channel', 'select', 'Stable') ] },
+      { id: '2f', title: 'Editor', blocks: [
+        R('Default mode', 'select', 'Live preview', { d: 'Markdown is formatted as you type. ⇧⌘E for source.' }),
+        T('Readable line length', 'Limits text width to about 70 characters.', true),
+        T('Line numbers', undefined, false),
+        T('Auto-pair brackets and Markdown', 'Typing ** or ( adds the closing pair.', true),
+        T('Smart lists', 'Enter continues a list, Tab nests it.', true),
+        R('Indentation', 'select', '4 spaces'),
+        H('Formulas and code'),
+        T('Render LaTeX', 'Between $ and $$.', true),
+        T('Syntax highlighting in code blocks', undefined, true),
+        H('Templates'),
+        R('Template folder', 'field', '/Templates'),
+        R('Lecture note template', 'select', 'Lecture.md') ] },
+      { id: '2g', title: 'Appearance', blocks: [
+        { type: 'theme' },
+        R('Accent colour', 'sw', '', { swl: ['#2F6BEB', '#2F7D3E', '#5B41B0', '#B3372B', '#8F5D0E', '#1C1E26'].map((c, i) => ({ c, ring: i === 0 ? '0 0 0 2px #fff, 0 0 0 4px ' + c : 'none' })) }),
+        R('Text font', 'select', 'Charter'),
+        R('Interface font', 'select', 'System'),
+        R('Code font', 'select', 'SF Mono'),
+        R('Font size', 'select', '16 px', { d: '⌘+ and ⌘− change it per window.' }),
+        T('Translucent sidebar', undefined, true),
+        R('CSS snippets', 'btn', '', { btn: 'Open folder', d: '2 snippets in .margin/snippets' }) ] },
+      { id: '2h', title: 'Keyboard shortcuts', blocks: [
+        { type: 'search', t: 'Search commands' },
+        H('Most used'),
+        K('Command palette', '⌘K'), K('Quick open', '⌘O'), K('New note', '⌘N'), K('New lecture note', '⌃⌘N'),
+        K('Search vault', '⇧⌘F'), K('Toggle reading view', '⌘E'), K('Link to note', '⇧⌘K'), K('Add flashcard', '⇧⌘L'),
+        K('Ask agent', '⌘J'), K('Today', '⌘1'), K('Flashcard review', '⌘5'),
+        R('Shortcuts file', 'btn', '', { btn: 'Reset all', d: 'Custom shortcuts are saved in .margin/hotkeys.json.' }) ] },
+      { id: '2i', title: 'Semesters', blocks: [
+        R('Current semester', 'select', 'Fall 2026', { d: 'New courses, notes and tasks go here.' }),
+        R('Teaching weeks', 'btn', '', { btn: 'Edit dates', d: '14 Sep – 18 Dec. Reading week 26–30 Oct has no sessions.' }),
+        R('Week starts on', 'select', 'Monday', { d: 'Used by Today, Upcoming and the timetable.' }),
+        R('Grading scale', 'select', 'A–F, 93 / 90 / 87…', { d: 'Letter grades from percentages.' }),
+        T('Create lecture notes automatically', 'A note is created 30 minutes before each session.', true),
+        T('Archive when the semester ends', 'Courses become read-only after the last exam.', false),
+        H('Timetable'),
+        R('Import timetable', 'btn', '', { btn: 'Choose .ics file…', d: 'Read once from a file. Nothing is subscribed online.' }) ] },
+      { id: '2j', title: 'Flashcards', blocks: [
+        R('New cards per day', 'select', '20'),
+        R('Maximum reviews per day', 'select', '200'),
+        R('Scheduler', 'select', 'FSRS', { d: 'Spaces reviews by how well you remember each card.' }),
+        R('Card syntax', 'kbd', 'Question :: Answer'),
+        R('Cloze syntax', 'kbd', '==hidden=='),
+        T('Daily review reminder', 'A system notification at 18:00.', true),
+        R('Review history', 'value', '.margin/flashcards.json') ] },
+      { id: '2k', title: 'Agent', blocks: [
+        { type: 'note', i: 'auto_awesome', t: 'The agent is off until you choose where it runs. With a local model, notes never leave this Mac.' },
+        C('Off', 'No agent menu, no sidebar panel.', false),
+        C('On this Mac', 'Uses a local model through Ollama or LM Studio. Slower, fully private.', true, 'Private'),
+        C('Your own API key', 'Sends the text you select to the provider you choose.', false, 'Online'),
+        R('Model', 'select', 'llama3.1:8b'),
+        R('Notes the agent can read', 'select', 'Only the open note'),
+        T('Show agent in the right panel', undefined, true) ] },
+      { id: '2l', title: 'Plugins', blocks: [
+        H('Core plugins'),
+        T('Daily notes', 'One note per day in /Daily.', true),
+        T('Graph view', 'Shows how notes link to each other.', true),
+        T('Backlinks', 'Notes that link to the open note.', true),
+        T('Outline', 'Headings of the open note.', true),
+        T('Audio recorder', 'Records lectures into the attachments folder.', false),
+        T('Slides', 'Present a note split by ---.', false),
+        H('Community plugins'),
+        T('Restricted mode', 'Community plugins can run code. Keep on unless you trust them.', true),
+        R('Installed', 'btn', '', { btn: 'Browse…', d: 'None yet. Plugins install into .margin/plugins.' }) ] }
+    );
+    const OPT = [['2e', 'General', 'settings'], ['2f', 'Editor', 'edit_note'], ['2g', 'Appearance', 'palette'], ['2h', 'Keyboard shortcuts', 'keyboard'], ['2i', 'Semesters', 'school'], ['2j', 'Flashcards', 'style'], ['2k', 'Agent', 'auto_awesome'], ['2l', 'Plugins', 'extension']];
+    const screens = raw.map(s => ({ ...s,
+      nav2: OPT.map(([id, t, i]) => ({ t, i, href: '#' + id, bg: id === s.id ? '#E4E5E9' : 'transparent', ic: id === s.id ? '#1C1E26' : '#686C78' })),
+      nav1: NAV.map(([id, t, i, m]) => ({ t, i, m, href: '#' + id, bg: id === s.id ? '#E4E5E9' : 'transparent', ic: id === s.id ? '#1C1E26' : '#686C78' })),
+      blocks: s.blocks.map(b => {
+        const c = b.ctrl, on = b.v === true;
+        return { ...b, isH: b.type === 'h', isRow: b.type === 'row', isPath: b.type === 'path', isProfile: b.type === 'profile', isTree: b.type === 'tree', isNote: b.type === 'note',
+          isChoice: b.type === 'choice', isSnap: b.type === 'snap', isSignin: b.type === 'signin', hasD: !!b.d, hasTag: !!b.tag, op: b.op ?? 1,
+          cValue: c === 'value', cField: c === 'field', cSelect: c === 'select', cToggle: c === 'toggle', cBtn: c === 'btn', cKbd: c === 'kbd', cSw: c === 'sw', isTheme: b.type === 'theme', isSearch: b.type === 'search',
+          tb: on ? '#2F6BEB' : '#D5D7DD', tl: on ? '16px' : '2px', bc: b.danger ? '#D93F33' : '#1C1E26', bb: b.danger ? '#F2C4BF' : '#DFE1E6',
+          bd: b.on ? '#2F6BEB' : '#E4E5E9', cbg: b.on ? '#F5F8FE' : '#fff', rb: b.on ? '5px solid #2F6BEB' : '1.5px solid #C4C7CF' };
+      }) }));
+    const themes = [{ t: 'Light', bg: '#fff', side: '#F6F6F8', ink: '#1C1E26', line: '#E4E5E9', on: true }, { t: 'Dark', bg: '#1F2128', side: '#16171C', ink: '#E9EAEE', line: '#3A3D47' }, { t: 'Match system', bg: 'linear-gradient(90deg,#fff 50%,#1F2128 50%)', side: '#F6F6F8', ink: '#9A9DA6', line: '#C4C7CF' }].map(x => ({ ...x, ring: x.on ? '0 0 0 2px #fff, 0 0 0 4px #2F6BEB' : 'none', lc: x.on ? '#2457D6' : '#1C1E26' }));
+    const nav2 = [['General', 'settings'], ['Editor', 'edit_note'], ['Appearance', 'palette'], ['Semesters', 'school'], ['Flashcards', 'style'], ['Agent', 'auto_awesome'], ['Plugins', 'extension']].map(([t, i]) => ({ t, i }));
+    const tree = [
+      { f: 'School/', d: '' }, { f: '├─ Courses/', d: 'one folder per course' }, { f: '├─ Inbox/', d: 'new notes' },
+      { f: '├─ _attachments/', d: 'images, PDFs' }, { f: '├─ .margin/', d: 'settings, snapshots' }, { f: '└─ Midterm plan.md', d: 'plain Markdown' }
+    ];
+    const vaults = [{ t: 'School', p: '~/Documents/School', l: 'S', c: '#2F7D3E', bg: '#E4E5E9' }, { t: 'Thesis', p: '~/Documents/Thesis', l: 'T', c: '#5B41B0', bg: 'transparent' }, { t: 'Personal', p: '~/iCloud Drive/Personal', l: 'P', c: '#8F5D0E', bg: 'transparent' }];
+    return { pops, subItems, screens, nav2, themes, tree, vaults, railIcons: ['home', 'calendar_month', 'inbox', 'search', 'style'] };
+  }
+}
+</script>
+</body>
+</html>
