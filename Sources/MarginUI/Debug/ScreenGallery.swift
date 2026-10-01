@@ -59,6 +59,9 @@ public enum MarginScreens {
         MarginScreen("3a", "Note editor: live, properties, note inspector", milestone: "M6a") {
             AnyView(WorkspaceView(env: .fixture(), start: .note("bio/lecture-8"), inspectorOpen: true))
         },
+        MarginScreen("3a-lists", "Note editor: lists, nesting, footnotes (Obsidian-like)", milestone: "M6b") {
+            AnyView(ListsSampleScreen())
+        },
         MarginScreen("3a-source", "Note editor: source mode", milestone: "M6a") {
             AnyView(EditorModeScreen(mode: .source))
         },
@@ -187,4 +190,48 @@ struct CaptureScreen: View {
     }
 
     var body: some View { WorkspaceView(workspace: workspace) }
+}
+
+
+/// Gallery `3a-lists`: a lecture note like a real one (headings, nested lists, footnotes).
+private struct ListsSampleScreen: View {
+    @State private var workspace = Workspace(env: .fixture())
+    @State private var ready = false
+
+    var body: some View {
+        Group {
+            if ready { WorkspaceView(workspace: workspace) } else { Color.white }
+        }
+        .task {
+            let text = """
+            # Milníky Historie 1
+
+            ## Integrace jako souboj koncepcí
+
+            ### Mezivládní [^1]
+            - Intenzivní spolupráce, která zachovává atributy suverenity
+            - státy jsou nedotknutelné
+            - právo veta
+
+            ### Nadnárodní [^2]
+            - Odevzdání suverenity zemí ve prospěch nezávislé autority, které se dobrovolně podřizují všechny členské státy
+            - rovnost členů
+            \t- rozhoduje se většinou
+            \t- kontrola a sankce
+            - [ ] Dočíst kapitolu 2 @Fri
+
+            ## Důsledky Lisabonské smlouvy:[^3]
+
+            Hlavní nástroj integrace je **evropské právo**.
+
+            [^1]: Hlavní aktéři jsou státy.
+            """
+            if let note = try? await workspace.env.notes.open(id: "bio/lecture-8") {
+                _ = try? await workspace.env.notes.save(id: note.id, text: text, actor: .user, baseVersion: note.version,
+                                                         dryRun: false, idempotencyKey: nil)
+            }
+            workspace.open(.note("bio/lecture-8"), title: "Milníky Historie 1")
+            ready = true
+        }
+    }
 }

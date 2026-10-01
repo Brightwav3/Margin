@@ -16,6 +16,8 @@ extension NSAttributedString.Key {
     static let marginCheckbox = NSAttributedString.Key("margin.checkbox")
     /// Target note title of a `[[wikilink]]` (click opens it, hover previews it).
     static let marginWikilink = NSAttributedString.Key("margin.wikilink")
+    /// `-`, `*` or `+` of a list item drawn as a round bullet (live and reading, like Obsidian).
+    static let marginBullet = NSAttributedString.Key("margin.bullet")
 }
 
 /// Turns `MarkdownTokenizer` tokens into text attributes (M6-02.U). Pure and range-based, so the
@@ -100,6 +102,7 @@ enum MarkdownStyler {
             }
             style(token.kind, r, storage, text, mode, isActive(r, active))
         }
+        if mode != .source { styleFootnotes(storage, text, range, tokens: tokens) }
     }
 
     private static func isActive(_ r: NSRange, _ active: MarkdownRange?) -> Bool {
@@ -153,11 +156,25 @@ enum MarkdownStyler {
                 s.addAttribute(.kern, value: tracking, range: r)
                 let p = paragraph(lineHeight: level == 1 ? 1.3 : 1.45, size: size, spacing: space)
                 let m = p.mutableCopy() as! NSMutableParagraphStyle
-                m.paragraphSpacingBefore = level == 1 ? 14 : 8
+                // More room above a heading than below it, so it belongs to what follows (Obsidian).
+                m.paragraphSpacingBefore = switch level { case 1: 22; case 2: 18; case 3: 14; default: 10 }
+                m.paragraphSpacing = 4
                 s.addAttribute(.paragraphStyle, value: m, range: line)
             }
         case .listBullet, .listOrdered:
-            s.addAttribute(.foregroundColor, value: source ? tertiary : tertiary, range: r)
+            s.addAttribute(.foregroundColor, value: tertiary, range: r)
+            guard !source else { break }
+            listLine(r, s, text, ordered: kind == .listOrdered)
+            if kind == .listBullet {
+                let after = NSMaxRange(r) + 1
+                let isTask = after + 2 < text.length && text.substring(with: NSRange(location: after, length: 1)) == "["
+                if isTask {
+                    // A task shows its checkbox only, as in Obsidian.
+                    s.addAttribute(.foregroundColor, value: active && mode == .live ? dim : NSColor.clear, range: r)
+                } else if !(active && mode == .live) {
+                    s.addAttributes([.foregroundColor: NSColor.clear, .marginBullet: true], range: r)
+                }
+            }
         case .taskCheckbox(let checked):
             if source {
                 s.addAttribute(.foregroundColor, value: tertiary, range: r)
@@ -252,6 +269,42 @@ enum MarkdownStyler {
         case .horizontalRule:
             s.addAttributes([.foregroundColor: tertiary, .strikethroughStyle: NSUnderlineStyle.single.rawValue,
                              .strikethroughColor: NSColor(MarginColor.border)], range: r)
+        }
+    }
+
+    /// A list line: tight spacing and a hanging indent, so wrapped lines start under the text, not
+    /// under the bullet; nested items step in by their indentation.
+    private static func listLine(_ marker: NSRange, _ s: NSTextStorage, _ text: NSString, ordered: Bool) {
+        let line = text.lineRange(for: marker)
+        let content = text.substring(with: line)
+        let font = bodyFont()
+        let width = { (str: String) in (str as NSString).size(withAttributes: [.font: font]).width }
+        var prefixEnd = NSMaxRange(marker) - line.location
+        let rest = (content as NSString).substring(from: min(prefixEnd, (content as NSString).length))
+        if rest.hasPrefix(" [ ] ") || rest.hasPrefix(" [x] ") || rest.hasPrefix(" [X] ") { prefixEnd += 5 } else if rest.hasPrefix(" ") { prefixEnd += 1 }
+        let prefix = (content as NSString).substring(to: min(prefixEnd, (content as NSString).length))
+        let p = paragraph(lineHeight: 1.6, size: bodySize, spacing: 1).mutableCopy() as! NSMutableParagraphStyle
+        p.defaultTabInterval = 26 * scale
+        p.tabStops = []
+        p.headIndent = width(prefix.replacingOccurrences(of: "\t", with: "    "))
+        s.addAttribute(.paragraphStyle, value: p, range: line)
+    }
+
+    /// `[^1]` footnote references in grey, small and raised; `[^1]:` definitions with a grey label.
+    static func styleFootnotes(_ s: NSTextStorage, _ text: NSString, _ range: NSRange, tokens: [MarkdownToken]) {
+        guard let regex = try? NSRegularExpression(pattern: #"\[\^[^\]\s]+\]:?"#) else { return }
+        let code = tokens.filter {
+            switch $0.kind { case .inlineCode, .codeLine, .indentedCodeLine, .frontmatter: true; default: false }
+        }.map { NSRange(location: $0.range.location, length: $0.range.length) }
+        for m in regex.matches(in: text as String, range: range) {
+            let r = m.range
+            if code.contains(where: { NSIntersectionRange($0, r).length > 0 }) { continue }
+            let isDefinition = text.substring(with: r).hasSuffix(":") && text.lineRange(for: r).location == r.location
+            if isDefinition {
+                s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(.medium, size: 14)], range: r)
+            } else {
+                s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(.medium, size: 12), .baselineOffset: 6 * scale], range: r)
+            }
         }
     }
 
