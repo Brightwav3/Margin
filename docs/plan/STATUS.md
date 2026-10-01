@@ -1,6 +1,6 @@
 # STATUS — živý stav projektu
 
-Poslední aktualizace: 2026-09-28 · Aktivní milestone: **žádný (plánovací fáze)**
+Poslední aktualizace: 2026-10-01 · Aktivní milestone: **UI ke kontrole (M0–M11)**; agentní vrstva (MA1–MA4) odložena
 
 Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato · ⛔ blokováno
 
@@ -10,28 +10,28 @@ Legenda: ⬜ nezačato · 🟦 rozpracováno · 🟨 ke kontrole · ✅ přijato
 
 | M | Název | BE váha | UI váha | Σ | Kol kontroly | Kalendářně | Stav | Kontrola | Tag | Poznámka |
 |---|---|---|---|---|---|---|---|---|---|---|
-| M0 | Kostra, tokeny, komponenty, galerie | 5 | 18 | 23 | — | — | 🟦 | `checks/M0.md` | |  |
-| M1 | Shell | 0 | 28 | 28 | — | — | ⬜ | `checks/M1.md` | | CP0 |
+| M0 | Kostra, tokeny, komponenty, galerie | 5 | 18 | 23 | 1 | — | 🟨 | `checks/M0.md` | | UI hotovo, čeká na schválení |
+| M1 | Shell | 0 | 28 | 28 | 1 | — | 🟨 | `checks/M1.md` | | CP0 |
 | M2 | Model a fixtures | 12 | 2 | 14 | — | — | 🟦 | (testy) | |  |
-| M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | 1 | — | 🟦 | `checks/M3.md` | |  |
-| M4 | Detail předmětu (2c) | 3 | 27 | 30 | — | — | ⬜ | `checks/M4.md` | | CP1 |
+| M3 | Přehled předmětů (1a, 1b) | 5 | 29 | 34 | 1 | — | 🟨 | `checks/M3.md` | | UI hotovo, čeká na schválení |
+| M4 | Detail předmětu (2c) | 3 | 27 | 30 | 1 | — | 🟨 | `checks/M4.md` | | CP1 |
 | M5 | Vault a index | 35 | 1 | 36 | — | — | 🟦 | `checks/M5.md` | | před startem odsouhlasit spec (§12) |
 | MA0 | Agent: základy (provenance, ID, undo, souběh) | 32 | 0 | 32 | — | — | 🟦 | (testy) | | brána před M6 |
-| M6a | Editor: source + reading | 11 | 33 | 44 | — | — | 🟦 | `checks/M6a.md` | | CP2 |
-| M6b | Editor: live | 5 | 25 | 30 | — | — | 🟦 | `checks/M6b.md` | |  |
-| M7 | Úkoly | 16 | 22 | 38 | — | — | 🟦 | `checks/M7.md` | | před startem schválit návrh |
+| M6a | Editor: source + reading | 11 | 33 | 44 | 1 | — | 🟨 | `checks/M6a.md` | | CP2 |
+| M6b | Editor: live | 5 | 25 | 30 | 1 | — | 🟨 | `checks/M6b.md` | | UI hotovo, čeká na schválení |
+| M7 | Úkoly | 16 | 22 | 38 | 1 | — | 🟨 | `checks/M7.md` | | před startem schválit návrh |
 | MA1 | Agent: povrch nástrojů (MCP, CLI) | 83 | 0 | 83 | — | — | ⬜ | `checks/MA1.md` | | CP5 |
-| M8 | Rychlý zápis a Inbox | 25 | 19 | 44 | — | — | 🟦 | `checks/M8.md` | | CP3 |
+| M8 | Rychlý zápis a Inbox | 25 | 19 | 44 | 1 | — | 🟨 | `checks/M8.md` | | CP3 |
 | MA2 | Agent: oprávnění, audit, schvalování | 19 | 43 | 62 | — | — | ⬜ | `checks/MA2.md` | |  |
-| M9 | Graf | 17 | 27 | 44 | — | — | 🟦 | `checks/M9.md` | |  |
-| M10a | Popupy: navigace a psaní | 12 | 28 | 40 | — | — | 🟦 | `checks/M10a.md` | |  |
+| M9 | Graf | 17 | 27 | 44 | 1 | — | 🟨 | `checks/M9.md` | | UI hotovo, čeká na schválení |
+| M10a | Popupy: navigace a psaní | 12 | 28 | 40 | 1 | — | 🟨 | `checks/M10a.md` | | UI hotovo, čeká na schválení |
 | MA3 | Agent v aplikaci | 30 | 25 | 55 | — | — | ⬜ | `checks/MA3.md` | |  |
-| M10b | Popupy: data a organizace | 12 | 18 | 30 | — | — | 🟦 | `checks/M10b.md` | |  |
-| M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | — | — | ⬜ | `checks/M10c.md` | |  |
-| M10d | Menu, dropdowny a tooltipy | 0 | 45 | 45 | — | — | ⬜ | `checks/M10d.md` | | menu se zapojují k obrazovkám průběžně |
-| M11 | Obrazovky a stavy | 21 | 37 | 58 | — | — | 🟦 | `checks/M11.md` | | CP4 |
+| M10b | Popupy: data a organizace | 12 | 18 | 30 | 1 | — | 🟨 | `checks/M10b.md` | | UI hotovo, čeká na schválení |
+| M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | 1 | — | 🟨 | `checks/M10c.md` | | UI hotovo, čeká na schválení |
+| M10d | Menu, dropdowny a tooltipy | 0 | 45 | 45 | 1 | — | 🟨 | `checks/M10d.md` | | menu se zapojují k obrazovkám průběžně |
+| M11 | Obrazovky a stavy | 21 | 37 | 58 | 1 | — | 🟨 | `checks/M11.md` | | CP4 |
 | MA4 | Agent: odolnost | 32 | 3 | 35 | — | — | ⬜ | `checks/MA4.md` | |  |
-| M12 | Dokončení a vydání | 18 | 22 | 40 | — | — | ⬜ | `checks/M12.md` | |  |
+| M12 | Dokončení a vydání | 18 | 22 | 40 | 1 | — | 🟦 | `checks/M12.md` | | M12-04 zrušeno; zbývá audit a výkon, revize uživatelem |
 | | **Σ** | **405** | **474** | **879** | | | | | | |
 
 Metriky (viz `04-engineering-rules.md` §9): průměr kol kontroly na milestone — · průměrné čekání na schválení — · cena běhu celkem —
