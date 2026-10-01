@@ -87,6 +87,7 @@ struct ChromeButton: View {
 private struct TabStrip: View {
     @Bindable var model: AppModel
     let onNewTab: () -> Void
+    @Environment(Workspace.self) private var workspace: Workspace?
     @State private var dragging: UUID?
     @State private var dragOffset: CGFloat = 0
     @State private var dragFrom = 0
@@ -103,6 +104,35 @@ private struct TabStrip: View {
         let count = CGFloat(max(model.tabs.count, 1))
         let room = available - Self.leading - Self.plusWidth - Self.spacing * count
         return min(Self.maxWidth, max(Self.minWidth, (room / count).rounded(.down)))
+    }
+
+    /// 1j: the tab's menu.
+    @ViewBuilder
+    private func tabMenu(_ tab: ShellTab) -> some View {
+        MenuItem("Close", "close") { model.close(tab.id) }.disabled(tab.isPinned)
+        MenuItem("Close other tabs", "layers_clear") { model.closeOthers(tab.id) }.disabled(model.tabs.count < 2)
+        MenuItem("Close tabs to the right", "last_page") { model.closeToTheRight(tab.id) }
+            .disabled(model.tabs.last?.id == tab.id)
+        Divider()
+        MenuItem(tab.isPinned ? "Unpin tab" : "Pin tab", "push_pin") { model.togglePin(tab.id) }
+        MenuItem("Split right", "vertical_split") {}.disabled(true)
+        MenuItem("Split down", "horizontal_split") {}.disabled(true)
+        MenuItem("Move to new window", "open_in_new") {}.disabled(true)
+        if let workspace, let key = tab.route, let route = Route(key: key), case .note(let id) = route {
+            Divider()
+            MenuItem("Reveal in sidebar", "my_location") {
+                model.select(tab.id)
+                model.sidebarPage = .notes
+                model.sidebarCollapsed = false
+            }
+            MenuItem("Copy file path", "content_copy") {
+                Task { @MainActor in
+                    if let note = try? await workspace.env.notes.notes(course: nil).first(where: { $0.id == id }) {
+                        workspace.copyFilePath(note)
+                    }
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -128,6 +158,7 @@ private struct TabStrip: View {
                     .animation(dragging == tab.id ? nil : .easeOut(duration: 0.16), value: target)
                     .zIndex(dragging == tab.id ? 2 : active ? 1 : 0)
                     .onTapGesture { model.select(tab.id) }
+                    .contextMenu { tabMenu(tab) }
                     .gesture(
                         DragGesture(minimumDistance: 6)
                             .onChanged { value in
@@ -183,7 +214,9 @@ private struct TabItem: View {
                 .foregroundStyle(isActive ? MarginColor.ink : MarginColor.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if isActive || hovered {
+            if tab.isPinned {
+                Icon("push_pin", size: 13, color: MarginColor.textTertiary).padding(.trailing, 6)
+            } else if isActive || hovered {
                 TabCloseButton(action: onClose)
             }
         }

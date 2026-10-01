@@ -64,7 +64,7 @@ extension Workspace {
             let date = note.date ?? note.modified?.date ?? today
             let index = date >= monday ? 0 : date >= monday.adding(days: -7) ? 1 : 2
             let item = NotesSpace.Note(note.title, snippet: note.snippet, time: CoursesFormat.weekday(date.weekday),
-                                       isSelected: active == .note(note.id)) { [weak self] in self?.open(note: note) }
+                                       isSelected: active == .note(note.id), summary: note) { [weak self] in self?.open(note: note) }
             groups[index].1.append(item)
         }
         return NotesSpace(courseName: name, courseStyle: style, groups: groups.filter { !$0.1.isEmpty },

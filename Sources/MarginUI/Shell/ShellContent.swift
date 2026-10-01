@@ -81,10 +81,13 @@ public struct NotesSpace: Sendable {
         public var snippet: String
         public var time: String
         public var isSelected: Bool
+        /// The note behind the row: right-click gives the note menu (1a).
+        public var summary: NoteSummary?
         public var action: (@MainActor @Sendable () -> Void)?
 
-        public init(_ title: String, snippet: String, time: String, isSelected: Bool = false,
+        public init(_ title: String, snippet: String, time: String, isSelected: Bool = false, summary: NoteSummary? = nil,
                     action: (@MainActor @Sendable () -> Void)? = nil) {
+            self.summary = summary
             self.title = title
             self.snippet = snippet
             self.time = time

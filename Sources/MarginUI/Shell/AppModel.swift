@@ -10,12 +10,15 @@ public struct ShellTab: Identifiable, Hashable, Sendable {
     public var dot: String
     /// What the tab shows (`course/bio`, `session/bio-tuesday-1000@2026-09-29`); nil = not addressable.
     public var route: String?
+    /// Pinned tabs sit first, keep their page (opening something else makes a new tab) and have no ×.
+    public var isPinned = false
 
-    public init(id: UUID = UUID(), title: String, dot: String = "#9A9DA6", route: String? = nil) {
+    public init(id: UUID = UUID(), title: String, dot: String = "#9A9DA6", route: String? = nil, isPinned: Bool = false) {
         self.id = id
         self.title = title
         self.dot = dot
         self.route = route
+        self.isPinned = isPinned
     }
 }
 
@@ -139,6 +142,7 @@ public final class AppModel {
     @discardableResult
     public func show(_ tab: ShellTab, newTab: Bool = false) -> UUID {
         guard !newTab, let id = activeTabID, let i = tabs.firstIndex(where: { $0.id == id }) else { return open(tab) }
+        if tabs[i].isPinned, tabs[i].route != tab.route { return open(tab) }
         guard tabs[i].route != tab.route else {
             tabs[i].title = tab.title; tabs[i].dot = tab.dot
             return id
@@ -148,6 +152,27 @@ public final class AppModel {
         tabs[i].dot = tab.dot
         tabs[i].route = tab.route
         return id
+    }
+
+    /// Pins or unpins a tab; pinned tabs move to the front, in pin order.
+    public func togglePin(_ id: UUID) {
+        guard let i = tabs.firstIndex(where: { $0.id == id }) else { return }
+        var tab = tabs.remove(at: i)
+        tab.isPinned.toggle()
+        let firstUnpinned = tabs.firstIndex { !$0.isPinned } ?? tabs.endIndex
+        tabs.insert(tab, at: tab.isPinned ? firstUnpinned : firstUnpinned)
+    }
+
+    /// Closes every unpinned tab but `id`.
+    public func closeOthers(_ id: UUID) {
+        for tab in tabs where tab.id != id && !tab.isPinned { close(tab.id) }
+        select(id)
+    }
+
+    /// Closes the unpinned tabs to the right of `id`.
+    public func closeToTheRight(_ id: UUID) {
+        guard let i = tabs.firstIndex(where: { $0.id == id }) else { return }
+        for tab in tabs[(i + 1)...] where !tab.isPinned { close(tab.id) }
     }
 
     /// What a new empty tab shows (closing the last tab leaves one); nil = no tab is left.

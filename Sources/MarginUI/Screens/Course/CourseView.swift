@@ -83,14 +83,10 @@ struct CourseView: View {
 
     @ViewBuilder
     private func cardMenu(_ card: LectureCardData) -> some View {
-        Button("Open") { open(card) }
         if let note = card.note {
-            Button("Open in new tab") { workspace.open(.note(note.id), title: note.title, newTab: true) }
-            Button("Move to…") { workspace.dialog = .moveNote(note) }
-            Button("Share / Export…") { workspace.dialog = .share(note) }
-            Button("Version history") { workspace.dialog = .history(note.id) }
-            Divider()
-            Button("Delete…", role: .destructive) { workspace.requestDelete(note) }
+            NoteMenuItems(note: note)
+        } else {
+            MenuItem("Open", "description") { open(card) }
         }
     }
 
