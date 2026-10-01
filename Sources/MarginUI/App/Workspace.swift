@@ -92,21 +92,18 @@ public final class Workspace {
             self.show(toInbox ? "Added to Inbox" : "Saved", icon: toInbox ? "inbox" : "check_circle")
             Task { await self.refreshAfterWrite() }
         }
+        // There is always one tab; it shows the start page.
+        self.shell.homeTab = ShellTab(title: Self.title(of: .courses), dot: Self.grey, route: Route.courses.key)
         if self.shell.tabs.isEmpty {
-            if start.isNote {
-                self.shell.open(ShellTab(title: Self.title(of: start), dot: Self.grey, route: start.key))
-            } else {
-                self.shell.place = start.key
-            }
+            self.shell.open(ShellTab(title: Self.title(of: start), dot: Self.grey, route: start.key))
         }
     }
 
     static let grey = "#9A9DA6"
 
-    /// What the content area shows: the active note tab, else the current place.
+    /// What the content area shows: the page of the active tab.
     public var route: Route {
-        if let tab = shell.activeTab, let r = tab.route.flatMap(Route.init(key:)) { return r }
-        return Route(key: shell.place) ?? .courses
+        shell.activeTab?.route.flatMap(Route.init(key:)) ?? .courses
     }
 
     /// The model of a route, created on first use.
@@ -130,18 +127,19 @@ public final class Workspace {
 
     // MARK: Navigation
 
-    /// Shows `route` in its open tab or a new one.
-    /// Notes open in the one tab (a new tab with `newTab` or ⌘ held); every other page is a place
-    /// shown without a tab.
+    /// Shows `route` in the active tab, like a browser. A new tab only on request: `newTab`
+    /// (Open in new tab) or after + in the title bar (`openInNewTab`, used by the next open).
     public func open(_ route: Route, title: String? = nil, newTab: Bool? = nil) {
         if route == .settings { openSettings(); return }
-        guard route.isNote else { shell.showPlace(route.key); return }
         let title = title ?? Self.title(of: route)
-        noteOpened(route, title: title)
-        let wantsNewTab = newTab ?? (NSApp.currentEvent?.modifierFlags.contains(.command) == true
-                                     && NSApp.currentEvent?.type == .leftMouseUp)
+        if route.isNote { noteOpened(route, title: title) }
+        let wantsNewTab = newTab ?? openInNewTab
+        openInNewTab = false
         shell.show(ShellTab(title: title, dot: dot(of: route), route: route.key), newTab: wantsNewTab)
     }
+
+    /// Closes a tab; closing the last one leaves a tab on the courses page (`AppModel.homeTab`).
+    public func closeTab(_ id: UUID) { shell.close(id) }
 
     /// Replaces the active tab's page (a draft becoming a note).
     func replaceActive(with route: Route, title: String) {
@@ -234,7 +232,9 @@ public final class Workspace {
         }
     }
 
-    func railSelect(_ id: String) {
+    /// A rail entry (place or course); `newTab` from its context menu.
+    func railSelect(_ id: String, newTab: Bool = false) {
+        if newTab { openInNewTab = true }
         switch id {
         case "home": open(.courses)
         case "inbox": open(.inbox)
@@ -362,12 +362,23 @@ public final class Workspace {
         }
     }
 
-    /// Closes the tabs of a route (a deleted note).
-    func closeTabs(of route: Route) {
-        for tab in shell.tabs where tab.route == route.key { shell.close(tab.id) }
+    /// Tabs that showed a route which is gone (a deleted note) show `fallback` instead.
+    func closeTabs(of route: Route, fallback: Route? = nil) {
+        var target = fallback ?? .courses
+        if fallback == nil, case .note(let n) = route, let course = courses.courseID(ofNote: n) { target = .course(course) }
+        replaceTabs(where: { $0 == route }, with: target)
         forget(route.key)
-        if shell.tabs.isEmpty, route.isNote, let course = courses.courseID(ofNote: route.key.replacingOccurrences(of: "note/", with: "")) {
-            shell.showPlace(Route.course(course).key)
+    }
+
+    /// Every tab whose page matches shows `target` instead (the active tab keeps its place).
+    private func replaceTabs(where matches: (Route) -> Bool, with target: Route) {
+        for tab in shell.tabs {
+            guard let key = tab.route, let r = Route(key: key), matches(r) else { continue }
+            if let i = shell.tabs.firstIndex(where: { $0.id == tab.id }) {
+                shell.tabs[i].route = target.key
+                shell.tabs[i].title = Self.title(of: target)
+                shell.tabs[i].dot = dot(of: target)
+            }
         }
     }
 
@@ -385,11 +396,13 @@ public final class Workspace {
 
     /// Closes the tabs of a course's notes and leaves its page (after archive or delete).
     func leave(course id: CourseID) {
-        for tab in shell.tabs {
-            if let key = tab.route, let route = Route(key: key), case .note(let n) = route, courses.courseID(ofNote: n) == id { shell.close(tab.id) }
-            if let key = tab.route, let route = Route(key: key), case .draft(let c, _, _) = route, c == id { shell.close(tab.id) }
-        }
-        if route == .course(id) { shell.showPlace(Route.courses.key) }
+        replaceTabs(where: { r in
+            switch r {
+            case .course(let c), .draft(let c, _, _): c == id
+            case .note(let n): self.courses.courseID(ofNote: n) == id
+            default: false
+            }
+        }, with: .courses)
         forget(Route.course(id).key)
     }
 
@@ -468,7 +481,7 @@ public final class Workspace {
             case .upcoming: .upcoming
             case .inbox: .inbox
             }
-            if place != .courses, shell.activeTabID == nil { shell.showPlace(place.key) }
+            if place != .courses, shell.tabs.count == 1, route == .courses { open(place) }
         }
     }
 

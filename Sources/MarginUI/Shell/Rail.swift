@@ -19,6 +19,12 @@ struct Rail: View {
                 ) { onSelect(place.rawValue) }
                 .marginTooltip(place.title, shortcut: place.shortcut.isEmpty ? nil : place.shortcut, placement: .trailing)
                 .accessibilityLabel(place.title)
+                .contextMenu {
+                    if let workspace {
+                        Button("Open") { workspace.railSelect(place.rawValue) }
+                        Button("Open in new tab") { workspace.railSelect(place.rawValue, newTab: true) }
+                    }
+                }
             }
             MarginDivider(color: MarginColor.border).frame(width: 24).padding(.vertical, 6)
             ForEach(content.courses, id: \.id) { course in

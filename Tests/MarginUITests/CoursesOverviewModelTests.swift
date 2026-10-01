@@ -113,34 +113,58 @@ import Testing
 }
 
 @MainActor @Suite struct AppModelRouteTests {
-    @Test func notesReuseTheOneTabUnlessANewTabIsAsked() {
+    @Test func everythingShowsInTheActiveTabUnlessANewTabIsAsked() {
         let m = AppModel()
-        let first = m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8"))
+        let first = m.show(ShellTab(title: "Courses", route: "courses"))
         #expect(m.tabs.count == 1)
-        // Another note replaces the content of the same tab.
-        let second = m.show(ShellTab(title: "Glossary", route: "note/bio/glossary"))
-        #expect(second == first && m.tabs.count == 1 && m.activeTab?.route == "note/bio/glossary")
-        // A new tab only when asked.
-        let third = m.show(ShellTab(title: "Lecture 7", route: "note/bio/lecture-7"), newTab: true)
-        #expect(third != first && m.tabs.count == 2)
-        // An open note is selected, not duplicated.
-        #expect(m.show(ShellTab(title: "Glossary", route: "note/bio/glossary")) == first)
+        // A course page, then a note: the same tab changes what it shows.
+        #expect(m.show(ShellTab(title: "Cell Biology", route: "course/bio")) == first)
+        #expect(m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8")) == first)
+        #expect(m.tabs.count == 1 && m.activeTab?.route == "note/bio/lecture-8" && m.activeTab?.title == "Lecture 8")
+        // A new tab only when asked; the same page may be open in two tabs.
+        let second = m.show(ShellTab(title: "Today", route: "today"), newTab: true)
+        #expect(second != first && m.tabs.count == 2 && m.activeTabID == second)
+        #expect(m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8")) == second)
+        #expect(m.tabs.count == 2)
     }
 
-    @Test func placesShowWithoutATabAndHistoryCoversBoth() {
+    @Test func historyGoesBackThroughWhatEachTabShowed() {
         let m = AppModel()
-        m.showPlace("today")
-        let tab = m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8"))
-        m.showPlace("course/bio")
-        #expect(m.activeTabID == nil && m.place == "course/bio" && m.tabs.count == 1)
+        let tab = m.show(ShellTab(title: "Today", route: "today"))
+        m.show(ShellTab(title: "Cell Biology", route: "course/bio"))
+        m.show(ShellTab(title: "Lecture 8", route: "note/bio/lecture-8"))
         m.goBack()
-        #expect(m.activeTabID == tab)
+        #expect(m.activeTabID == tab && m.activeTab?.route == "course/bio" && m.activeTab?.title == "Cell Biology")
         m.goBack()
-        #expect(m.location == .place("today"))
+        #expect(m.activeTab?.route == "today")
+        #expect(!m.canGoBack)
         m.goForward()
-        #expect(m.activeTabID == tab)
-        // With no tab active, a note opens in the last used tab.
-        m.showPlace("inbox")
-        #expect(m.show(ShellTab(title: "Glossary", route: "note/bio/glossary")) == tab)
+        #expect(m.activeTab?.route == "course/bio")
+        // Navigating after going back drops the forward history.
+        m.show(ShellTab(title: "Inbox", route: "inbox"))
+        #expect(!m.canGoForward)
+    }
+
+    @Test func closingTheLastTabLeavesTheHomeTab() {
+        let m = AppModel()
+        m.homeTab = ShellTab(title: "Courses", route: "courses")
+        let only = m.show(ShellTab(title: "Today", route: "today"))
+        m.close(only)
+        #expect(m.tabs.count == 1 && m.activeTab?.route == "courses" && m.activeTabID != only)
+    }
+
+    @Test func workspaceOpensPagesInTheActiveTabAndPlusMakesANewOne() {
+        let w = Workspace(env: .fixture())
+        #expect(w.shell.tabs.count == 1 && w.route == .courses)
+        w.open(.today)
+        w.open(.course("bio"))
+        #expect(w.shell.tabs.count == 1 && w.route == .course("bio"))
+        w.openInNewTab = true   // + in the title bar, then a choice
+        w.open(.inbox)
+        #expect(w.shell.tabs.count == 2 && w.route == .inbox && !w.openInNewTab)
+        w.open(.graph)
+        #expect(w.shell.tabs.count == 2 && w.route == .graph)
+        w.open(.today, newTab: true)   // Open in new tab
+        #expect(w.shell.tabs.count == 3)
     }
 }

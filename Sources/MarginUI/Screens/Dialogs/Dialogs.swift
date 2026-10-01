@@ -723,6 +723,7 @@ struct CourseMenuItems: View {
     var body: some View {
         Button("New lecture note") { workspace.newNote(in: workspace.courseModel(course.id)) }
         Button("Open") { workspace.open(course: course) }
+        Button("Open in new tab") { workspace.open(.course(course.id), title: course.name, newTab: true) }
         Divider()
         Button("Course settings…") { workspace.dialog = .courseSettings(course) }
         Button("Rename…") { workspace.dialog = .renameCourse(course) }
