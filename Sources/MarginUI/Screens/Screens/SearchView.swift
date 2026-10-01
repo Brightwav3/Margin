@@ -9,8 +9,9 @@ public final class SearchModel {
     public enum Range: String, CaseIterable, Sendable { case any, thisSemester, thisWeek }
 
     public var query: String { didSet { schedule() } }
-    public var course: CourseID? { didSet { schedule() } }
-    public var kind: NoteKind? { didSet { schedule() } }
+    /// 2h: several courses and kinds can be chosen; none means all.
+    public var courses: Set<CourseID> = [] { didSet { schedule() } }
+    public var kinds: Set<NoteKind> = [] { didSet { schedule() } }
     public var range: Range = .any { didSet { schedule() } }
     public var tag = "" { didSet { schedule() } }
     public private(set) var hits: [SearchHit] = []
@@ -33,7 +34,10 @@ public final class SearchModel {
         }
         let tags = tag.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "") }
             .filter { !$0.isEmpty }
-        return SearchFilter(course: course, kind: kind, from: from, to: to, tags: tags)
+        // One course or kind narrows the search itself; several are applied to the hits.
+        let single = courses.count == 1 && kinds.count <= 1
+        return SearchFilter(course: courses.count == 1 ? courses.first : nil, kind: kinds.count == 1 ? kinds.first : nil,
+                            from: from, to: to, tags: tags, limit: single ? SearchFilter.defaultLimit : 500)
     }
 
     var semester: Semester?
@@ -50,8 +54,11 @@ public final class SearchModel {
     public func run() async {
         let q = query.trimmingCharacters(in: .whitespaces)
         let f = filter(semester: semester)
-        guard !q.isEmpty || !f.restrictsNothing else { hits = []; searched = false; return }
-        hits = (try? await env.search.search(query: q, filter: f)) ?? []
+        guard !q.isEmpty || !f.restrictsNothing || !courses.isEmpty || !kinds.isEmpty else { hits = []; searched = false; return }
+        let found = (try? await env.search.search(query: q, filter: f)) ?? []
+        hits = Array(found.filter { hit in
+            (courses.isEmpty || hit.courseID.map(courses.contains) == true) && (kinds.isEmpty || kinds.contains(hit.kind))
+        }.prefix(SearchFilter.defaultLimit))
         searched = true
     }
 
@@ -120,16 +127,7 @@ struct SearchView: View {
 
     private var filters: some View {
         HStack(spacing: 8) {
-            Menu {
-                Button("All courses") { model.course = nil }
-                ForEach(workspace.courses.cards) { c in Button(c.course.name) { model.course = c.id } }
-            } label: { OutlinedControl { Text(model.course.flatMap { workspace.courses.course(id: $0)?.name } ?? "All courses"); Icon("expand_more", size: 16) } }
-                .controlMenu()
-            Menu {
-                Button("Any type") { model.kind = nil }
-                ForEach(NoteKind.allCases, id: \.self) { k in Button(k.rawValue.capitalized) { model.kind = k } }
-            } label: { OutlinedControl { Text(model.kind.map { $0.rawValue.capitalized } ?? "Any type"); Icon("expand_more", size: 16) } }
-                .controlMenu()
+            NotesFilter(model: model)
             Menu {
                 Button("Any time") { model.range = .any }
                 Button("This semester") { model.range = .thisSemester }
@@ -184,5 +182,94 @@ struct SearchView: View {
                 }
             }
         }
+    }
+}
+
+/// 2h Filter, multiple choice: courses and note kinds in one button; "All notes" when nothing is chosen.
+struct NotesFilter: View {
+    @Bindable var model: SearchModel
+    @Environment(Workspace.self) private var workspace
+    @State private var open = false
+
+    static func kindTitle(_ k: NoteKind) -> String {
+        switch k {
+        case .lecture: "Lecture notes"
+        case .lab: "Labs"
+        case .seminar: "Seminars"
+        case .tutorial: "Tutorials"
+        case .study: "Study notes"
+        case .note: "Other notes"
+        }
+    }
+
+    private var label: String {
+        var parts: [String] = []
+        if model.courses.count == 1, let id = model.courses.first, let c = workspace.courses.course(id: id) { parts.append(c.name) }
+        else if model.courses.count > 1 { parts.append("\(model.courses.count) courses") }
+        if model.kinds.count == 1, let k = model.kinds.first { parts.append(Self.kindTitle(k)) }
+        else if model.kinds.count > 1 { parts.append("\(model.kinds.count) types") }
+        return parts.isEmpty ? "All notes" : parts.joined(separator: " · ")
+    }
+
+    var body: some View {
+        let active = !model.courses.isEmpty || !model.kinds.isEmpty
+        Button { open.toggle() } label: {
+            HStack(spacing: 6) {
+                Icon("filter_list", size: 16)
+                Text(label)
+                Icon("expand_more", size: 16)
+            }
+            .marginFont(MarginTextSize.base)
+            .foregroundStyle(active ? MarginColor.accentText : MarginColor.ink)
+            .padding(.horizontal, 10).frame(height: 32)
+            .background(active ? MarginColor.accentSoft : MarginColor.surface, in: RoundedRectangle(cornerRadius: 7))
+            .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(active ? .clear : MarginColor.borderCard) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $open, arrowEdge: .bottom) { list }
+    }
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            header("Course")
+            ForEach(workspace.courses.cards) { c in
+                row(c.course.name, dot: c.course.style.dot, checked: model.courses.contains(c.id)) { toggle(&model.courses, c.id) }
+            }
+            MarginDivider(color: Color(hex: 0xEDEEF1)).padding(.vertical, 4)
+            header("Type")
+            ForEach(NoteKind.allCases, id: \.self) { k in
+                row(Self.kindTitle(k), dot: nil, checked: model.kinds.contains(k)) { toggle(&model.kinds, k) }
+            }
+            if !model.courses.isEmpty || !model.kinds.isEmpty {
+                MarginDivider(color: Color(hex: 0xEDEEF1)).padding(.vertical, 4)
+                row("Show all notes", dot: nil, checked: false) { model.courses = []; model.kinds = [] }
+            }
+        }
+        .padding(5)
+        .frame(width: 250)
+    }
+
+    private func toggle<T: Hashable>(_ set: inout Set<T>, _ value: T) {
+        if set.contains(value) { set.remove(value) } else { set.insert(value) }
+    }
+
+    private func header(_ title: String) -> some View {
+        Text(title).marginFont(MarginTextSize.xs, .semibold).foregroundStyle(MarginColor.textTertiary)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+    }
+
+    private func row(_ title: String, dot: String?, checked: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Icon("check", size: 14, color: MarginColor.ink).frame(width: 16).opacity(checked ? 1 : 0)
+                if let dot { Circle().fill(Color(hexString: dot)).frame(width: 7, height: 7) }
+                Text(title).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .marginFont(14).foregroundStyle(MarginColor.ink)
+            .padding(.horizontal, 8).frame(height: 30)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(MenuRowButtonStyle())
     }
 }

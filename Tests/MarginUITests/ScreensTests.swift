@@ -23,9 +23,14 @@ import Testing
         let m = SearchModel(env: .fixture(), query: "membrane")
         await m.run()
         #expect(!m.hits.isEmpty && m.hits.allSatisfy { $0.courseID == "bio" })
-        m.course = "math"
+        m.courses = ["math"]
         await m.run()
         #expect(m.hits.allSatisfy { $0.courseID == "math" })
+        m.query = ""
+        m.courses = ["math", "bio"]
+        m.kinds = [.lecture]
+        await m.run()
+        #expect(!m.hits.isEmpty && m.hits.allSatisfy { ["math", "bio"].contains($0.courseID) && $0.kind == .lecture })
     }
 
     @Test func highlightMarksTheMatchedRange() {
