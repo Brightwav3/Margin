@@ -24,10 +24,11 @@ Jak se obě větve a agentní milestony skládají do sebe. **Neměří se v lid
 | 16 | MA3 | Agent v aplikaci | 30 | 25 | 55 | in-app agent zvládne 3 skills přes frontu |
 | 17 | M10b | Popupy: data a organizace | 12 | 18 | 30 | popupy 1e,1f,2c,2f,3a,3c schváleny |
 | 18 | M10c | Popupy: dialogy a oznámení | 12 | 22 | 34 | popupy 1g,1h,1i,2d,2e,2g,3b schváleny |
-| 19 | M11 | Obrazovky a stavy | 21 | 37 | 58 | všech 9 obrazovek schváleno; CP4 |
-| 20 | MA4 | Agent: odolnost | 32 | 3 | 35 | 30 injekčních útoků + eval 20/20 + stres bez ztráty |
-| 21 | M12 | Dokončení a vydání | 18 | 22 | 40 | rozpočty splněny, podpis, revize proti mockupům |
-| | **Σ** | | **405** | **429** | **834** | |
+| 19 | M10d | Menu, dropdowny a tooltipy | 0 | 45 | 45 | menu 1a–1r, dropdowny 2a–2i, tooltipy 3a–3i schváleny |
+| 20 | M11 | Obrazovky a stavy | 21 | 37 | 58 | všech 9 obrazovek schváleno; CP4 |
+| 21 | MA4 | Agent: odolnost | 32 | 3 | 35 | 30 injekčních útoků + eval 20/20 + stres bez ztráty |
+| 22 | M12 | Dokončení a vydání | 18 | 22 | 40 | rozpočty splněny, podpis, revize proti mockupům |
+| | **Σ** | | **405** | **474** | **879** | |
 
 ## Vlny (co může běžet souběžně)
 
@@ -38,14 +39,14 @@ Vlna = množina milestonů, jejichž závislosti jsou splněné, takže je agent
 | 1 | M0, M2 | UI základ ‖ BE typy a fixtures | galerie: System sekce (M0) | — (Q6 rozhodnuto) |
 | 2 | M1, M5 | UI shell ‖ BE vault a index | **CP0** (titulková lišta, animace panelů) | Q1 (vault), schválení `05-vault-spec.md`; Q5 hotovo |
 | 3 | M3, MA0 | UI přehled předmětů ‖ BE agent-základy | vizuál 1a, 1b; **brána MA0** (testy provenance, ID, undo, souběh) | — |
-| 4 | M4, M6a, M9 | UI detail předmětu ‖ editor (source+reading) ‖ graf | **CP1** (2c + návrhy Today/Upcoming a záložek předmětu), vizuál 4a | Q4 (vzhled Today/Upcoming) |
+| 4 | M4, M6a, M9, M10d (základ) | UI detail předmětu ‖ editor (source+reading) ‖ graf ‖ menu a tooltipy (M10-24…28) | **CP1** (2c + návrhy Today/Upcoming a záložek předmětu), vizuál 4a | Q4 (vzhled Today/Upcoming) |
 | 5 | M6b, M7 | editor live ‖ úkoly | **CP2** (editor), vizuál Today/Upcoming | — |
 | 6 | MA1, M8, M10a | agentní povrch ‖ rychlý zápis+Inbox ‖ popupy A | **CP3** (jádro zadání), **CP5** (agent přes MCP: párování → identita → úkol → `undo`), vizuál 5a, 5b, popupy A | Q2 (běh bez okna), Q11, Q12, Q13 |
 | 7 | MA2, M10b, M10c | oprávnění a review ‖ popupy B ‖ popupy C | vizuál review fronty, správy identit, popupů B a C | Q3 (rozsah stubů), Q9 (výchozí profil) |
 | 8 | MA3, M11 | agent v aplikaci ‖ zbylé obrazovky | vizuál Agent tab, Screens 1a…2e; **CP4** | Q8 (model), Q10 (soukromí) |
 | 9 | MA4, M12 | odolnost ‖ dokončení | eval a útoky (číselně), revize proti mockupům | Q7 (Developer ID) |
 
-Pozn.: M6a a M9 se dají posunout do dřívější vlny, jakmile je hotové M5 a MA0; pořadí výše je bezpečné pro jednoho člověka, který schvaluje.
+Pozn.: M10d se staví průběžně: základ (M10-24…M10-28) ve vlně 4, kontextová menu editoru a dat (M10-31, M10-32) s obrazovkami, ke kterým patří, kontrola M10d spolu s M10c. M6a a M9 se dají posunout do dřívější vlny, jakmile je hotové M5 a MA0; pořadí výše je bezpečné pro jednoho člověka, který schvaluje.
 
 ## Kritická cesta
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+<style>body{margin:0;font-family:var(--font-sans)}*{box-sizing:border-box}a{color:#2457D6}a:hover{color:#1D47B3}</style>
+</helmet>
+<div style="width:100%;background:#fff;border:1px solid #E4E5E9;border-radius:10px;box-shadow:0 12px 32px rgba(28,30,38,.16);overflow:hidden;font-family:var(--font-sans);letter-spacing:-0.2px;color:#1C1E26">
+  <sc-if value="{{ hasSearch }}" hint-placeholder-val="{{ false }}"><div style="height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid #EDEEF1"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="search" size="{{ 18 }}" weight="{{ 300 }}" color="#686C78" hint-size="18px,18px"></x-import><span style="flex:1;font-size:14px">{{ search }}<span style="display:inline-block;width:2px;height:17px;background:#2F6BEB;vertical-align:-3px"></span></span></div></sc-if>
+  <div style="padding:5px;display:flex;flex-direction:column">
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+      <sc-if value="{{ r.isH }}"><div style="font-size:12px;font-weight:600;color:#9A9DA6;padding:6px 8px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.h }}</div></sc-if>
+      <sc-if value="{{ r.isSep }}"><div style="height:1px;background:#EDEEF1;margin:4px 8px"></div></sc-if>
+      <sc-if value="{{ r.isColors }}"><div style="display:flex;gap:8px;padding:6px 8px 8px 10px"><sc-for list="{{ r.colorList }}" as="c"><span style="width:20px;height:20px;border-radius:50%;background:{{ c.c }};box-shadow:{{ c.ring }}"></span></sc-for></div></sc-if>
+      <sc-if value="{{ r.isRow }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;min-height:32px;padding:{{ r.pad }};border-radius:6px;font-size:14px;background:{{ r.bg }};color:{{ r.color }};opacity:{{ r.op }};cursor:default">
+          <sc-if value="{{ r.hasCk }}"><span style="width:16px;height:16px;flex:none;display:flex"><sc-if value="{{ r.ckOn }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="check" size="{{ 16 }}" weight="{{ 400 }}" color="{{ r.ic }}" hint-size="16px,16px"></x-import></sc-if></span></sc-if>
+          <sc-if value="{{ r.hasIcon }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="{{ r.i }}" size="{{ 18 }}" weight="{{ 300 }}" color="{{ r.ic }}" hint-size="18px,18px"></x-import></sc-if>
+          <sc-if value="{{ r.hasDot }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ r.dot }};flex:none;margin:0 5px"></span></sc-if>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span><sc-if value="{{ r.hasD }}"><span style="font-size:12px;color:{{ r.dc }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.d }}</span></sc-if></div>
+          <sc-if value="{{ r.hasK }}"><span style="font-size:12px;color:{{ r.kc }};white-space:nowrap">{{ r.k }}</span></sc-if>
+          <sc-if value="{{ r.hasSub }}"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="chevron_right" size="{{ 16 }}" weight="{{ 300 }}" color="{{ r.kc }}" hint-size="16px,16px"></x-import></sc-if>
+          <sc-if value="{{ r.hasSw }}"><span style="width:32px;height:18px;border-radius:9px;background:{{ r.swBg }};position:relative;flex:none"><span style="position:absolute;top:2px;left:{{ r.swL }};width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></sc-if>
+        </div>
+      </sc-if>
+    </sc-for>
+  </div>
+  <sc-if value="{{ hasAction }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid #EDEEF1;font-size:14px;color:#2457D6"><x-import component-from-global-scope="ApplkeDesignSystem_795038.Icon" name="add" size="{{ 18 }}" weight="{{ 300 }}" color="#2457D6" hint-size="18px,18px"></x-import>{{ action }}</div></sc-if>
+  <sc-if value="{{ hasFooter }}" hint-placeholder-val="{{ false }}"><div style="padding:8px 13px;border-top:1px solid #EDEEF1;font-size:12px;color:#9A9DA6">{{ footer }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:260,&quot;height&quot;:300},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Array&lt;{t?:string,i?:string,k?:string,d?:string,dot?:string,h?:string,sep?:boolean,colors?:string[],sel?:number,active?:boolean,hover?:boolean,danger?:boolean,disabled?:boolean,sub?:boolean,ck?:boolean,sw?:boolean}&gt;&quot;,&quot;default&quot;:[{&quot;t&quot;:&quot;Rename…&quot;,&quot;i&quot;:&quot;edit&quot;},{&quot;sep&quot;:true},{&quot;t&quot;:&quot;Delete&quot;,&quot;i&quot;:&quot;delete&quot;,&quot;danger&quot;:true}]},&quot;search&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;action&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;footer&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const items = this.props.items || [];
+    const anyIcon = items.some(i => i.i || i.dot);
+    const rows = items.map(it => {
+      const isH = !!it.h, isSep = !!it.sep, isColors = !!it.colors;
+      const v = it.d ? '6px' : '0';
+      const left = anyIcon && !it.i && !it.dot && it.ck === undefined ? '36px' : '8px';
+      return { ...it, isH, isSep, isColors, isRow: !isH && !isSep && !isColors,
+        bg: it.active ? '#E6EDFD' : it.hover ? '#F3F4F6' : 'transparent',
+        color: it.danger ? '#D93F33' : it.active ? '#2457D6' : '#1C1E26',
+        ic: it.danger ? '#D93F33' : it.active ? '#2F6BEB' : '#686C78',
+        op: it.disabled ? 0.4 : 1,
+        kc: it.active ? '#2457D6' : '#9A9DA6', dc: it.active ? '#2457D6' : '#686C78',
+        pad: v + ' 8px ' + v + ' ' + left,
+        hasIcon: !!it.i, hasDot: !!it.dot, hasK: !!it.k, hasSub: !!it.sub, hasD: !!it.d,
+        hasCk: it.ck !== undefined, ckOn: it.ck === true,
+        hasSw: it.sw !== undefined, swBg: it.sw ? '#2F6BEB' : '#D5D7DD', swL: it.sw ? '16px' : '2px',
+        colorList: (it.colors || []).map((c, i) => ({ c, ring: i === it.sel ? '0 0 0 2px #fff, 0 0 0 4px ' + c : 'none' }))
+      };
+    });
+    const p = this.props;
+    return { rows, hasSearch: !!p.search, search: p.search, hasFooter: !!p.footer, footer: p.footer, hasAction: !!p.action, action: p.action };
+  }
+}
+</script>
+</body>
+</html>

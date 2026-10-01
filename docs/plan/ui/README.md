@@ -32,10 +32,11 @@ Značení: `M?-??` čistý UI úkol · `M?-??.U` UI část sdíleného úkolu ·
 | MA3 | Agent v aplikaci | 25 |
 | M10b | Popupy: data a organizace | 18 |
 | M10c | Popupy: dialogy a oznámení | 22 |
+| M10d | Menu, dropdowny a tooltipy | 45 |
 | M11 | Obrazovky a stavy | 37 |
 | MA4 | Agent: odolnost | 3 |
 | M12 | Dokončení a vydání | 22 |
-| **Σ** | | **429** |
+| **Σ** | | **474** |
 
 ## M0 — Kostra, tokeny, komponenty, galerie (váha 18)
 
@@ -218,6 +219,26 @@ Značení: `M?-??` čistý UI úkol · `M?-??.U` UI část sdíleného úkolu ·
 | M10-21.U | **2g** Settings › Editor napojené | změny se projeví v editoru | 3 | rozhraní `M10-21.B` + fixture |
 | M10-22.U | **3b** Share/Export (export PDF+MD reálně, sdílení UI) | PDF a MD export ověřen | 2 | rozhraní `M10-22.B` + fixture |
 | M10-23 | Snapshoty a kontrola M10c | schváleno | 2 |  |
+
+## M10d — Menu, dropdowny a tooltipy (váha 45)
+
+Zdroj: `Margin Menus.dc.html` (1a–1r kontextová menu, 5a–5k menu bar též v `Margin Menu Bar.dc.html`, 2a–2i dropdowny, 3a–3i tooltipy a hover karty, 4a řádky) a komponenta `Margin Menu.dc.html`. Menu se zapojují postupně k obrazovkám, ke kterým patří; akce, jejichž služba ještě neexistuje, jsou vypnuté s tooltipem „proč“ (3d).
+
+| ID | Úkol | Akceptační kritérium | Váha | Závisí na |
+|---|---|---|---|---|
+| M10-24 | `MarginMenu`: povrch a řádky dle 4a (ikona, text, zkratka, šipka podmenu, zaškrtnutí, destruktivní, vypnutý, nadpis sekce, oddělovač), klávesnice, podmenu | všechny stavy 4a v galerii; šipky/Enter/Esc/→ do podmenu; rozhodnutí nativní `NSMenu` × vlastní povrch zapsané jako `D-0NN` | 5 |  |
+| M10-25 | Pravý klik: hostitel kontextových menu (otevření u kurzoru, zarovnání k okraji okna, výběr položky pod kurzorem) | menu se otevře u kurzoru a nevyjede z okna; Esc a klik mimo zavřou | 3 | M10-24 |
+| M10-26 | Tooltipy 3a–3d: popisek + zkratka ve 4 umístěních, vysvětlení, celý název u zkráceného textu, proč je tlačítko vypnuté | zpoždění a umístění dle mockupu; zkrácené texty v shellu a M3 ukazují celý název | 4 |  |
+| M10-27 | Hover karty 3e–3i: karta předmětu, tip z onboardingu, validace, hodnota v grafu, zdroj agenta | 3e nad kolečkem v railu a kartou předmětu; ostatní v galerii s fixture | 4 | M10-26 |
+| M10-28 | Dropdowny 2a–2c, 2f, 2g: řazení, menu `⋯` poznámky, výběrové pole, split button, účet | 2a nahradí Sort v M3; ostatní v galerii | 3 | M10-24 |
+| M10-29 | Dropdowny 2d, 2e, 2h, 2i: výběr s hledáním, oprávnění, vícenásobný filtr, styl textu | hledání filtruje, vícenásobný výběr drží stav; 2e jen UI (napojení v MA2) | 4 | M10-24 |
+| M10-30 | Kontextová menu shellu a navigace: 1a poznámka v sidebaru, 1b složka s podmenu, 1j záložka, 1m tag, 1n prázdné místo sidebaru, 1q výsledek hledání, 1r více vybraných poznámek | pravý klik na každý prvek otevře správné menu; hotové akce fungují (otevřít, zavřít záložku, …) | 4 | M10-25 |
+| M10-31 | Kontextová menu editoru: 1c bez výběru, 1d s výběrem, 1e odkaz, 1f úkol, 1g nadpis, 1h obrázek/příloha, 1i buňka tabulky | menu podle místa kliku v editoru; úpravy textu jdou přes undo editoru | 5 | M6-01, M10-25 |
+| M10-32 | Kontextová menu dat: 1k hodina v rozvrhu, 1l kartička při opakování, 1o odpověď agenta, 1p známka | 1k v rozvrhu M3; ostatní s obrazovkami M7/M11/MA3, do té doby v galerii | 3 | M10-25 |
+| M10-33 | Snapshoty `menus/<id>` a kontrola M10d | všechny ID 1a–4a v galerii; `docs/checks/M10d.md` schváleno | 2 |  |
+| M10-34 | Menu bar (`Margin Menu Bar.dc.html` 1a–1k / Menus 5a–5k): Margin, File, Edit, View, Insert, Format, Note, Go, Agent, Window, Help se zkratkami z mockupu | každá položka buď funguje nad aktivní záložkou/editorem, nebo je vypnutá (Agent do MA3); zkratky bez konfliktů | 4 | M10-24 |
+| M10-35 | Editorové příkazy z menu Insert a Format (bloky, styly, nadpisy, seznamy, odsazení, vyčištění formátu) jako vratné úpravy | každý příkaz funguje na výběru i řádku; undo vrací | 2 | M6-01 |
+| M10-36 | Navigace z menu Go: historie záložek (zpět/vpřed i šipkami v liště), další/předchozí přednáška, podmenu Course, nedávné poznámky v File › Open recent | zpět/vpřed a přechody mezi přednáškami fungují | 2 | M10-34 |
 
 ## M11 — Obrazovky a stavy (váha 37)
 

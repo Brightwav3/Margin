@@ -1,6 +1,6 @@
 # Část 3: M10–M12 — popupy, zbylé obrazovky a stavy, dokončení
 
-Zdroj: `margin-popups.dc.html` (ID 1a–1i, 2a–2g, 3a–3d) a `Margin Screens.dc.html` (1a, 1b, 1e, 1f, 1g, 2a, 2b, 2c, 2e).
+Zdroj: `margin-popups.dc.html` (ID 1a–1i, 2a–2g, 3a–3d), `Margin Menus.dc.html` (menu a tooltipy, M10d) a `Margin Screens.dc.html` (1a, 1b, 1e, 1f, 1g, 2a, 2b, 2c, 2e).
 
 ---
 
@@ -39,14 +39,28 @@ Společný základ: `PopoverHost` (AppKit `NSPopover`/`NSPanel` podle případu)
 | 2g | **Settings › Editor** | Readable line length, písmo, tabulátory; napojit na skutečná nastavení editoru. |
 | 3b | **Share / Export** | Export do PDF a Markdown funguje, „Add classmates by…“ jen UI (sdílení je mimo rozsah). |
 
+### Skupina D — menu, dropdowny a tooltipy (`Margin Menus.dc.html`)
+Jeden povrch pro všechna menu (4a: řádky, zkratky, podmenu, zaškrtnutí, destruktivní a vypnuté položky); dropdowny jsou ukotvené ke spouštěči, kontextová menu u kurzoru. Tooltipy tmavé pro krátké popisky, bílé hover karty pro obsah.
+
+| ID | Co | Poznámky |
+|---|---|---|
+| 1a–1r | **Kontextová menu** (pravý klik) | Poznámka a složka v sidebaru, editor (bez výběru, s výběrem, odkaz, úkol, nadpis, obrázek, tabulka), záložka, hodina v rozvrhu, kartička, tag, prázdné místo sidebaru, odpověď agenta, známka, výsledek hledání, více poznámek. Menu předmětu zůstává 2f z popupů. |
+| 2a–2i | **Dropdowny** | Řazení, `⋯` poznámky, výběrové pole, výběr s hledáním, oprávnění, split button, účet, vícenásobný filtr, styl textu. |
+| 3a–3i | **Tooltipy a hover karty** | Popisek + zkratka (4 umístění), vysvětlení, celý název zkráceného textu, proč je tlačítko vypnuté, karta předmětu, tip z onboardingu, validace, hodnota v grafu, zdroj agenta. |
+| 4a | **Stavy a rozměry řádků** | Základ `MarginMenu` (M10-24). |
+| 5a–5k | **Menu bar** (`Margin Menu Bar.dc.html`) | Systémová lišta nabídek jen s textem: Margin, File, Edit, View, Insert, Format, Note, Go, Agent (šedé do MA3), Window, Help se zkratkami; Help hledá příkazy. |
+
+Akce bez hotové služby jsou vypnuté s tooltipem 3d; zapnou se s milestonem, který službu dodá.
+
 **Funguje**: ⌘K najde poznámku a otevře ji; `[[` nabídne návrhy; `/task` vloží úkol; datum u úkolu se propíše do souboru; nový předmět se objeví v railu; smazání jde do koše; notifikace přijde 10 min před hodinou.
 
 **Vizuální kontrola** — každý popup jako samostatný snímek přes `popups/<id>`:
 - [ ] Všechny popupy 1a–1i, 2a–2g, 3a–3d v galerii, velikost, rádius a stín podle mockupu.
 - [ ] Klávesové ovládání každého (šipky/Enter/Esc) — checklist v `docs/checks/M10.md`.
 - [ ] Kontrola v kontextu: popup nad správnou obrazovkou (např. 1c nad editorem, 1f nad úkolem).
+- [ ] M10d: všechna menu 1a–1r, dropdowny 2a–2i a tooltipy 3a–3i v galerii (`menus/<id>`), řádky podle 4a; pravý klik v kontextu otevře správné menu.
 
-**Rozdělení**: doporučuji tři pod-milestony M10a/b/c podle skupin, každý s vlastní kontrolou.
+**Rozdělení**: čtyři pod-milestony M10a/b/c/d podle skupin, každý s vlastní kontrolou.
 
 ---
 

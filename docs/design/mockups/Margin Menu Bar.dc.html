@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/styles.css">
+<link rel="stylesheet" href="margin-tokens.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<script src="_ds/applke-design-system-7950386b-2f59-40a2-bfcc-93f7f795acfe/_ds_bundle.js"></script>
+<style>body{margin:0;background:#E4E5E9;color:#1C1E26;font-family:var(--font-sans);letter-spacing:-0.2px}*{box-sizing:border-box}a{color:#2457D6;text-decoration:none}a:hover{color:#1D47B3}</style>
+</helmet>
+<section id="p1" style="padding:56px 56px 72px">
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 8px"><a href="#p1" style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1C1E26;color:#fff;border-radius:4px">1</a><span style="font-size:30px;font-weight:700;letter-spacing:-0.6px">Menu bar</span></div>
+  <div style="font-size:15px;color:#686C78;margin:0 0 24px;max-width:900px">The macOS menu bar while Margin is in front. Every command in the app is here, so people can find it and learn its shortcut. Menus are text-only, following the system.</div>
+  <div style="width:1400px;height:30px;border-radius:8px;background:rgba(246,246,248,.9);border:1px solid #D5D7DD;display:flex;align-items:center;gap:2px;padding:0 10px;font-size:13px;margin-bottom:32px">
+    <sc-for list="{{ bar }}" as="b" hint-placeholder-count="11"><span style="height:22px;padding:0 9px;border-radius:5px;display:flex;align-items:center;font-weight:{{ b.fw }};background:{{ b.bg }};color:{{ b.fg }}">{{ b.t }}</span></sc-for>
+    <span style="flex:1"></span><span style="color:#686C78">Thu 1 Oct 09:41</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,260px);gap:40px 28px;align-items:start">
+    <sc-for list="{{ mbar }}" as="mb" hint-placeholder-count="11">
+      <div id="{{ mb.id }}" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:baseline;gap:8px;font-size:15px;color:#1C1E26;font-weight:600"><span style="font:500 12px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(28,30,38,.08);color:#1C1E26;border-radius:4px">{{ mb.id }}</span>{{ mb.t }}</div>
+        <span style="font-size:13px;line-height:1.45;color:#686C78;min-height:38px;text-wrap:pretty">{{ mb.desc }}</span>
+        <div style="display:flex"><span style="height:22px;padding:0 9px;border-radius:5px;background:#2F6BEB;color:#fff;font-size:13px;display:flex;align-items:center">{{ mb.t }}</span></div>
+        <dc-import name="Margin Menu" items="{{ mb.items }}" search="{{ mb.search }}" hint-size="260px,420px" style="width:260px;margin-top:-6px"></dc-import>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const S = { sep: true };
+    const T = (t, k, x) => ({ t, k, ...x }), SUB = t => ({ t, sub: true });
+    const mbar = [
+      { id: '1a', t: 'Margin', desc: 'The app itself: settings, updates, quitting.', items: [T('About Margin'), S, T('Settings…', '⌘,'), T('Check for updates…'), S, SUB('Services'), S, T('Hide Margin', '⌘H'), T('Hide others', '⌥⌘H'), T('Show all'), S, T('Quit Margin', '⌘Q')] },
+      { id: '1b', t: 'File', desc: 'Creating, opening, importing and exporting notes and vaults.', items: [T('New note', '⌘N'), T('New lecture note', '⌃⌘N'), T('New folder', '⇧⌘N'), T('New course…'), T('Quick capture', '⇧⌘Space'), S, T('Open vault…', '⇧⌘O'), SUB('Open recent'), S, SUB('Import'), SUB('Export'), T('Share…'), S, T('Close tab', '⌘W'), T('Close window', '⇧⌘W'), S, T('Move to trash', '⌘⌫')] },
+      { id: '1c', t: 'Edit', desc: 'Clipboard, undo and search. Copy as Markdown keeps the formatting as text.', items: [T('Undo', '⌘Z'), T('Redo', '⇧⌘Z'), S, T('Cut', '⌘X'), T('Copy', '⌘C'), T('Copy as Markdown', '⌥⌘C'), T('Paste', '⌘V'), T('Paste as plain text', '⇧⌘V'), T('Select all', '⌘A'), S, T('Find in note', '⌘F'), T('Find and replace', '⌥⌘F'), T('Search vault', '⇧⌘F'), S, T('Start dictation'), T('Emoji and symbols', '⌃⌘Space')] },
+      { id: '1d', t: 'View', desc: 'How the note and window look. Ticks show what is on.', items: [T('Reading view', '⌘E', { ck: false }), T('Source mode', '⇧⌘E', { ck: false }), S, T('Sidebar', '⌘\\', { ck: true }), T('Right panel', '⌥⌘\\', { ck: true }), T('Properties', undefined, { ck: true }), T('Readable line length', undefined, { ck: true }), T('Line numbers', undefined, { ck: false }), S, T('Split right', undefined, { ck: false }), T('Split down', undefined, { ck: false }), S, T('Zoom in', '⌘+', { ck: false }), T('Zoom out', '⌘−', { ck: false }), T('Actual size', '⌘0', { ck: false }), S, T('Enter full screen', '⌃⌘F', { ck: false })] },
+      { id: '1e', t: 'Insert', desc: 'Blocks you can also add with / in the editor.', items: [T('Link to note', '⇧⌘K'), T('Task', '⌘L'), T('Table', '⌥⌘T'), T('Formula', '⌥⌘M'), T('Flashcard', '⇧⌘L'), T('Image or file…', '⇧⌘I'), T('Date and time', '⇧⌘D'), S, T('Callout'), T('Code block'), T('Footnote'), T('Divider'), S, T('From template…')] },
+      { id: '1f', t: 'Format', desc: 'Text styles. Same set as the selection toolbar.', items: [T('Bold', '⌘B'), T('Italic', '⌘I'), T('Underline', '⌘U'), T('Strikethrough', '⇧⌘X'), T('Highlight', '⇧⌘H'), T('Inline code', '⌘`'), S, SUB('Heading'), T('Paragraph', '⌥⌘0'), T('Quote', '⇧⌘.'), T('Bulleted list', '⇧⌘8'), T('Numbered list', '⇧⌘7'), T('Checklist', '⇧⌘9'), S, T('Indent', '⌘]'), T('Outdent', '⌘['), S, T('Clear formatting', '⌃⌘\\')] },
+      { id: '1g', t: 'Note', desc: 'Actions on the open note, including the school ones: sessions, revision, flashcards.', items: [T('Link to session…'), T('Add to revision'), T('Make flashcards from note'), S, T('Add property', '⌘;'), T('Rename…', 'F2'), T('Move to…', '⇧⌘M'), T('Merge with…'), T('Bookmark', '⌘D'), S, T('Backlinks'), T('Version history'), T('Reveal in Finder', '⌥⌘R')] },
+      { id: '1h', t: 'Go', desc: 'Moving around. ⌘1–5 open the main views.', items: [T('Today', '⌘1'), T('Upcoming', '⌘2'), T('Inbox', '⌘3'), T('Schedule', '⌘4'), T('Flashcard review', '⌘5'), S, T('Command palette', '⌘K'), T('Quick open…', '⌘O'), S, T('Back', '⌥⌘←'), T('Forward', '⌥⌘→'), S, T('Next lecture', '⌃⌘→'), T('Previous lecture', '⌃⌘←'), SUB('Course')] },
+      { id: '1i', t: 'Agent', desc: 'Everything the agent can do. Greyed out when it is turned off.', items: [T('Ask agent…', '⌘J'), S, T('Explain selection'), T('Summarise note'), T('Suggest links'), T('Make flashcards'), T('Quiz me on this note'), S, T('Agent panel', '⌥⌘J'), S, T('Agent settings…')] },
+      { id: '1j', t: 'Window', desc: 'Standard window commands, tabs and the list of open windows.', items: [T('Minimise', '⌘M'), T('Zoom'), S, T('New window', '⌥⌘N'), T('Next tab', '⌃⇥'), T('Previous tab', '⌃⇧⇥'), T('Pin tab'), S, T('Bring all to front'), S, T('Lecture 8 — Cell membrane', undefined, { ck: true }), T('Midterm plan', undefined, { ck: false })] },
+      { id: '1k', t: 'Help', desc: 'The search field finds any menu command by name.', search: 'split', items: [T('View › Split right', undefined, { active: true }), T('View › Split down'), S, T('Margin help'), T('Keyboard shortcuts', '⌘/'), T('Markdown guide'), T('What’s new'), S, T('Send feedback…'), T('Report a problem…')] }
+    ];
+    const bar = [{ t: 'Margin', fw: 700 }, ...mbar.slice(1).map(x => ({ t: x.t, fw: 400 }))].map((b, i) => ({ ...b, bg: i === 1 ? '#2F6BEB' : 'transparent', fg: i === 1 ? '#fff' : '#1C1E26' }));
+    return { mbar, bar };
+  }
+}
+</script>
+</body>
+</html>

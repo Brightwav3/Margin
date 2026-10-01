@@ -1,6 +1,6 @@
 # Margin — plán přepisu do Swiftu (část 0: přehled a pravidla)
 
-Zdroj: handoff z Claude Design (`School markdown manager UI mockups`), soubory `Margin.dc.html`, `Margin Screens.dc.html`, `margin-popups.dc.html`, `Sidebar.dc.html`, `Inspector.dc.html`, `margin-tokens.css`.
+Zdroj: handoff z Claude Design (`School markdown manager UI mockups`), soubory `Margin.dc.html`, `Margin Screens.dc.html`, `margin-popups.dc.html`, `Sidebar.dc.html`, `Inspector.dc.html`, `Margin Menus.dc.html` (+ komponenta `Margin Menu.dc.html`, dodáno 2026-09-30), `margin-tokens.css`.
 Cíl: fungující macOS aplikace, každý milestone končí **vizuální kontrolou** proti konkrétním mockupům.
 
 **Pro agenty:** začněte v `AGENTS.md` (kořen repozitáře) a `docs/git-workflow.md`. Pravidla jsou vynucená git hooky, guardem a CI, viz D-015 a D-016.
