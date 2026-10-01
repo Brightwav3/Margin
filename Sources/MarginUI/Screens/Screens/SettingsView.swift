@@ -157,6 +157,8 @@ public final class SettingsModel {
 
 struct SettingsView: View {
     @Bindable var model: SettingsModel
+    /// In the settings window: room for the traffic lights above the sidebar, the window's background.
+    var inWindow = false
     @Environment(Workspace.self) private var workspace
     @State private var shortcutQuery = ""
 
@@ -169,11 +171,13 @@ struct SettingsView: View {
                     Text(model.section.title).marginFont(MarginTextSize.lg, .semibold).padding(.bottom, 12)
                     content
                 }
-                .padding(.horizontal, 36).padding(.vertical, 28)
+                .padding(.horizontal, 36).padding(.top, inWindow ? 44 : 28).padding(.bottom, 28)
                 .frame(maxWidth: 720, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(MarginColor.surface)
+        .ignoresSafeArea()
         .task { await model.load() }
         .onChange(of: [model.readableLineLength, model.showProperties, model.showLineNumbers, model.rewriteLinks,
                        model.watchExternal, model.confirmBeforeDeleting, model.globalQuickCapture, model.autoPair,
@@ -195,6 +199,7 @@ struct SettingsView: View {
                 }
             }
             .padding(.horizontal, 10).padding(.bottom, 14)
+            .padding(.top, inWindow ? 34 : 0)
             group("Account", SettingsModel.Section.account)
             group("Options", SettingsModel.Section.options).padding(.top, 12)
             Spacer()

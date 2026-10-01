@@ -134,6 +134,7 @@ public final class Workspace {
     /// Notes open in the one tab (a new tab with `newTab` or ⌘ held); every other page is a place
     /// shown without a tab.
     public func open(_ route: Route, title: String? = nil, newTab: Bool? = nil) {
+        if route == .settings { openSettings(); return }
         guard route.isNote else { shell.showPlace(route.key); return }
         let title = title ?? Self.title(of: route)
         noteOpened(route, title: title)
