@@ -12,11 +12,15 @@ public struct SidebarContent: Sendable {
         public var meta: String?
         public var count: String
         public var isOn: Bool
+        /// The course the row stands for: right-click gives the course menu (2f).
+        public var courseID: String?
         /// Runs on click; nil = the row is not interactive yet.
         public var action: (@MainActor @Sendable () -> Void)?
 
         public init(_ title: String, icon: String? = nil, dot: String? = nil, meta: String? = nil,
-                    count: String = "", isOn: Bool = false, action: (@MainActor @Sendable () -> Void)? = nil) {
+                    count: String = "", isOn: Bool = false, courseID: String? = nil,
+                    action: (@MainActor @Sendable () -> Void)? = nil) {
+            self.courseID = courseID
             self.title = title
             self.icon = icon
             self.dot = dot
@@ -50,12 +54,15 @@ public struct SidebarContent: Sendable {
     /// Choices behind the title chevron (Courses ▾ → Cards / Timetable); empty = no menu.
     public var views: [Item]
     public var onAction: (@MainActor @Sendable () -> Void)?
+    /// Course of a course page: right-click on the title gives the course menu.
+    public var courseID: String?
 
-    public init(title: String, dot: String? = nil, actionTitle: String, actionIcon: String = "add",
+    public init(title: String, dot: String? = nil, courseID: String? = nil, actionTitle: String, actionIcon: String = "add",
                 actionKey: String = "", sections: [Section], notes: NotesSpace? = nil, views: [Item] = [],
                 onAction: (@MainActor @Sendable () -> Void)? = nil) {
         self.title = title
         self.dot = dot
+        self.courseID = courseID
         self.actionTitle = actionTitle
         self.actionIcon = actionIcon
         self.actionKey = actionKey

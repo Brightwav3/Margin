@@ -37,7 +37,7 @@ extension Workspace {
         if !upcoming.isEmpty { sections.append(.init("Next classes", Array(upcoming))) }
 
         let notes = notesSpace(for: m, name: name, style: style)
-        let sidebar = SidebarContent(title: name, dot: style?.dot, actionTitle: "New lecture note",
+        let sidebar = SidebarContent(title: name, dot: style?.dot, courseID: m.courseID, actionTitle: "New lecture note",
                                      actionIcon: "edit_square", actionKey: "⌘N", sections: sections,
                                      notes: notes,
                                      onAction: { [weak self] in self?.newNote(in: m) })

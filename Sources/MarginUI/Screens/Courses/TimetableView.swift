@@ -126,6 +126,8 @@ private struct DayColumn: View {
                     .contextMenu {
                         Button("Open note") { onOpen(block.occurrence) }
                         Button("Reschedule or cancel…") { onReschedule(block.occurrence) }
+                        Divider()
+                        CourseSubmenu(courseID: block.occurrence.session.courseID)
                     }
                     .frame(height: max(0, frame.height))
                     .padding(.horizontal, 3)
