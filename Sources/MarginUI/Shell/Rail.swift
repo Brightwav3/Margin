@@ -13,7 +13,7 @@ struct Rail: View {
         VStack(spacing: 6) {
             ForEach(RailContent.Place.allCases, id: \.self) { place in
                 RailPlaceButton(
-                    icon: place.icon,
+                    glyph: RailGlyph(rawValue: place.rawValue) ?? .home,
                     isOn: content.active == place.rawValue,
                     hasDot: place == .inbox && content.inboxHasItems
                 ) { onSelect(place.rawValue) }
@@ -58,7 +58,7 @@ struct Rail: View {
                 }
             }
             Spacer(minLength: 0)
-            Icon("help", size: 22, color: MarginColor.textSecondary)
+            RailIcon(glyph: .help)
                 .frame(width: 40, height: 40)
             AccountButton(initials: content.initials)
         }
@@ -120,7 +120,7 @@ struct CourseHoverCard: View {
 }
 
 private struct RailPlaceButton: View {
-    let icon: String
+    let glyph: RailGlyph
     let isOn: Bool
     let hasDot: Bool
     let action: () -> Void
@@ -128,8 +128,8 @@ private struct RailPlaceButton: View {
 
     var body: some View {
         Button(action: action) {
-            Icon(icon, size: 22, weight: isOn ? .bold : .regular,
-                 color: isOn ? MarginColor.ink : MarginColor.textSecondary)
+            // Margin's own rail icons: outlined, solid black when selected (user's call).
+            RailIcon(glyph: glyph, filled: isOn)
                 .frame(width: 40, height: 40)
                 .background(isOn ? MarginColor.borderSubtle : (hovered ? MarginColor.hover : .clear),
                             in: RoundedRectangle(cornerRadius: 10))
