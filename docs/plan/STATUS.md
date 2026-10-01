@@ -85,3 +85,4 @@ _(žádné)_
 - 2026-10-01: M12-02 výkon: snímek grafu s 1030 uzly z ~7 s na 12 ms (cache hranic a stupňů, jedna cesta hran, ořez mimo plátno); start 0,88 s, paměť 111 MB, rychlý zápis 8 ms. Test `AppPerformanceTests` v pomalé vrstvě.
 - 2026-10-01: 1r vícenásobný výběr v seznamu poznámek (⌘/⇧-klik): otevřít v záložkách, sloučit, přesunout, přidat štítek, export Markdown, smazat (M10-32).
 - 2026-10-01: M12-01 audit přístupnosti: popisky ikonových tlačítek, akce VoiceOver u klikacích prvků, Reduce Motion u pohybových animací, `scripts/lint-a11y.py`.
+- 2026-10-01: Oprava ikon: řádky menu bez ikony (menu ⋯ poznámky) kreslily čárkovaný čtvereček místo prázdného místa; neznámé názvy se zaznamenají a test vykreslí všechny obrazovky galerie; `scripts/lint-icons.py`.
