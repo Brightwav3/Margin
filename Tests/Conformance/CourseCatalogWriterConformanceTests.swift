@@ -402,6 +402,48 @@ private let stats = NewCourse(name: "Statistics", semester: "fall-2026", code: "
         }
     }
 
+    /// A tiny PNG (8-byte signature + IHDR) and a JPEG header: enough for format detection.
+    static let png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 1, 2, 3])
+    static let jpg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0, 16, 0x4A, 0x46, 0x49, 0x46, 0, 1])
+
+    @Test(arguments: archiveKinds)
+    func aBannerIsSetReplacedAndRemoved(kind: HarnessKind) async throws {
+        try await withHarness(kind) { h in
+            #expect(try await h.courses.banner(course: "bio") == nil)
+            #expect(await codeOf { try await h.courses.banner(course: "nope") } == "notFound")
+            // Dry run: the entry, nothing stored.
+            let dry = try await h.writer.setBanner(Self.png, course: "bio", actor: .user, baseVersion: nil, dryRun: true, idempotencyKey: nil)
+            #expect(dry.entries.count == 1 && dry.entries[0].kind == .created && dry.entries[0].path.hasSuffix("/_files/banner.png"))
+            #expect(try await h.courses.banner(course: "bio") == nil)
+
+            let set = try await h.writer.setBanner(Self.png, course: "bio", actor: testActor, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(try await h.courses.banner(course: "bio") == Self.png)
+            let version = try #require(set.entries.first?.afterHash)
+            // The same bytes again change nothing.
+            #expect(try await h.writer.setBanner(Self.png, course: "bio", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil).isEmpty)
+
+            // Another format replaces the file; a stale version is refused.
+            #expect(await codeOf { try await h.writer.setBanner(Self.jpg, course: "bio", actor: .user, baseVersion: "stale", dryRun: false,
+                                                                idempotencyKey: nil) } == "conflict")
+            let replaced = try await h.writer.setBanner(Self.jpg, course: "bio", actor: .user, baseVersion: version, dryRun: false, idempotencyKey: nil)
+            #expect(Set(replaced.entries.map(\.kind)) == [.created, .deleted])
+            #expect(replaced.entries.contains { $0.kind == .deleted && $0.path.hasSuffix("banner.png") })
+            #expect(try await h.courses.banner(course: "bio") == Self.jpg)
+
+            // What is not an image, or too large, is refused.
+            #expect(await codeOf { try await h.writer.setBanner(Data("hello".utf8), course: "bio", actor: .user, baseVersion: nil,
+                                                                dryRun: false, idempotencyKey: nil) } == "invalid")
+            #expect(await codeOf { try await h.writer.setBanner(Self.png + Data(count: 5 * 1024 * 1024), course: "bio", actor: .user,
+                                                                baseVersion: nil, dryRun: false, idempotencyKey: nil) } == "invalid")
+
+            // Removing: one deleted entry, then nothing to remove.
+            let removed = try await h.writer.setBanner(nil, course: "bio", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
+            #expect(removed.entries.map(\.kind) == [.deleted])
+            #expect(try await h.courses.banner(course: "bio") == nil)
+            #expect(try await h.writer.setBanner(nil, course: "bio", actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil).isEmpty)
+        }
+    }
+
     @Test(arguments: archiveKinds)
     func deletingACourseTrashesItWithItsNotes(kind: HarnessKind) async throws {
         try await withHarness(kind) { h in

@@ -62,6 +62,15 @@ public struct VaultCourseCatalogWriter: CourseCatalogWriter {
         }
     }
 
+    public func setBanner(_ image: Data?, course: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
+                          idempotencyKey: String?) async throws -> ChangeSet {
+        let backend = self.backend
+        return try await backend.journaled(actor: actor, key: idempotencyKey, dryRun: dryRun) {
+            try await backend.setBanner(image, course: course, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                                        idempotencyKey: idempotencyKey)
+        }
+    }
+
     public func setArchived(semester: SemesterID, _ archived: Bool, actor: Actor, baseVersion: String?,
                             dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         let backend = self.backend

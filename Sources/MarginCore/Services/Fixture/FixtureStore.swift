@@ -32,6 +32,8 @@ actor FixtureStore {
     var courses: [Course]
     /// Courses archived one by one (`CourseCatalogWriter.setArchived(course:)`).
     var archivedCourseIDs: Set<CourseID> = []
+    /// Course banners: bytes and format (`CourseCatalog.banner`).
+    var banners: [CourseID: (data: Data, format: BannerFormat)] = [:]
     /// Graded items of all courses (`GradeService`), in file order per course.
     var grades: [Grade]
     /// Version history, shared by `HistoryService` and the automatic snapshot of `saveRecordingHistory`.

@@ -40,8 +40,7 @@ public struct BannerImage: Sendable, Hashable {
 ///   png, jpg, webp, gif in that order.
 /// - **Errors:** unknown course `.notFound`; stale `baseVersion` `.conflict`, nothing written.
 ///
-/// Not part of the service contract yet: the UI needs an API type for the picker
-/// (`M3-05.U`), which is an `api` change.
+/// The services reach it through `CourseCatalog.banner(course:)` and `CourseCatalogWriter.setBanner`.
 public struct BannerStore: Sendable {
     /// Largest accepted image, in bytes.
     public static let maxBytes = 5 * 1024 * 1024
@@ -64,15 +63,26 @@ public struct BannerStore: Sendable {
     /// - Parameter baseVersion: the `version` of the banner the caller replaces; when the stored
     ///   banner differs (or does not exist though a version is given) the call throws `.conflict`.
     ///   `nil` replaces whatever is there.
-    @discardableResult
-    public func save(_ data: Data, course: CourseID, baseVersion: String? = nil) async throws -> BannerImage {
+    /// The format of an acceptable banner, else `.invalid` (empty, over `maxBytes`, not an image).
+    public static func validate(_ data: Data) throws -> BannerFormat {
         guard !data.isEmpty else { throw MarginError.invalid("The banner image is empty") }
-        guard data.count <= Self.maxBytes else {
-            throw MarginError.invalid("The banner image is \(data.count) bytes; the limit is \(Self.maxBytes)")
+        guard data.count <= maxBytes else {
+            throw MarginError.invalid("The banner image is \(data.count) bytes; the limit is \(maxBytes)")
         }
         guard let format = BannerFormat.detect(data) else {
             throw MarginError.invalid("The banner must be a PNG, JPEG, GIF or WebP image")
         }
+        return format
+    }
+
+    /// Where `course`'s banner of `format` is stored (vault-relative).
+    public func plannedPath(course: CourseID, format: BannerFormat) async throws -> String {
+        try path(in: try await courseFolder(course), format: format).rawValue
+    }
+
+    @discardableResult
+    public func save(_ data: Data, course: CourseID, baseVersion: String? = nil) async throws -> BannerImage {
+        let format = try Self.validate(data)
         let folder = try await courseFolder(course)
         let target = try path(in: folder, format: format)
         let existing = try await existingBanners(in: folder)
