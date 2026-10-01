@@ -44,7 +44,7 @@ enum EditorKey { case up, down, enter, escape, tab }
 
 /// What a right click hit (Margin Menus 1c–1i).
 struct EditorContext {
-    enum Kind { case plain, selection(String), link(String), task(line: Int), heading(String), image, table }
+    enum Kind { case plain, selection(String), link(String), task(line: Int), heading(String), tag(String), image, table }
     var kind: Kind
     var location: Int
 }
@@ -566,10 +566,28 @@ final class MarginTextView: NSTextView {
                 kind = .image
             } else if trimmed.hasPrefix("|") {
                 kind = .table
+            } else if let tag = Self.tag(in: text, at: index) {
+                kind = .tag(tag)
             }
         }
         return coordinator?.parent.events.onContextMenu(EditorContext(kind: kind, location: index))
             ?? super.menu(for: event)
+    }
+
+    /// `#tag` under `index` (letters, digits, `_`, `-`, `/`), with its `#`.
+    static func tag(in text: NSString, at index: Int) -> String? {
+        func isTagChar(_ c: unichar) -> Bool {
+            guard let u = UnicodeScalar(c) else { return false }
+            return CharacterSet.alphanumerics.contains(u) || c == 0x5F || c == 0x2D || c == 0x2F
+        }
+        var start = min(index, text.length - 1)
+        guard start >= 0 else { return nil }
+        while start > 0, isTagChar(text.character(at: start)) { start -= 1 }
+        guard text.character(at: start) == 0x23, start == 0 || [0x20, 0x09, 0x0A].contains(text.character(at: start - 1)) else { return nil }
+        var end = start + 1
+        while end < text.length, isTagChar(text.character(at: end)) { end += 1 }
+        guard end > start + 1 else { return nil }
+        return text.substring(with: NSRange(location: start, length: end - start))
     }
 
     private func characterIndex(at point: NSPoint) -> Int {
