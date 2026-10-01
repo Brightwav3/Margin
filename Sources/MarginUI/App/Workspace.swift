@@ -37,6 +37,8 @@ public final class Workspace {
         case newSemester
         case manageVaults
         case renameNote(NoteSummary)
+        case renameTag(String)
+        case deleteTag(String)
         case removeVault(VaultChoice)
         case restoreSnapshot(NoteVersion)
         case help(HelpTopic)
@@ -60,6 +62,8 @@ public final class Workspace {
             case .newSemester: "newSemester"
             case .manageVaults: "manageVaults"
             case .renameNote(let n): "renameNote/\(n.id)"
+            case .renameTag(let t): "renameTag/\(t)"
+            case .deleteTag(let t): "deleteTag/\(t)"
             case .removeVault(let v): "removeVault/\(v.path)"
             case .restoreSnapshot(let v): "restoreSnapshot/\(v.id)"
             case .help(let t): "help/\(t.rawValue)"

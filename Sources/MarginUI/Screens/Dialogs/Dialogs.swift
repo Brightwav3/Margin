@@ -37,6 +37,8 @@ struct DialogHost: View {
                     case .newSemester: NewSemesterDialog()
                     case .manageVaults: ManageVaultsDialog()
                     case .renameNote(let n): RenameNoteDialog(note: n)
+                    case .renameTag(let t): TagDialog(tag: t, deleting: false)
+                    case .deleteTag(let t): TagDialog(tag: t, deleting: true)
                     case .removeVault(let v): RemoveVaultDialog(vault: v)
                     case .restoreSnapshot(let v): RestoreSnapshotDialog(version: v)
                     case .help(let t): HelpDialog(topic: t)
