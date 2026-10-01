@@ -10,3 +10,4 @@ xcuserdata/
 *.mobileprovision
 .env
 .env.*
+Sources/MarginUI/Resources/Render/mermaid/mermaid.min.js
