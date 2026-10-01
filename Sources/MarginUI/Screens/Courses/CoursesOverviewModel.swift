@@ -1,3 +1,4 @@
+import AppKit
 import MarginCore
 import Observation
 import SwiftUI
@@ -91,6 +92,22 @@ public final class CoursesOverviewModel {
 
     // MARK: Loading
 
+    /// Banner images of the courses (M3-05); a course without one shows its colour.
+    public private(set) var banners: [CourseID: NSImage] = [:]
+
+    func loadBanners(for ids: [CourseID]) async {
+        var images: [CourseID: NSImage] = [:]
+        for id in ids {
+            if let data = try? await env.courses.banner(course: id), let image = NSImage(data: data) { images[id] = image }
+        }
+        banners = images
+    }
+
+    func reloadBanner(_ id: CourseID) async {
+        if let data = try? await env.courses.banner(course: id), let image = NSImage(data: data) { banners[id] = image }
+        else { banners[id] = nil }
+    }
+
     public func load() async {
         do {
             let semesters = try await env.courses.semesters()
@@ -121,6 +138,7 @@ public final class CoursesOverviewModel {
                     next: next.map { Self.nextLine($0, notes: notes) }))
             }
             self.cards = cards
+            await loadBanners(for: courses.map(\.id))
             self.dueCounts = due
             self.openCounts = open
             self.notesByCourse = notesByCourse
