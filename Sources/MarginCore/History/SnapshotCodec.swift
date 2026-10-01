@@ -118,7 +118,7 @@ enum ZlibFraming {
 #if canImport(Compression)
 /// zlib through Apple's `Compression` framework (`COMPRESSION_ZLIB` is a raw deflate stream, which
 /// `ZlibFraming` wraps into a standard zlib stream).
-// TODO(M11-08): verify on macOS (written on Linux, where Compression does not exist).
+/// Verified on macOS against streams from other zlib implementations (`ZlibCodecTests`).
 public struct ZlibCodec: SnapshotCodec {
     public let id: UInt8 = 1
     public init() {}
