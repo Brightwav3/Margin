@@ -38,7 +38,10 @@ public struct LectureTarget: Codable, Sendable, Hashable {
 /// **The note.** A lecture note (`kind == .lecture`, dated) of the course whose date is the day of
 /// the lecture; with several, the one with the smaller id.
 ///
-/// Not considered: cancelled or moved sessions (`SessionOverride`) - TODO(M9-04): honour overrides.
+/// **Cancelled and moved classes.** `resolve(course:notes:occurrences:)` takes the concrete classes
+/// (`CourseCatalog.sessions(week:)`, overrides applied): a cancelled lecture is not a candidate and
+/// a moved one counts on its new day and time. The weekly variant without occurrences reads the
+/// schedule only.
 public struct LectureNoteResolver: Sendable {
     /// How far (in days) a scheduled lecture may be from now to be picked.
     public static let horizonDays = 7
@@ -50,6 +53,24 @@ public struct LectureNoteResolver: Sendable {
     /// The nearest lecture of `course` now, or `nil` when the course has neither a lecture within
     /// reach nor a dated lecture note.
     public func resolve(course: Course, notes: [NoteSummary], semester: Semester? = nil) -> LectureTarget? {
+        let today = clock.today
+        var classes: [(date: LocalDate, session: Session)] = []
+        for offset in -Self.horizonDays...Self.horizonDays {
+            let date = today.adding(days: offset)
+            if let semester, !Self.isTeaching(date, in: semester) { continue }
+            for s in course.sessions where s.day == date.weekday { classes.append((date, s)) }
+        }
+        return resolve(course: course, notes: notes, classes: classes)
+    }
+
+    /// The nearest lecture among concrete classes: cancelled ones are skipped, moved ones count on
+    /// their new day (`SessionOccurrence.date`) and time.
+    public func resolve(course: Course, notes: [NoteSummary], occurrences: [SessionOccurrence]) -> LectureTarget? {
+        let classes = occurrences.filter { $0.session.courseID == course.id && !$0.isCancelled }.map { ($0.date, $0.session) }
+        return resolve(course: course, notes: notes, classes: classes)
+    }
+
+    private func resolve(course: Course, notes: [NoteSummary], classes: [(date: LocalDate, session: Session)]) -> LectureTarget? {
         let lectureNotes = notes.filter { $0.courseID == course.id && $0.kind == .lecture && $0.date != nil }
         let title = Self.suggestedTitle(courseNotes: notes.filter { $0.courseID == course.id })
         let today = clock.today
@@ -57,23 +78,18 @@ public struct LectureNoteResolver: Sendable {
 
         struct Candidate { var date: LocalDate; var start: LocalTime; var distance: Int; var upcoming: Bool; var startMinutes: Int }
         var best: Candidate?
-        let lectures = course.sessions.filter { $0.kind.caseInsensitiveCompare("Lecture") == .orderedSame }
-        for offset in -Self.horizonDays...Self.horizonDays {
-            let date = today.adding(days: offset)
-            if let semester, !Self.isTeaching(date, in: semester) { continue }
-            for s in lectures where s.day == date.weekday {
-                let start = Self.minutes(date, s.start)
-                let end = start + s.lengthMinutes
-                let distance = now < start ? start - now : (now > end ? now - end : 0)
-                guard distance <= Self.horizonDays * 1440 else { continue }
-                let c = Candidate(date: date, start: s.start, distance: distance, upcoming: now < start, startMinutes: start)
-                if let b = best {
-                    let cKey = (c.distance, c.upcoming ? 1 : 0, c.startMinutes)
-                    let bKey = (b.distance, b.upcoming ? 1 : 0, b.startMinutes)
-                    if cKey < bKey { best = c }
-                } else {
-                    best = c
-                }
+        for (date, s) in classes where s.kind.caseInsensitiveCompare("Lecture") == .orderedSame {
+            let start = Self.minutes(date, s.start)
+            let end = start + s.lengthMinutes
+            let distance = now < start ? start - now : (now > end ? now - end : 0)
+            guard distance <= Self.horizonDays * 1440 else { continue }
+            let c = Candidate(date: date, start: s.start, distance: distance, upcoming: now < start, startMinutes: start)
+            if let b = best {
+                let cKey = (c.distance, c.upcoming ? 1 : 0, c.startMinutes)
+                let bKey = (b.distance, b.upcoming ? 1 : 0, b.startMinutes)
+                if cKey < bKey { best = c }
+            } else {
+                best = c
             }
         }
         if let best {
