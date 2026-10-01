@@ -16,6 +16,12 @@ extension NSAttributedString.Key {
     static let marginCheckbox = NSAttributedString.Key("margin.checkbox")
     /// Target note title of a `[[wikilink]]` (click opens it, hover previews it).
     static let marginWikilink = NSAttributedString.Key("margin.wikilink")
+    /// The source of a Markdown table, on its first line; the text view draws it as a grid
+    /// while the table is not being edited.
+    static let marginTable = NSAttributedString.Key("margin.table")
+    /// An embedded image `![[name.png|200]]`: the value is `name|spec`; the text view draws the
+    /// picture in the line the styler made tall enough.
+    static let marginEmbed = NSAttributedString.Key("margin.embed")
     /// `-`, `*` or `+` of a list item drawn as a round bullet (live and reading, like Obsidian).
     static let marginBullet = NSAttributedString.Key("margin.bullet")
 }
@@ -112,6 +118,50 @@ enum MarkdownStyler {
             }
             style(token.kind, r, storage, text, mode, isActive(r, active))
         }
+        if mode != .source { tables(storage, text, range, tokens: tokens, active: mode == .live ? active : nil) }
+    }
+
+    /// Height of a table row drawn as a grid.
+    static var tableRowHeight: CGFloat { 34 * scale }
+
+    /// Tables outside the block being edited: their lines are hidden and the first one is as tall
+    /// as the drawn grid (`MarginTextView` draws it from `.marginTable`).
+    private static func tables(_ s: NSTextStorage, _ text: NSString, _ range: NSRange, tokens: [MarkdownToken], active: MarkdownRange?) {
+        var lines: [NSRange] = []
+        func flush() {
+            defer { lines.removeAll() }
+            guard lines.count >= 2, let first = lines.first, let last = lines.last else { return }
+            let block = NSRange(location: first.location, length: NSMaxRange(last) - first.location)
+            if let active, NSIntersectionRange(block, NSRange(location: active.location, length: max(active.length, 1))).length > 0 { return }
+            let source = text.substring(with: block)
+            let rows = source.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                .filter { !TableEditing.isDelimiter(TableEditing.cells($0)) }
+            let height = CGFloat(rows.count) * tableRowHeight + 12
+            for (i, line) in lines.enumerated() {
+                let full = text.lineRange(for: line)
+                var content = full
+                if content.length > 0, text.character(at: NSMaxRange(content) - 1) == 10 { content.length -= 1 }
+                s.addAttribute(.marginHidden, value: true, range: content)
+                let p = NSMutableParagraphStyle()
+                p.minimumLineHeight = i == 0 ? height : 0.01
+                p.maximumLineHeight = i == 0 ? height : 0.01
+                s.addAttribute(.paragraphStyle, value: p, range: full)
+            }
+            s.addAttribute(.marginTable, value: source, range: NSRange(location: first.location, length: 1))
+        }
+        var lastEnd = -1
+        for t in tokens {
+            switch t.kind {
+            case .tableRow, .tableDelimiterRow:
+                let line = text.lineRange(for: NSRange(location: t.range.location, length: 0))
+                if lines.last == line { continue }
+                if lastEnd >= 0, line.location != lastEnd { flush() }
+                lines.append(line)
+                lastEnd = NSMaxRange(line)
+            default: continue
+            }
+        }
+        flush()
     }
 
     private static func isActive(_ r: NSRange, _ active: MarkdownRange?) -> Bool {
@@ -227,6 +277,7 @@ enum MarkdownStyler {
             if !source { delimiters(r, 2, marker) }
         case .wikilink(let embed):
             s.addAttribute(.foregroundColor, value: accent, range: r)
+            if embed, !source, !(active && mode == .live), embedImage(r, s, text) { break }
             if !source {
                 let open = embed ? 3 : 2
                 marker(NSRange(location: r.location, length: min(open, r.length)))
@@ -316,6 +367,27 @@ enum MarkdownStyler {
         case .inlineFootnote:
             s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(size: 14)], range: r)
         }
+    }
+
+    /// Widest an embedded image is drawn (the readable column).
+    static var maxEmbedWidth: CGFloat { 640 * scale }
+
+    /// `![[picture.png]]` outside the block being edited: the text is hidden and its line is as tall
+    /// as the picture. Returns false for embeds that are not pictures (they stay links).
+    private static func embedImage(_ r: NSRange, _ s: NSTextStorage, _ text: NSString) -> Bool {
+        let inner = text.substring(with: NSRange(location: r.location + 3, length: max(0, r.length - 5)))
+        let parts = inner.split(separator: "|", maxSplits: 1).map { String($0).replacingOccurrences(of: "\\", with: "") }
+        guard let name = parts.first?.trimmingCharacters(in: .whitespaces), EmbedImages.isImage(name) else { return false }
+        let spec = parts.count > 1 ? parts[1] : nil
+        let image = EmbedImages.shared.image(name)
+        if image == nil && EmbedImages.shared.didFail(name) { return false }
+        let size = image.map { EmbedImages.displaySize(of: $0, spec: spec, maxWidth: maxEmbedWidth) } ?? NSSize(width: 0, height: 24)
+        s.addAttributes([.marginHidden: true, .marginEmbed: name + "|" + (spec ?? "")], range: r)
+        let p = NSMutableParagraphStyle()
+        p.minimumLineHeight = size.height + 12
+        p.maximumLineHeight = size.height + 12
+        s.addAttribute(.paragraphStyle, value: p, range: text.lineRange(for: r))
+        return true
     }
 
     /// A list line: tight spacing and a hanging indent, so wrapped lines start under the text, not
