@@ -161,6 +161,44 @@ public actor VaultStore {
         return result.sorted()
     }
 
+    /// Counts and sizes of notes, other user files and `.margin/history/` (`IndexStatus.vaultStats`).
+    public func usage() throws -> VaultStats {
+        var stats = VaultStats(noteCount: 0, noteBytes: 0, attachmentCount: 0, attachmentBytes: 0, historyBytes: 0)
+        func walk(_ dir: [String], history: Bool) throws {
+            let entries = (try? fileSystem.contentsOfDirectory(at: url(forComponents: dir))) ?? []
+            for entry in entries where !entry.name.hasPrefix(".") || (dir.isEmpty && entry.name == VaultPath.internalFolderName) {
+                let path = dir + [entry.name]
+                switch entry.kind {
+                case .directory:
+                    if dir.isEmpty, entry.name == VaultPath.internalFolderName {
+                        try walk(path + ["history"], history: true)
+                    } else {
+                        try walk(path, history: history)
+                    }
+                case .file:
+                    let size = (try? fileSystem.attributes(at: url(forComponents: path)))??.size ?? 0
+                    if history { stats.historyBytes += size }
+                    else if entry.name.lowercased().hasSuffix(".md") { stats.noteCount += 1; stats.noteBytes += size }
+                    else { stats.attachmentCount += 1; stats.attachmentBytes += size }
+                case .symlink, .other: continue
+                }
+            }
+        }
+        try walk([], history: false)
+        return stats
+    }
+
+    /// Names of the folders directly in an app-data folder (`.margin/history/`), sorted.
+    public func listInternalFolders(in folder: VaultPath) throws -> [String] {
+        guard folder.isInternal, folder != VaultPath.internalRoot else { throw MarginError.invalid("\(folder) is not app data") }
+        do {
+            let url = try checkedURL(folder, followFinal: true)
+            guard let attrs = try fileSystem.attributes(at: url), attrs.kind == .directory else { return [] }
+            return try fileSystem.contentsOfDirectory(at: url).filter { $0.kind == .directory && !$0.name.hasPrefix(".") }
+                .map(\.name).sorted()
+        } catch { throw VaultStore.map(error, "list \(folder)") }
+    }
+
     // MARK: - Writing
 
     /// Atomically writes `content` to `path`, creating the file and missing folders when needed.

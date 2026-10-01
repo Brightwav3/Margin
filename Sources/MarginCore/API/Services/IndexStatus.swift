@@ -41,4 +41,22 @@ public struct IndexProgress: Codable, Sendable, Hashable {
 public protocol IndexStatus: Sendable {
     /// The state now, every change after it, and the end of the stream once complete.
     var progress: AsyncStream<IndexProgress> { get }
+
+    /// What the vault holds on disk now (Settings › Vault and files): Markdown notes, other files
+    /// (attachments) and the version history. Hidden files and `.margin/` (except history) do not count.
+    func vaultStats() async throws -> VaultStats
+}
+
+/// Sizes of a vault (`IndexStatus.vaultStats`). Bytes are file sizes on disk.
+public struct VaultStats: Codable, Sendable, Hashable {
+    public var noteCount: Int
+    public var noteBytes: Int64
+    public var attachmentCount: Int
+    public var attachmentBytes: Int64
+    public var historyBytes: Int64
+
+    public init(noteCount: Int, noteBytes: Int64, attachmentCount: Int, attachmentBytes: Int64, historyBytes: Int64) {
+        self.noteCount = noteCount; self.noteBytes = noteBytes; self.attachmentCount = attachmentCount
+        self.attachmentBytes = attachmentBytes; self.historyBytes = historyBytes
+    }
 }

@@ -20,6 +20,26 @@ struct VaultHistoryStorage: HistoryStorage {
         try VaultPath(components: [VaultPath.internalFolderName, "history", Self.folderName(for: note)])
     }
 
+    /// Notes with a history folder; folder names decode back to note ids (`%XX` bytes).
+    func notes() async throws -> [NoteID] {
+        let root = try VaultPath(components: [VaultPath.internalFolderName, "history"])
+        return try await store.listInternalFolders(in: root).compactMap(Self.noteID(fromFolder:))
+    }
+
+    static func noteID(fromFolder name: String) -> NoteID? {
+        var bytes: [UInt8] = []
+        let utf8 = Array(name.utf8)
+        var k = 0
+        while k < utf8.count {
+            if utf8[k] == UInt8(ascii: "%") {
+                guard k + 2 < utf8.count, let b = UInt8(String(decoding: utf8[(k + 1)...(k + 2)], as: UTF8.self), radix: 16) else { return nil }
+                bytes.append(b); k += 3
+            } else { bytes.append(utf8[k]); k += 1 }
+        }
+        let id = String(decoding: bytes, as: UTF8.self)
+        return id.isEmpty ? nil : id
+    }
+
     func names(note: NoteID) async throws -> [String] {
         try await store.listInternalFiles(in: try folder(note)).filter { $0.hasSuffix(HistoryEngine.fileExtension) }
     }
@@ -67,6 +87,7 @@ public struct VaultHistoryService: HistoryService {
     }
 
     public func versions(note: NoteID) async throws -> [NoteVersion] { try await engine.versions(note: note) }
+    public func recentVersions(limit: Int) async throws -> [NoteVersion] { try await engine.recentVersions(limit: limit) }
     public func text(of version: NoteVersion) async throws -> String { try await engine.text(of: version) }
     public func snapshot(note: NoteID, reason: SnapshotReason) async throws -> NoteVersion? {
         try await engine.snapshot(note: note, reason: reason)

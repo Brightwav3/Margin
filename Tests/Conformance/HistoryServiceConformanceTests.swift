@@ -37,6 +37,25 @@ private func repositorySave(_ h: Harness, _ text: String, dryRun: Bool = false) 
 /// `HistoryService`, run against `FixtureHistoryService` and `VaultHistoryService` (contract §5).
 @Suite struct HistoryServiceConformanceTests {
     @Test(arguments: HarnessKind.allCases)
+    func recentVersionsSpanAllNotesNewestFirst(kind: HarnessKind) async throws {
+        let clock = MovableClock()
+        try await withHarness(kind, clock: clock) { h in
+            #expect(try await h.history.recentVersions(limit: 10).isEmpty)
+            let other: NoteID = "bio/lecture-8"
+            let a = try #require(try await h.history.snapshot(note: note, reason: .close))
+            clock.advance(60)
+            try await h.editNote(other, "# Lecture 8\n\nChanged.\n")
+            let b = try #require(try await h.history.snapshot(note: other, reason: .close))
+            clock.advance(60)
+            try await save(h, "# Lecture 9\n\nAgain.\n")
+            let c = try #require(try await h.history.snapshot(note: note, reason: .close))
+            #expect(try await h.history.recentVersions(limit: 10).map(\.id) == [c.id, b.id, a.id])
+            #expect(try await h.history.recentVersions(limit: 2).map(\.id) == [c.id, b.id])
+            #expect(try await h.history.recentVersions(limit: 0).isEmpty)
+        }
+    }
+
+    @Test(arguments: HarnessKind.allCases)
     func aSaveSnapshotIsTakenAtMostOncePerFiveMinutes(kind: HarnessKind) async throws {
         let clock = MovableClock()
         try await withHarness(kind, clock: clock) { h in

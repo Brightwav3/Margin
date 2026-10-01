@@ -60,6 +60,37 @@ public enum EditorViewMode: String, Codable, Sendable, Hashable, CaseIterable {
     case source
 }
 
+/// The local profile (Settings › Profile, account popup). Kept in the vault, never sent anywhere.
+public struct Profile: Codable, Sendable, Hashable {
+    public var name: String
+    public var school: String
+    public var programme: String
+    /// 0 = not set.
+    public var yearOfStudy: Int
+    /// BCP 47 code (`cs`, `en`); empty = the system's.
+    public var language: String
+    /// IANA time zone (`Europe/Prague`); empty = the system's.
+    public var timeZone: String
+
+    public init(name: String = "", school: String = "", programme: String = "", yearOfStudy: Int = 0,
+                language: String = "", timeZone: String = "") {
+        self.name = name; self.school = school; self.programme = programme; self.yearOfStudy = yearOfStudy
+        self.language = language; self.timeZone = timeZone
+    }
+
+    /// „AK“ for „Anna Kováčová“; „ME“ when there is no name.
+    public var initials: String {
+        let parts = name.split(separator: " ").prefix(2).compactMap(\.first)
+        return parts.isEmpty ? "ME" : String(parts).uppercased()
+    }
+}
+
+/// Light, dark or follow the system (Settings › Appearance).
+public enum AppTheme: String, Codable, Sendable, Hashable, CaseIterable { case system, light, dark }
+
+/// Where the app opens (Settings › General).
+public enum StartupPlace: String, Codable, Sendable, Hashable, CaseIterable { case courses, today, upcoming, inbox }
+
 /// The settings the app knows (mockup `margin-popups` 2g, Settings › Editor, and app behaviour).
 public enum Settings {
     // Editor › Display
@@ -78,7 +109,36 @@ public enum Settings {
     /// Seconds between file scans of the watcher.
     public static let watchInterval = Setting("files.watchInterval", default: 0.2)
 
+    /// Typing `**` or `(` adds the closing pair.
+    public static let autoPair = Setting("editor.autoPair", default: true)
+    /// Enter continues a list, Tab nests it.
+    public static let smartLists = Setting("editor.smartLists", default: true)
+    /// Note text size in points (⌘+ / ⌘− change it per window).
+    public static let fontSize = Setting("editor.fontSize", default: 16.0)
+
+    /// Folder (vault-relative) for pasted images and PDFs; empty = the course's `_files/`.
+    public static let attachmentsFolder = Setting("files.attachmentsFolder", default: "")
+    /// Edits from Finder, Git or other apps appear immediately (the file watcher).
+    public static let watchExternalChanges = Setting("files.watchExternalChanges", default: true)
+
     // Notifications
     /// Minutes before a class or a due time to remind.
     public static let reminderMinutes = Setting("reminders.minutesBefore", default: 10)
+
+    // Profile and general
+    /// The local profile.
+    public static let profile = Setting("profile", default: Profile())
+    /// The page the app opens on.
+    public static let openOnStartup = Setting("general.openOnStartup", default: StartupPlace.courses)
+    /// Ask before moving a note or course to the trash.
+    public static let confirmBeforeDeleting = Setting("general.confirmBeforeDeleting", default: true)
+    /// ⇧⌘Space opens quick capture from any app.
+    public static let globalQuickCapture = Setting("general.globalQuickCapture", default: true)
+
+    // Appearance
+    public static let theme = Setting("appearance.theme", default: AppTheme.system)
+
+    // Semesters
+    /// Create the lecture note of a class when it starts (a draft until then).
+    public static let autoLectureNotes = Setting("semesters.autoLectureNotes", default: false)
 }

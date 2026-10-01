@@ -3,6 +3,8 @@ import Foundation
 /// Where snapshot files live: `.margin/history/<note>/<millis>.snap` in a vault, memory in the
 /// fixture. `note` is the note id; names are opaque here.
 protocol HistoryStorage: Sendable {
+    /// Notes that have snapshots.
+    func notes() async throws -> [NoteID]
     func names(note: NoteID) async throws -> [String]
     func read(note: NoteID, name: String) async throws -> Data
     func write(note: NoteID, name: String, data: Data) async throws
@@ -66,6 +68,13 @@ actor HistoryEngine {
             result.append(NoteVersion(id: Self.id(note, ms), noteID: note, timestamp: Date(timeIntervalSince1970: Double(ms) / 1000), byteCount: size))
         }
         return result.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    func recentVersions(limit: Int) async throws -> [NoteVersion] {
+        guard limit > 0 else { return [] }
+        var all: [NoteVersion] = []
+        for note in try await storage.notes() { all += (try? await versions(note: note)) ?? [] }
+        return Array(all.sorted { ($0.timestamp, $0.id) > ($1.timestamp, $1.id) }.prefix(limit))
     }
 
     func text(of version: NoteVersion) async throws -> String {

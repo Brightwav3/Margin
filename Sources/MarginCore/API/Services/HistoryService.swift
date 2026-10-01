@@ -16,12 +16,16 @@
 ///   `baseVersion` = `Note.version`, `dryRun`, idempotency) and nothing is deleted: the current text is
 ///   snapshotted first (when it differs from the newest version) and the restored text becomes the
 ///   newest version. Restoring the text that is current changes nothing.
+/// - **Recent:** `recentVersions(limit:)` lists the newest versions of all notes together (File recovery),
+///   newest first, at most `limit`; notes that were deleted still show their history.
 /// - **Diff:** `diff(a, b)` goes from `a` to `b` (both of the same note); `diffWithCurrent` from a
 ///   version to the note as it is now.
 public protocol HistoryService: Sendable {
     /// The versions of a note, newest first.
     func versions(note: NoteID) async throws -> [NoteVersion]
 
+    /// The newest versions across all notes, newest first, at most `limit`.
+    func recentVersions(limit: Int) async throws -> [NoteVersion]
     /// The note text of a version. `.notFound` when it was dropped or never existed.
     func text(of version: NoteVersion) async throws -> String
 

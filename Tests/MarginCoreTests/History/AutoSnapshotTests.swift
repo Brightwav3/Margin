@@ -29,6 +29,7 @@ private struct HistoryBlockedFileSystem: FileSystem {
 
 /// Storage that refuses every write.
 private struct FailingStorage: HistoryStorage {
+    func notes() async throws -> [NoteID] { [] }
     func names(note: NoteID) async throws -> [String] { [] }
     func read(note: NoteID, name: String) async throws -> Data { throw MarginError.io("read failed") }
     func write(note: NoteID, name: String, data: Data) async throws { throw MarginError.io("write failed") }

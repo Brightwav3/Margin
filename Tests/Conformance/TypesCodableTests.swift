@@ -119,3 +119,19 @@ private let t = LocalTime.literal(10, 0)
         #expect(graph.edges[0].id == "bio--b1")
     }
 }
+
+@Suite struct ProfileTests {
+    @Test func initialsComeFromTheName() {
+        #expect(Profile(name: "Anna Kováčová").initials == "AK")
+        #expect(Profile(name: "šimon").initials == "Š")
+        #expect(Profile().initials == "ME")
+    }
+
+    @Test func profileRoundTripsThroughSettings() async throws {
+        let store = FixtureSettingsStore()
+        #expect(await store.get(Settings.profile) == Profile())
+        let p = Profile(name: "Anna", school: "MU", programme: "MVZ", yearOfStudy: 2, language: "cs", timeZone: "Europe/Prague")
+        try await store.set(Settings.profile, p)
+        #expect(await store.get(Settings.profile) == p)
+    }
+}
