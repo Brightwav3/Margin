@@ -36,6 +36,7 @@ public final class Workspace {
         case deleteCourse(Course)
         case newSemester
         case manageVaults
+        case renameNote(NoteSummary)
         case removeVault(VaultChoice)
         case restoreSnapshot(NoteVersion)
         case help(HelpTopic)
@@ -58,6 +59,7 @@ public final class Workspace {
             case .deleteCourse(let c): "deleteCourse/\(c.id)"
             case .newSemester: "newSemester"
             case .manageVaults: "manageVaults"
+            case .renameNote(let n): "renameNote/\(n.id)"
             case .removeVault(let v): "removeVault/\(v.path)"
             case .restoreSnapshot(let v): "restoreSnapshot/\(v.id)"
             case .help(let t): "help/\(t.rawValue)"
@@ -202,6 +204,10 @@ public final class Workspace {
             if case .course(let id) = route, let course = courses.course(id: id) {
                 shell.tabs[index].title = course.name
                 shell.tabs[index].dot = course.style.dot
+            }
+            if case .note(let id) = route, let m = models[route.key] as? NoteEditorModel, !m.title.isEmpty {
+                shell.tabs[index].title = m.title
+                _ = id
             }
         }
     }

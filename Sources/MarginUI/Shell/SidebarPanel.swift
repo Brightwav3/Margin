@@ -274,6 +274,7 @@ private struct NotesPage: View {
 private struct NoteRow: View {
     let note: NotesSpace.Note
     @State private var hovered = false
+    @Environment(Workspace.self) private var workspace: Workspace?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -295,6 +296,9 @@ private struct NoteRow: View {
         .contentShape(RoundedRectangle(cornerRadius: MarginRadius.sm))
         .onHover { hovered = $0 }
         .onTapGesture { note.action?() }
+        .contextMenu {
+            if let workspace, let summary = note.summary { NoteMenuItems(note: summary).environment(workspace) }
+        }
         .modifier(FullTitleTooltip(title: note.title, detail: nil, isLong: note.title.count > 26))
     }
 }

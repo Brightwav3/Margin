@@ -166,5 +166,23 @@ struct SearchView: View {
         }
         .buttonStyle(.plain)
         .background(MarginColor.surface, in: RoundedRectangle(cornerRadius: MarginRadius.sm))
+        .contextMenu {
+            // 1q
+            MenuItem("Open", "description") { workspace.open(.note(hit.id), title: hit.title) }
+            MenuItem("Open in new tab", "open_in_new") { workspace.open(.note(hit.id), title: hit.title, newTab: true) }
+            MenuItem("Open to the right", "vertical_split") {}.disabled(true)
+            Divider()
+            MenuItem("Copy link", "link") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("[[\(hit.title)]]", forType: .string)
+            }
+            MenuItem("Reveal in sidebar", "my_location") {
+                if let c = hit.courseID, let course = workspace.courses.course(id: c) {
+                    workspace.open(course: course)
+                    workspace.shell.sidebarPage = .notes
+                    workspace.shell.sidebarCollapsed = false
+                }
+            }
+        }
     }
 }
