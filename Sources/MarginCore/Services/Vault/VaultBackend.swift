@@ -622,6 +622,41 @@ actor VaultBackend {
         }
     }
 
+    func rename(id: NoteID, to title: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet {
+        try await writeGate.withLock {
+            if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+            let new = try NoteRenaming.requireTitle(title)
+            let r = try await record(id)
+            try requireWritable(path: r.path)
+            let from = try VaultPath(r.path)
+            let (content, version) = try await store.read(from)
+            try requireBaseVersion(baseVersion, matches: version.hex, what: "Note \(id)", path: r.path)
+            let file = VaultPath.filename(fromTitle: new) + ".md"
+            let to: VaultPath = if let folder = from.parent { try folder.appending(file) } else { try VaultPath(file) }
+            // Keep the id: a note without `id:` gets its current one written down first.
+            var (fm, body) = Frontmatter.parse(content)
+            if !r.hasStableID, fm != nil { fm?.set("id", .string(id)) }
+            body = NoteRenaming.retitle(body: body, from: r.title, to: new)
+            let newContent = (fm?.render() ?? "") + body
+            if to == from && newContent == content { return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey) }
+            if to.rawValue.lowercased() != from.rawValue.lowercased(), await store.exists(to) {
+                throw MarginError.conflict("\(to) already exists")
+            }
+            let change = ChangeSet.Entry(path: to.rawValue, kind: .moved, noteID: id, fromPath: from.rawValue,
+                                         beforeHash: version.hex, afterHash: ContentHash(of: newContent).hex)
+            if dryRun { return finish(actor: actor, entries: [change], dryRun: true, key: idempotencyKey) }
+            let store = self.store
+            return try await self.runTransaction(actor: actor, key: idempotencyKey) {
+                if newContent != content { _ = try await store.write(from, content: newContent, expectedVersion: version) }
+                if to != from { try await store.rename(from, to: to) }
+                return [change]
+            }
+        }
+    }
+
+    func filePath(id: NoteID) async throws -> String { try await record(id).path }
+
     func delete(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet {
         try await writeGate.withLock {
             if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }

@@ -48,6 +48,14 @@ public struct FixtureNoteRepository: NoteRepository {
                                dryRun: dryRun, idempotencyKey: idempotencyKey)
     }
 
+    public func rename(id: NoteID, to title: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                       idempotencyKey: String?) async throws -> ChangeSet {
+        try await store.rename(id: id, to: title, actor: actor, baseVersion: baseVersion, dryRun: dryRun,
+                               idempotencyKey: idempotencyKey)
+    }
+
+    public func filePath(id: NoteID) async throws -> String { try await store.filePath(id: id) }
+
     public func move(id: NoteID, toCourse: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
                      idempotencyKey: String?) async throws -> ChangeSet {
         try await store.move(id: id, toCourse: toCourse, actor: actor, baseVersion: baseVersion, dryRun: dryRun,

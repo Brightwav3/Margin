@@ -379,6 +379,41 @@ actor FixtureStore {
         return finish(actor: actor, entries: entries, dryRun: dryRun, key: idempotencyKey)
     }
 
+    func rename(id: NoteID, to title: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) throws -> ChangeSet {
+        if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
+        try requireWritable()
+        let new = try NoteRenaming.requireTitle(title)
+        guard var note = notes[id] else { throw MarginError.notFound("No note \(id)") }
+        let version = Self.version(of: note.content)
+        try requireBaseVersion(baseVersion, matches: version, what: "Note \(id)", path: path(of: note))
+        let old = note.fileTitle
+        guard old != new else { return finish(actor: actor, entries: [], dryRun: dryRun, key: idempotencyKey) }
+        if let course = note.summary.courseID, VaultPath.filename(fromTitle: old) != VaultPath.filename(fromTitle: new),
+           fileNameTaken(new, in: course, except: id) {
+            throw MarginError.conflict("A note named \(new) already exists")
+        }
+        let from = path(of: note)
+        note.fileTitle = new
+        note.summary.title = new
+        note.body = NoteRenaming.retitle(body: note.body, from: old, to: new)
+        let entry = ChangeSet.Entry(path: path(of: note), kind: .moved, noteID: id, fromPath: from,
+                                    beforeHash: version, afterHash: Self.version(of: note.content))
+        if !dryRun {
+            notes[id] = note
+            for (other, var n) in notes where other != id {
+                let body = NoteRenaming.rewriteLinks(in: n.body, from: old, to: new)
+                if body != n.body { n.body = body; notes[other] = n }
+            }
+        }
+        return finish(actor: actor, entries: [entry], dryRun: dryRun, key: idempotencyKey)
+    }
+
+    func filePath(id: NoteID) throws -> String {
+        guard let note = notes[id] else { throw MarginError.notFound("No note \(id)") }
+        return path(of: note)
+    }
+
     func delete(id: NoteID, actor: Actor, baseVersion: String?, dryRun: Bool, idempotencyKey: String?) throws -> ChangeSet {
         if !dryRun, let cached = idempotency.lookup(actor: actor, key: idempotencyKey) { return cached }
         try requireWritable()

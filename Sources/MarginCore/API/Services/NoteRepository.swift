@@ -67,6 +67,16 @@ public protocol NoteRepository: Sendable {
     func create(course: CourseID, title: String, kind: NoteKind, text: String, actor: Actor,
                 baseVersion: String?, dryRun: Bool, idempotencyKey: String?) async throws -> ChangeSet
 
+    /// Renames a note: its file (`<title>.md` in the same folder) and its `# title` heading when the
+    /// heading was the old title. The id stays. Links `[[Old title]]` in other notes are rewritten
+    /// (vault, with `Settings.rewriteLinksOnRename`). `.conflict` when the folder already has a note
+    /// of that name, `.invalid` for an empty title. Renaming to the same title is an empty `ChangeSet`.
+    func rename(id: NoteID, to title: String, actor: Actor, baseVersion: String?, dryRun: Bool,
+                idempotencyKey: String?) async throws -> ChangeSet
+
+    /// The note's file, relative to the vault (`Fall 2026/Cell Biology/Lecture 8.md`).
+    func filePath(id: NoteID) async throws -> String
+
     /// Moves a note to another course. The id stays; links to the note are rewritten.
     /// Moving to the note's own course returns an empty `ChangeSet`.
     func move(id: NoteID, toCourse: CourseID, actor: Actor, baseVersion: String?, dryRun: Bool,
