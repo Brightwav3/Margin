@@ -121,19 +121,17 @@ Mockup je nemá; vzhled navrhne M7 a schválí se v CP1.
 **Alternativy:** `--snap` přímo v aplikaci (zápis jen do kontejneru), `screencapture` okna.
 **Důsledky / riziko:** snímek vzniká z `NSHostingView` bez okenního rámu; AppKit pohledy, které se kreslí jen v klíčovém okně, se mohou lišit od živé aplikace.
 
-### D-023 · 2026-09-30 · Přijato — Vnitřní agent jako Claudian (lokální CLI nad vaultem)
-**Rozhodnutí:** záložka Agent v inspektoru funguje jako Obsidian plugin [Claudian](https://github.com/yishentu/claudian): spouští lokální CLI agenta (Claude Code, Codex CLI, případně další) s vaultem jako pracovní složkou; agent čte, zapisuje, hledá a spouští příkazy vlastními nástroji. Margin dodává UI (chat v inspektoru, inline úprava s náhledem změn, `/` příkazy a skills, `@` zmínky souborů, víc konverzací). Nahrazuje vlastní `AgentService` nad Claude API (§8 v `10-agent-native.md`) a mění Q8.
-**Důvod:** rozhodnutí uživatele (2026-09-30), zvolena varianta „čistý Claudian“ před CLI omezeným na MCP Marginu a před vlastním API adaptérem.
-**Alternativy:** CLI s přímými souborovými nástroji vypnutými a zápisy jen přes MCP Marginu (zachová oprávnění/undo/audit); vlastní `AgentService` nad Claude API s klíčem v Keychainu.
-**Důsledky / riziko:** aplikace nesmí běžet v App Sandboxu (spouštění `claude`/`codex`), distribuce jen mimo Mac App Store (Developer ID + notarizace, Q7). Zápisy vnitřního agenta jdou mimo `ToolRegistry`, schvalovací frontu, `ChangeSet` a undo z MA0/MA2; Margin je vidí jen jako externí změny souborů (file watcher, historie verzí). Vnější agenti přes MCP/CLI (MA1–MA2) zůstávají beze změny. Riziko R-22.
-
----
-
 ### D-022 · 2026-09-30 · Přijato — Editor na TextKit 1 se skrytými glyfy
 **Rozhodnutí:** `MarkdownTextView` je `NSTextView` na TextKit 1 (`NSLayoutManager`). Live a reading režim skrývají syntaxi Markdownu mimo aktivní blok nulovými glyfy (`NSLayoutManagerDelegate`, atribut `margin.hidden`), zaškrtávací políčka úkolů kreslí textové pole přes neviditelné `[ ]`. Styling dělá `MarkdownStyler` nad inkrementálním `MarkdownTokenizer` jen pro přetokenizované řádky a bloky, do kterých kurzor vstoupil nebo odkud odešel.
 **Důvod:** TextKit 2 neumí znaky vynechat z layoutu bez vlastních fragmentů; nulové glyfy v TextKit 1 jsou ověřená cesta (Obsidian-like live preview), kurzor a výběr zůstávají v původním textu, undo je nativní.
 **Alternativy:** TextKit 2 s vlastním `NSTextLayoutFragment` (výrazně složitější, riziko skoků kurzoru); WebView editor (mimo D-007).
 **Důsledky / riziko:** plán M6-01 počítal s TextKit 2; výkon 10 000 slov ověřit v M6-16.U / M12-02. Text pole se nescrolluje samo (výška podle obsahu ve SwiftUI `ScrollView`), aby vlastnosti a nadpis scrollovaly s textem.
+
+### D-023 · 2026-09-30 · Přijato — Vnitřní agent jako Claudian (lokální CLI nad vaultem)
+**Rozhodnutí:** záložka Agent v inspektoru funguje jako Obsidian plugin [Claudian](https://github.com/yishentu/claudian): spouští lokální CLI agenta (Claude Code, Codex CLI, případně další) s vaultem jako pracovní složkou; agent čte, zapisuje, hledá a spouští příkazy vlastními nástroji. Margin dodává UI (chat v inspektoru, inline úprava s náhledem změn, `/` příkazy a skills, `@` zmínky souborů, víc konverzací). Nahrazuje vlastní `AgentService` nad Claude API (§8 v `10-agent-native.md`) a mění Q8.
+**Důvod:** rozhodnutí uživatele (2026-09-30), zvolena varianta „čistý Claudian“ před CLI omezeným na MCP Marginu a před vlastním API adaptérem.
+**Alternativy:** CLI s přímými souborovými nástroji vypnutými a zápisy jen přes MCP Marginu (zachová oprávnění/undo/audit); vlastní `AgentService` nad Claude API s klíčem v Keychainu.
+**Důsledky / riziko:** aplikace nesmí běžet v App Sandboxu (spouštění `claude`/`codex`), distribuce jen mimo Mac App Store (Developer ID + notarizace, Q7). Zápisy vnitřního agenta jdou mimo `ToolRegistry`, schvalovací frontu, `ChangeSet` a undo z MA0/MA2; Margin je vidí jen jako externí změny souborů (file watcher, historie verzí). Vnější agenti přes MCP/CLI (MA1–MA2) zůstávají beze změny. Riziko R-22.
 
 ---
 
