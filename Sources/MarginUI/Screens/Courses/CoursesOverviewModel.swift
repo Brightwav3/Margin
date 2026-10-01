@@ -51,8 +51,8 @@ public final class CoursesOverviewModel {
 
         public static func of(kind: String) -> KindGroup {
             switch kind.lowercased() {
-            case "lab", "tutorial", "practical": .labs
-            case "seminar": .seminars
+            case "lab", "tutorial", "practical", "cvičení", "laboratoř", "praktikum": .labs
+            case "seminar", "seminář": .seminars
             default: .lectures
             }
         }

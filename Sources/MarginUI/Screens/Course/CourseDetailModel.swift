@@ -347,8 +347,12 @@ public final class CourseDetailModel {
     // MARK: Writes
 
     /// Creates an empty study note and returns it.
-    public func createNote(title: String = "Untitled") async throws -> NoteSummary? {
-        let change = try await env.notes.create(course: courseID, title: title, kind: .study, text: "# \(title)\n\n",
+    public func createNote(title: String = "Untitled", kind: NoteKind = .study, body: String = "") async throws -> NoteSummary? {
+        var name = title
+        var n = 2
+        while notes.contains(where: { $0.title == name }) { name = "\(title) \(n)"; n += 1 }
+        let title = name
+        let change = try await env.notes.create(course: courseID, title: title, kind: kind, text: "# \(title)\n\n" + body,
                                                 actor: .user, baseVersion: nil, dryRun: false, idempotencyKey: nil)
         await load()
         let created = change.entries.first?.noteID

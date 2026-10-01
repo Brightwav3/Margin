@@ -35,12 +35,10 @@ struct NoteMenuButton: View {
         sep
         later("Split right"); later("Split down"); later("Open in new window")
         sep
-        row("Rename…", disabled: true, help: "Edit the title line (# …) to rename the note")
-        row("Move file to…", disabled: note == nil) { if let note { workspace.dialog = .moveNote(note) } }
-        later("Bookmark…")
-        row("Add file property", disabled: model.isDraft) {
-            Task { await model.setProperty("new property", .string("")) }
-        }
+        row("Rename…", shortcut: "F2", disabled: note == nil) { if let note { workspace.dialog = .renameNote(note) } }
+        row("Move to…", shortcut: "⌘⇧M", disabled: note == nil) { if let note { workspace.dialog = .moveNote(note) } }
+        later("Bookmark…"); later("Merge with…")
+        row("Add property", disabled: model.isDraft) { workspace.addPropertyToCurrentNote() }
         row("Export to PDF…", disabled: note == nil) { if let note { workspace.dialog = .share(note) } }
         sep
         row("Find…", shortcut: "⌘F") { handle.focus(); handle.textView?.performTextFinderAction(findItem(.showFindInterface)) }
@@ -48,21 +46,18 @@ struct NoteMenuButton: View {
             handle.focus(); handle.textView?.performTextFinderAction(findItem(.showReplaceInterface))
         }
         sep
-        row("Copy path", disabled: note == nil) {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(note?.id ?? "", forType: .string)
-            workspace.show("Path copied")
-        }
+        row("Copy file path", disabled: note == nil) { if let note { workspace.copyFilePath(note) } }
+        row("Copy link", disabled: note == nil) { if let note { workspace.copyLink(to: note) } }
         sep
         row("Open version history", disabled: model.noteID == nil) { if let id = model.noteID { workspace.dialog = .history(id) } }
         row("Open linked view") { if let id = model.noteID { workspace.openLocalGraph(id) } else { workspace.open(.graph) } }
         sep
-        row("Reveal in Finder", disabled: true, help: "Needs the note's file path from the backend contract")
-        row("Reveal file in navigation") { workspace.shell.sidebarPage = .notes; workspace.shell.sidebarCollapsed = false }
+        row("Reveal in Finder", disabled: note == nil || workspace.vaultURL == nil) { if let note { workspace.revealInFinder(note) } }
+        row("Reveal in sidebar") { workspace.shell.sidebarPage = .notes; workspace.shell.sidebarCollapsed = false }
         sep
         row("Ask agent about this note", disabled: true, help: "The in-app agent comes in a later version")
         sep
-        row("Delete file", destructive: true, disabled: note == nil) { if let note { workspace.requestDelete(note) } }
+        row("Delete note", destructive: true, disabled: note == nil) { if let note { workspace.requestDelete(note) } }
     }
 
     private func findItem(_ action: NSTextFinder.Action) -> NSMenuItem {

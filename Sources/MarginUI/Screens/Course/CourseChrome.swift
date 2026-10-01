@@ -44,9 +44,10 @@ extension Workspace {
         return PageChrome(sidebar: sidebar, inspector: courseInspector(m))
     }
 
-    func newNote(in m: CourseDetailModel) {
+    func newNote(in m: CourseDetailModel, title: String = "Untitled", kind: NoteKind = .study, body: String = "") {
         perform("New note") { [weak self] in
-            if let note = try await m.createNote() { self?.open(note: note) }
+            if !m.isLoaded { await m.load() }
+            if let note = try await m.createNote(title: title, kind: kind, body: body) { self?.open(note: note) }
         }
     }
 
@@ -56,13 +57,20 @@ extension Workspace {
         let today = env.clock.today
         let monday = today.startOfWeek
         let active = route
-        var groups: [(String, [NotesSpace.Note])] = [("This week", []), ("Last week", []), ("Earlier", [])]
+        var groups: [(String, [NotesSpace.Note])] = notesSort == .name ? [("All notes", [])]
+            : [("This week", []), ("Last week", []), ("Earlier", [])]
+        if notesSort == .oldest { groups.reverse() }
         let sorted = m.notes.filter { !$0.isPlaceholder }.sorted {
-            ($0.date ?? $0.modified?.date ?? today) > ($1.date ?? $1.modified?.date ?? today)
+            switch notesSort {
+            case .name: $0.title.localizedStandardCompare($1.title) == .orderedAscending
+            case .newest: ($0.date ?? $0.modified?.date ?? today) > ($1.date ?? $1.modified?.date ?? today)
+            case .oldest: ($0.date ?? $0.modified?.date ?? today) < ($1.date ?? $1.modified?.date ?? today)
+            }
         }
         for note in sorted {
             let date = note.date ?? note.modified?.date ?? today
-            let index = date >= monday ? 0 : date >= monday.adding(days: -7) ? 1 : 2
+            let week = date >= monday ? 0 : date >= monday.adding(days: -7) ? 1 : 2
+            let index = notesSort == .name ? 0 : notesSort == .oldest ? 2 - week : week
             let item = NotesSpace.Note(note.title, snippet: note.snippet, time: CoursesFormat.weekday(date.weekday),
                                        isSelected: active == .note(note.id), summary: note) { [weak self] in self?.open(note: note) }
             groups[index].1.append(item)

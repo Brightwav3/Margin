@@ -1,3 +1,4 @@
+import MarginCore
 import SwiftUI
 
 /// Left panel inside the content card. Without a Notes space it is 220 px; with one it is
@@ -76,8 +77,11 @@ private struct NavigationPage: View {
             }
             .padding(EdgeInsets(top: 4, leading: 8, bottom: 8, trailing: 8))
 
-            SidebarActionButton(title: content.actionTitle, icon: content.actionIcon, key: content.actionKey,
-                                action: content.onAction)
+            HStack(spacing: 4) {
+                SidebarActionButton(title: content.actionTitle, icon: content.actionIcon, key: content.actionKey,
+                                    action: content.onAction)
+                if let course = content.courseID { NewNoteMenu(courseID: course) }
+            }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -93,9 +97,51 @@ private struct NavigationPage: View {
                 }
             }
             .scrollIndicators(.never)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .contentShape(Rectangle())
+            .contextMenu { SidebarBackgroundMenu() }
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 10)
+    }
+}
+
+/// 1n: right-click on empty space in the sidebar.
+private struct SidebarBackgroundMenu: View {
+    @Environment(Workspace.self) private var workspace: Workspace?
+
+    var body: some View {
+        if let workspace {
+            MenuItem("New note", "edit_square") { workspace.run(command: "new-note") }.keyboardShortcut("n")
+            MenuItem("New folder", "create_new_folder") {}.disabled(true)
+            MenuItem("New course…", "school") { workspace.dialog = .newCourse }
+            Divider()
+            MenuItem("Import syllabus…", "upload_file") { workspace.run(command: "syllabus") }
+                .disabled(workspace.courses.cards.isEmpty)
+            MenuItem("Import Markdown files…", "drive_folder_upload") { workspace.importMarkdownFiles() }
+                .disabled(workspace.courses.cards.isEmpty)
+            Divider()
+            Menu {
+                ForEach(CourseListQuery.SortKey.allCases, id: \.self) { key in
+                    Button { workspace.courses.sort = key } label: {
+                        if workspace.courses.sort == key { Label(key.menuTitle, systemImage: "checkmark") } else { Text(key.menuTitle) }
+                    }
+                }
+            } label: { Label { Text("Sort courses") } icon: { MenuIcons.image("sort") } }
+            Divider()
+            MenuItem("Show archived semesters", "inventory_2") { workspace.open(.archive) }
+        }
+    }
+}
+
+extension CourseListQuery.SortKey {
+    var menuTitle: String {
+        switch self {
+        case .name: "Name"
+        case .code: "Code"
+        case .nextSession: "Next class"
+        case .dueCount: "Open tasks"
+        }
     }
 }
 
@@ -203,6 +249,29 @@ private struct NotesPage: View {
     let notes: NotesSpace
     let onBack: () -> Void
     @State private var filter = "All"
+    @Environment(Workspace.self) private var workspace: Workspace?
+
+    /// 1b: New note, Sort notes ▸.
+    @ViewBuilder private var notesMenu: some View {
+        MenuItem("New note", "edit_square") { notes.onNew?() }
+        MenuItem("New folder", "create_new_folder") {}.disabled(true)
+        Divider()
+        if let workspace {
+            Menu {
+                Section("Sort by") {
+                    sortButton("Date (newest first)", .newest, workspace)
+                    sortButton("Date (oldest first)", .oldest, workspace)
+                    sortButton("Name", .name, workspace)
+                }
+            } label: { Label { Text("Sort notes") } icon: { MenuIcons.image("sort") } }
+        }
+    }
+
+    private func sortButton(_ title: String, _ sort: Workspace.NotesSort, _ workspace: Workspace) -> some View {
+        Button { workspace.notesSort = sort } label: {
+            if workspace.notesSort == sort { Label(title, systemImage: "checkmark") } else { Text(title) }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -222,6 +291,7 @@ private struct NotesPage: View {
             HStack(spacing: 8) {
                 Icon("description", size: 18, color: MarginColor.ink)
                 Text("Notes").marginFont(MarginTextSize.md, .semibold)
+                    .contextMenu { notesMenu }
                 Spacer(minLength: 0)
                 Button { notes.onNew?() } label: {
                     Icon("add", size: 20, color: MarginColor.textSecondary).contentShape(Rectangle())
@@ -346,5 +416,39 @@ private struct SpaceSwitcher: View {
         .glassEffect(on ? .regular.tint(bg).interactive() : .regular.interactive(), in: Circle())
         .help(name)
         .animation(.easeOut(duration: 0.2), value: on)
+    }
+}
+
+
+/// 2f: the split part of „New lecture note“: which kind of note to create.
+private struct NewNoteMenu: View {
+    let courseID: String
+    @Environment(Workspace.self) private var workspace: Workspace?
+
+    var body: some View {
+        Menu {
+            if let workspace {
+                let m = workspace.courseModel(courseID)
+                MenuItem("Lecture note", "school") { workspace.newLectureNote() }
+                MenuItem("Blank note", "note") { workspace.newNote(in: m) }.keyboardShortcut("n")
+                MenuItem("Study note", "menu_book") { workspace.newNote(in: m, title: "Study note", kind: .study) }
+                MenuItem("Lab report", "science") {
+                    workspace.newNote(in: m, title: "Lab report", kind: .lab,
+                                      body: "## Aim\n\n## Method\n\n## Results\n\n## Discussion\n")
+                }
+                MenuItem("Seminar note", "groups") {
+                    workspace.newNote(in: m, title: "Seminar", kind: .seminar, body: "## Readings\n\n## Discussion\n\n## Questions\n")
+                }
+                Divider()
+                MenuItem("From template…", "dashboard_customize") {}.disabled(true)
+                MenuItem("Quick capture", "bolt") { workspace.capture.open() }
+            }
+        } label: {
+            Icon("expand_more", size: 16, color: MarginColor.textSecondary)
+                .frame(width: 30, height: 34)
+                .background(MarginColor.hover, in: RoundedRectangle(cornerRadius: 10))
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+        .marginTooltip("More kinds of notes")
     }
 }

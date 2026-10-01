@@ -196,6 +196,16 @@ struct CourseGradesView: View {
             }
             ForEach(GradeGroups.make(course: model.course, grades: model.grades), id: \.label) { part in
                 GradePartRow(part: part)
+                    .contextMenu {
+                        // 1p (grades can be added; editing and clearing need a grade update service)
+                        MenuItem("Enter a grade…", "edit") { workspace.dialog = .grade(model.courseID) }
+                        MenuItem("Change weight…", "percent") {
+                            if let c = model.course { workspace.dialog = .courseSettings(c) }
+                        }
+                        Divider()
+                        MenuItem("All grades", "bar_chart") { workspace.open(.grades) }
+                        MenuItem("Clear grade", "backspace", role: .destructive) {}.disabled(true)
+                    }
             }
             if let g = model.grade {
                 Text("Grade so far: \(g.letter) · \(g.percent)%")
