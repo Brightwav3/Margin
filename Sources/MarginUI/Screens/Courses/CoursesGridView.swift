@@ -104,7 +104,7 @@ struct CoursesGridView: View {
     private func grid(_ cards: [CourseCardData]) -> some View {
         EqualColumnsLayout(minWidth: Self.minCardWidth, maxColumns: 3, spacing: Self.gap) {
             ForEach(cards) { card in
-                CourseCard(data: card, isSelected: card.id == selected) {
+                CourseCard(data: card, banner: model.banners[card.id], isSelected: card.id == selected) {
                     selected = card.id
                     onOpen(card.course)
                 }

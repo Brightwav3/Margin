@@ -761,6 +761,10 @@ struct CourseMenuItems: View {
         Button("Course settings…") { workspace.dialog = .courseSettings(course) }
         Button("Rename…") { workspace.dialog = .renameCourse(course) }
         Button("Change colour and icon") { workspace.dialog = .courseStyle(course) }
+        Button("Change banner…") { workspace.chooseBanner(for: course) }
+        if workspace.courses.banners[course.id] != nil {
+            Button("Remove banner") { workspace.setBanner(nil, for: course) }
+        }
         Button("Import syllabus…") { workspace.dialog = .syllabus(course.id) }
         Button("Enter a grade…") { workspace.dialog = .grade(course.id) }
         Divider()

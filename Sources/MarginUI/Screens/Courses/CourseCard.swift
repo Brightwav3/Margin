@@ -1,3 +1,4 @@
+import AppKit
 import MarginCore
 import SwiftUI
 
@@ -6,6 +7,8 @@ import SwiftUI
 /// the next class with a clock icon. Selected cards get the 1.5 px blue border.
 struct CourseCard: View {
     let data: CourseCardData
+    /// The course's banner image (M3-05); `nil`: the course colour.
+    var banner: NSImage?
     var isSelected = false
     var onOpen: () -> Void = {}
 
@@ -13,9 +16,18 @@ struct CourseCard: View {
         let style = data.course.style
         Card(padding: 0, interactive: true, selected: isSelected) {
             VStack(alignment: .leading, spacing: 0) {
-                // Banner image (M3-05) will fill this slot; until then the course colour.
+                // The banner image (M3-05) fills the slot, else the course colour.
                 Color(hexString: style.background)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 92)
+                    .overlay {
+                        if let banner {
+                            Image(nsImage: banner).resizable().scaledToFill()
+                                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .clipped()
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top, spacing: 12) {

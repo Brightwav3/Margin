@@ -1,3 +1,4 @@
+import AppKit
 import MarginCore
 import Testing
 @testable import MarginUI
@@ -53,5 +54,29 @@ import Testing
         #expect(w.courses.semesters.contains { $0.name == "Jaro 2027" })
         #expect(w.semestersSection.items.contains { $0.title == "Jaro 2027" })
         #expect(w.semestersSection.items.last?.title == "New semester…")
+    }
+}
+
+/// M3-05.U: a banner picked for a course shows on its card and survives a reload.
+@MainActor @Suite struct CourseBannerTests {
+    private static func png() -> Data {
+        let image = NSImage(size: NSSize(width: 40, height: 10), flipped: false) { r in NSColor.systemTeal.setFill(); r.fill(); return true }
+        let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
+        return rep.representation(using: .png, properties: [:])!
+    }
+
+    @Test func bannerIsShownAndRemoved() async throws {
+        let w = Workspace(env: .fixture())
+        await w.courses.load()
+        let bio = try #require(w.courses.course(id: "bio"))
+        #expect(w.courses.banners["bio"] == nil)
+        w.setBanner(Self.png(), for: bio)
+        for _ in 0..<50 where w.courses.banners["bio"] == nil { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(w.courses.banners["bio"] != nil)
+        await w.courses.load()
+        #expect(w.courses.banners["bio"] != nil)
+        w.setBanner(nil, for: bio)
+        for _ in 0..<50 where w.courses.banners["bio"] != nil { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(w.courses.banners["bio"] == nil)
     }
 }
