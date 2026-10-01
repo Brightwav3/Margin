@@ -102,7 +102,7 @@ struct NewCourseDialog: View {
                                     usedKeys: Set(workspace.courses.cards.map(\.course.style.color)))
     }
     private var chosenColor: String {
-        color ?? CoursePalette.keys.first { k in !workspace.courses.cards.contains { $0.course.style.color == k } } ?? CoursePalette.keys.first ?? "bio"
+        color ?? CoursePalette.orderedKeys.first { k in !workspace.courses.cards.contains { $0.course.style.color == k } } ?? CoursePalette.orderedKeys.first ?? "bio"
     }
     private var style: CourseStyle { CoursePalette.style(icon: icon ?? suggestion.icon, color: chosenColor) }
 
@@ -113,29 +113,10 @@ struct NewCourseDialog: View {
                 TextField("Course name", text: $name)
                     .textFieldStyle(.plain).marginFont(MarginTextSize.lg, .semibold)
             }
-            VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(text: "Colour")
-                HStack(spacing: 8) {
-                    ForEach(CoursePalette.keys, id: \.self) { key in
-                        let s = CoursePalette.style(icon: "", color: key)
-                        Button { color = key } label: {
-                            Circle().fill(Color(hexString: s.dot)).frame(width: 22, height: 22)
-                                .overlay { if key == chosenColor { Circle().strokeBorder(.white, lineWidth: 2).padding(2) } }
-                        }
-                        .buttonStyle(.plain).help(key)
-                    }
-                }
-                HStack(spacing: 6) {
-                    ForEach([suggestion.icon] + suggestion.alternatives, id: \.self) { i in
-                        Button { icon = i } label: {
-                            Icon(i, size: 18, color: (icon ?? suggestion.icon) == i ? MarginColor.accentText : MarginColor.textSecondary)
-                                .frame(width: 32, height: 32)
-                                .background((icon ?? suggestion.icon) == i ? MarginColor.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 8))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
+            CourseStylePicker(courseName: name,
+                              color: Binding(get: { chosenColor }, set: { color = $0 }),
+                              icon: Binding(get: { icon ?? suggestion.icon }, set: { icon = $0 }),
+                              usedKeys: Set(workspace.courses.cards.map(\.course.style.color)))
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) { FieldLabel(text: "Code"); MarginField(placeholder: "PHIL 214", text: $code) }
                 VStack(alignment: .leading, spacing: 6) { FieldLabel(text: "Lecturer"); MarginField(placeholder: "Optional", text: $lecturer) }
@@ -685,31 +666,17 @@ struct CourseStyleDialog: View {
     @State private var icon = ""
 
     var body: some View {
-        let s = CourseIconSuggester.suggest(name: course.name, usedKeys: [])
-        DialogCard(title: "Colour and icon", width: 420) {
+        DialogCard(title: "Colour and icon", width: 440) {
             HStack(spacing: 14) {
                 CourseTile(style: CoursePalette.style(icon: icon, color: color), size: 52)
-                Text(course.name).marginFont(MarginTextSize.md, .semibold)
-            }
-            HStack(spacing: 8) {
-                ForEach(CoursePalette.keys, id: \.self) { key in
-                    Button { color = key } label: {
-                        Circle().fill(Color(hexString: CoursePalette.style(icon: "", color: key).dot)).frame(width: 24, height: 24)
-                            .overlay { if key == color { Circle().strokeBorder(.white, lineWidth: 2).padding(2) } }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(course.name).marginFont(MarginTextSize.md, .semibold).lineLimit(2)
+                    if !course.code.isEmpty {
+                        Text(course.code).marginFont(MarginTextSize.sm).foregroundStyle(MarginColor.textSecondary)
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            HStack(spacing: 6) {
-                ForEach(Array(Set([course.style.icon, s.icon] + s.alternatives)).sorted(), id: \.self) { i in
-                    Button { icon = i } label: {
-                        Icon(i, size: 18, color: i == icon ? MarginColor.accentText : MarginColor.textSecondary)
-                            .frame(width: 34, height: 34)
-                            .background(i == icon ? MarginColor.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 8))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            CourseStylePicker(courseName: course.name, color: $color, icon: $icon)
         } footer: {
             MarginButton("Cancel") { workspace.dialog = nil }
             MarginButton("Save", kind: .primary) {

@@ -84,6 +84,7 @@ public enum MarginScreens {
         MarginScreen("screens/1g", "Settings", milestone: "M11") { AnyView(WorkspaceView(env: .fixture(), start: .settings)) },
         MarginScreen("menus/3", "Tooltips and hover cards (3a–3h)", milestone: "M10d") { AnyView(MenusSheet()) },
         MarginScreen("course-icons", "Course icons: generator (proposal)", milestone: "M3") { AnyView(CourseIconSheet()) },
+        MarginScreen("course-style", "Course colour, icon or emoji picker", milestone: "M10") { AnyView(CourseStyleSheet()) },
     ]
 
     public static func screen(id: String) -> MarginScreen? { all.first { $0.id == id } }

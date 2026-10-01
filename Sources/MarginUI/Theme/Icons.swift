@@ -1,4 +1,5 @@
 import Foundation
+import MarginCore
 import Synchronization
 import SwiftUI
 
@@ -162,7 +163,21 @@ public struct Icon: View {
         self.color = color
     }
 
+    /// Whether `name` is one emoji rather than an icon name (a course icon can be either).
+    nonisolated public static func isEmoji(_ name: String) -> Bool { CoursePalette.isEmoji(name) }
+
     public var body: some View {
+        if Self.isEmoji(name) {
+            Text(name)
+                .font(.system(size: size * 0.86))
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            glyphView
+        }
+    }
+
+    @ViewBuilder private var glyphView: some View {
         let glyph = MarginIcons.lucideName(for: name).flatMap { LucideIcons.shared.glyph($0) }
         let scale = size / 24
         let transform = CGAffineTransform(scaleX: scale, y: scale)
