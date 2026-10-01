@@ -54,6 +54,16 @@ enum MarkdownStyler {
         return MarginFonts.nsFont(size: size, weight: w)
     }
 
+    /// Yellow of `==highlight==` (Obsidian's text highlight).
+    static let highlightFill = NSColor(srgbRed: 1, green: 0.91, blue: 0.4, alpha: 0.45)
+
+    /// Serif italic for formulas, until real TeX rendering.
+    static func mathFont(size: CGFloat) -> NSFont {
+        let base = NSFont(name: "STIXTwoMath-Regular", size: size * scale) ?? NSFont(name: "Times New Roman", size: size * scale)
+            ?? .systemFont(ofSize: size * scale)
+        return NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
+    }
+
     static func mono(_ size: CGFloat = sourceSize, bold: Bool = false) -> NSFont {
         let size = size * scale
         return NSFont.monospacedSystemFont(ofSize: size, weight: bold ? .semibold : .regular)
@@ -102,7 +112,6 @@ enum MarkdownStyler {
             }
             style(token.kind, r, storage, text, mode, isActive(r, active))
         }
-        if mode != .source { styleFootnotes(storage, text, range, tokens: tokens) }
     }
 
     private static func isActive(_ r: NSRange, _ active: MarkdownRange?) -> Bool {
@@ -269,6 +278,43 @@ enum MarkdownStyler {
         case .horizontalRule:
             s.addAttributes([.foregroundColor: tertiary, .strikethroughStyle: NSUnderlineStyle.single.rawValue,
                              .strikethroughColor: NSColor(MarginColor.border)], range: r)
+        case .highlight:
+            s.addAttribute(.backgroundColor, value: highlightFill, range: r)
+            if !source { delimiters(r, 2, marker) }
+        case .comment, .commentLine:
+            // Visible while editing, grey; gone in reading view (Obsidian).
+            if mode == .reading { hideLine(r, s, text) } else {
+                s.addAttribute(.foregroundColor, value: tertiary, range: r)
+                if kind == .comment, !source { s.addAttribute(.foregroundColor, value: dim, range: NSRange(location: r.location, length: 2)) }
+            }
+        case .commentFence:
+            if mode == .reading { hideLine(r, s, text) } else { s.addAttribute(.foregroundColor, value: dim, range: r) }
+        case .inlineMath:
+            s.addAttributes([.font: mathFont(size: bodySize), .foregroundColor: ink], range: r)
+            if !source && r.length >= 2 {
+                marker(NSRange(location: r.location, length: 1))
+                marker(NSRange(location: NSMaxRange(r) - 1, length: 1))
+            }
+        case .mathFence:
+            if source { s.addAttribute(.foregroundColor, value: tertiary, range: r) }
+            else if active && mode == .live { s.addAttribute(.foregroundColor, value: dim, range: r) }
+            else { hideLine(r, s, text) }
+        case .mathLine:
+            if source { s.addAttribute(.font, value: mono(), range: r) } else {
+                let p = paragraph(lineHeight: 1.6, size: bodySize).mutableCopy() as! NSMutableParagraphStyle
+                p.alignment = .center
+                s.addAttributes([.font: mathFont(size: bodySize + 1), .paragraphStyle: p], range: text.lineRange(for: r))
+            }
+        case .escape:
+            if !source { marker(NSRange(location: r.location, length: 1)) }
+        case .footnoteRef(let definition):
+            if definition {
+                s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(.medium, size: 14)], range: r)
+            } else {
+                s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(.medium, size: 12), .baselineOffset: 6 * scale], range: r)
+            }
+        case .inlineFootnote:
+            s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(size: 14)], range: r)
         }
     }
 
@@ -288,24 +334,6 @@ enum MarkdownStyler {
         p.tabStops = []
         p.headIndent = width(prefix.replacingOccurrences(of: "\t", with: "    "))
         s.addAttribute(.paragraphStyle, value: p, range: line)
-    }
-
-    /// `[^1]` footnote references in grey, small and raised; `[^1]:` definitions with a grey label.
-    static func styleFootnotes(_ s: NSTextStorage, _ text: NSString, _ range: NSRange, tokens: [MarkdownToken]) {
-        guard let regex = try? NSRegularExpression(pattern: #"\[\^[^\]\s]+\]:?"#) else { return }
-        let code = tokens.filter {
-            switch $0.kind { case .inlineCode, .codeLine, .indentedCodeLine, .frontmatter: true; default: false }
-        }.map { NSRange(location: $0.range.location, length: $0.range.length) }
-        for m in regex.matches(in: text as String, range: range) {
-            let r = m.range
-            if code.contains(where: { NSIntersectionRange($0, r).length > 0 }) { continue }
-            let isDefinition = text.substring(with: r).hasSuffix(":") && text.lineRange(for: r).location == r.location
-            if isDefinition {
-                s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(.medium, size: 14)], range: r)
-            } else {
-                s.addAttributes([.foregroundColor: tertiary, .font: bodyFont(.medium, size: 12), .baselineOffset: 6 * scale], range: r)
-            }
-        }
     }
 
     /// Blank lines between blocks are short in live and reading (the mockup's block margins), full in source.
